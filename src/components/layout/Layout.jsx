@@ -1,26 +1,36 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { Box, Container } from '@mui/material';
 import Header from './Header';
 import Footer from './Footer';
 
 const Layout = ({ children }) => {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
         minHeight: '100vh',
+        overflow: 'hidden' // Prevent horizontal scrolling
       }}
     >
       <Header />
-      <Box
-        component="main"
-        sx={{
-          flex: 1,
-          py: 3,
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1, 
+          py: { xs: 2, md: 3 },
+          overflow: 'hidden' // Prevent horizontal overflow
         }}
       >
-        {children}
+        <Container 
+          maxWidth="xl" 
+          sx={{ 
+            px: { xs: 1, sm: 2, md: 3 },
+            overflow: 'hidden' // Prevent horizontal overflow in container
+          }}
+        >
+          {children}
+        </Container>
       </Box>
       <Footer />
     </Box>

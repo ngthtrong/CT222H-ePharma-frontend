@@ -1,269 +1,243 @@
 import React, { useState } from 'react';
 import {
-  Container,
+  Box,
   Paper,
   TextField,
   Button,
   Typography,
-  Box,
-  Link as MuiLink,
-  Grid,
-  FormControlLabel,
-  Checkbox,
+  Link,
   Divider,
   IconButton,
-  InputAdornment,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import GoogleIcon from '@mui/icons-material/Google';
-import FacebookIcon from '@mui/icons-material/Facebook';
+import {
+  Google as GoogleIcon,
+  Facebook as FacebookIcon,
+  Visibility,
+  VisibilityOff,
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    fullName: '',
     email: '',
-    phone: '',
     password: '',
     confirmPassword: '',
-    agreeToTerms: false,
+    agreeTerms: false,
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value,
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO: Implement registration logic
-    console.log('Registration data:', formData);
-    // Temporary redirect to login page
+    if (formData.password !== formData.confirmPassword) {
+      alert('Mật khẩu xác nhận không khớp!');
+      return;
+    }
+    if (!formData.agreeTerms) {
+      alert('Vui lòng đồng ý với điều khoản sử dụng!');
+      return;
+    }
+    console.log('Register data:', formData);
+    // TODO: Implement register logic
+  };
+
+  const handleLoginClick = () => {
     navigate('/login');
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
+  const handleGoogleRegister = () => {
+    console.log('Google register');
+    // TODO: Implement Google register
   };
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
+  const handleFacebookRegister = () => {
+    console.log('Facebook register');
+    // TODO: Implement Facebook register
   };
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Box
+    <Box
+      sx={{
+        minHeight: 'calc(100vh - 200px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 4,
+      }}
+    >
+      <Paper
+        elevation={4}
         sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
+          p: 4,
+          width: '100%',
+          maxWidth: 400,
+          borderRadius: 3,
         }}
       >
-        <Paper
-          elevation={3}
-          sx={{
-            padding: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '100%',
-          }}
-        >
-          <Typography component="h1" variant="h4" gutterBottom>
-            Đăng ký tài khoản
-          </Typography>
-          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>
-            Tạo tài khoản mới để bắt đầu mua sắm
-          </Typography>
+        <Typography variant="h4" fontWeight="bold" textAlign="center" gutterBottom>
+          Đăng ký
+        </Typography>
+        
+        <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>
+          Tạo tài khoản mới để trải nghiệm WellVerse
+        </Typography>
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  id="firstName"
-                  label="Tên"
-                  name="firstName"
-                  autoComplete="given-name"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  id="lastName"
-                  label="Họ"
-                  name="lastName"
-                  autoComplete="family-name"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="email"
-                  label="Địa chỉ email"
-                  name="email"
-                  autoComplete="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="phone"
-                  label="Số điện thoại"
-                  name="phone"
-                  autoComplete="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="password"
-                  label="Mật khẩu"
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  autoComplete="new-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle password visibility"
-                          onClick={togglePasswordVisibility}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="confirmPassword"
-                  label="Xác nhận mật khẩu"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  id="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle confirm password visibility"
-                          onClick={toggleConfirmPasswordVisibility}
-                          edge="end"
-                        >
-                          {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      value="allowExtraEmails"
-                      color="primary"
-                      name="agreeToTerms"
-                      checked={formData.agreeToTerms}
-                      onChange={handleChange}
-                    />
-                  }
-                  label={
-                    <Typography variant="body2">
-                      Tôi đồng ý với{' '}
-                      <MuiLink href="#" color="primary">
-                        Điều khoản sử dụng
-                      </MuiLink>{' '}
-                      và{' '}
-                      <MuiLink href="#" color="primary">
-                        Chính sách bảo mật
-                      </MuiLink>
-                    </Typography>
-                  }
-                />
-              </Grid>
-            </Grid>
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Họ và tên"
+            name="fullName"
+            variant="outlined"
+            margin="normal"
+            value={formData.fullName}
+            onChange={handleChange}
+            required
+          />
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={!formData.agreeToTerms}
-            >
-              Đăng ký
-            </Button>
-
-            <Divider sx={{ my: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                Hoặc đăng ký với
-              </Typography>
-            </Divider>
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<GoogleIcon />}
-                  sx={{ py: 1.5 }}
+          <TextField
+            fullWidth
+            label="Email"
+            name="email"
+            type="email"
+            variant="outlined"
+            margin="normal"
+            value={formData.email}
+            onChange={handleChange}
+            required
+          />
+          
+          <TextField
+            fullWidth
+            label="Mật khẩu"
+            name="password"
+            type={showPassword ? 'text' : 'password'}
+            variant="outlined"
+            margin="normal"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            InputProps={{
+              endAdornment: (
+                <IconButton
+                  onClick={() => setShowPassword(!showPassword)}
+                  edge="end"
                 >
-                  Google
-                </Button>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<FacebookIcon />}
-                  sx={{ py: 1.5 }}
-                >
-                  Facebook
-                </Button>
-              </Grid>
-            </Grid>
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              ),
+            }}
+          />
 
-            <Box sx={{ textAlign: 'center', mt: 3 }}>
+          <TextField
+            fullWidth
+            label="Xác nhận mật khẩu"
+            name="confirmPassword"
+            type={showConfirmPassword ? 'text' : 'password'}
+            variant="outlined"
+            margin="normal"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+            InputProps={{
+              endAdornment: (
+                <IconButton
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  edge="end"
+                >
+                  {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              ),
+            }}
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                name="agreeTerms"
+                checked={formData.agreeTerms}
+                onChange={handleChange}
+                color="primary"
+              />
+            }
+            label={
               <Typography variant="body2">
-                Đã có tài khoản?{' '}
-                <MuiLink component={Link} to="/login" color="primary">
-                  Đăng nhập ngay
-                </MuiLink>
+                Tôi đồng ý với{' '}
+                <Link href="#" color="primary">
+                  điều khoản sử dụng
+                </Link>{' '}
+                và{' '}
+                <Link href="#" color="primary">
+                  chính sách bảo mật
+                </Link>
               </Typography>
-            </Box>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+            }
+            sx={{ mb: 2 }}
+          />
+
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            fullWidth
+            sx={{ mb: 3, py: 1.5 }}
+          >
+            Đăng ký
+          </Button>
+        </Box>
+
+        <Divider sx={{ my: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            Hoặc
+          </Typography>
+        </Divider>
+
+        {/* Social Register Buttons */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleRegister}
+            sx={{ py: 1.5 }}
+          >
+            Google
+          </Button>
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<FacebookIcon />}
+            onClick={handleFacebookRegister}
+            sx={{ py: 1.5, color: '#1877F2', borderColor: '#1877F2' }}
+          >
+            Facebook
+          </Button>
+        </Box>
+
+        <Typography variant="body2" textAlign="center" color="text.secondary">
+          Đã có tài khoản?{' '}
+          <Link
+            component="button"
+            variant="body2"
+            onClick={handleLoginClick}
+            sx={{ textDecoration: 'none', fontWeight: 'medium' }}
+          >
+            Đăng nhập ngay
+          </Link>
+        </Typography>
+      </Paper>
+    </Box>
   );
 };
 
