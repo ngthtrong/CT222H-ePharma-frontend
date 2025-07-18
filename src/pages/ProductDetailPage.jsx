@@ -24,7 +24,7 @@ import {
   NavigateNext as NavigateNextIcon,
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
-import { productAPI } from '../services/api';
+import { productAPI } from '../api';
 
 const ProductDetailPage = () => {
   const { id } = useParams();

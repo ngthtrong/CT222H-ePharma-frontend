@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
-import { authAPI } from '../services/api';
+import { authAPI } from '../api';
 
 const ProfilePage = () => {
   const { user } = useAuth();

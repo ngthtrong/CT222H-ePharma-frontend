@@ -1,4 +1,4 @@
-import React from 'react';
+
 import {
   Card,
   CardMedia,
@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import { AddShoppingCart as AddShoppingCartIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { cartAPI } from '../api/cartApi';
+import { cartAPI } from '../api';
 
 const ProductCard = ({ product, onAddToCart }) => {
   const navigate = useNavigate();

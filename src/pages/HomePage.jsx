@@ -35,42 +35,58 @@ const HomePage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching data...');
       
-      // Fetch featured products
-      const productsResponse = await productAPI.getProducts({ limit: 8, featured: true });
-      if (productsResponse.data && productsResponse.data.success) {
-        setFeaturedProducts(productsResponse.data.data.slice(0, 8));
-      } else {
-        setFeaturedProducts(productsResponse.data.products || productsResponse.data.slice(0, 8));
+      // Fetch all products first
+      const productsResponse = await productAPI.getProducts({ limit: 24 });
+      console.log('Products response:', productsResponse.data);
+      
+      let allProducts = [];
+      if (productsResponse.data) {
+        // Handle different response structures
+        if (productsResponse.data.success) {
+          allProducts = productsResponse.data.data || [];
+        } else if (productsResponse.data.data) {
+          allProducts = productsResponse.data.data || [];
+        } else if (Array.isArray(productsResponse.data)) {
+          allProducts = productsResponse.data;
+        } else {
+          allProducts = productsResponse.data.products || [];
+        }
       }
       
-      // Fetch discounted products
-      const discountedResponse = await productAPI.getProducts({ limit: 8, discounted: true });
-      if (discountedResponse.data && discountedResponse.data.success) {
-        setDiscountedProducts(discountedResponse.data.data.slice(0, 8));
-      } else {
-        setDiscountedProducts(discountedResponse.data.products || discountedResponse.data.slice(0, 8));
-      }
+      console.log('All products:', allProducts);
       
-      // Fetch best selling products
-      const bestSellingResponse = await productAPI.getProducts({ limit: 8, bestSelling: true });
-      if (bestSellingResponse.data && bestSellingResponse.data.success) {
-        setBestSellingProducts(bestSellingResponse.data.data.slice(0, 8));
-      } else {
-        setBestSellingProducts(bestSellingResponse.data.products || bestSellingResponse.data.slice(0, 8));
-      }
+      // Distribute products into different categories
+      setFeaturedProducts(allProducts.slice(0, 8));
+      setDiscountedProducts(allProducts.slice(8, 16));
+      setBestSellingProducts(allProducts.slice(16, 24));
       
       // Fetch categories
-      const categoriesResponse = await categoryAPI.getCategories();
-      if (categoriesResponse.data && categoriesResponse.data.success) {
-        setCategories(categoriesResponse.data.data.slice(0, 6));
-      } else {
-        setCategories(categoriesResponse.data.slice(0, 6));
+      try {
+        const categoriesResponse = await categoryAPI.getCategories();
+        console.log('Categories response:', categoriesResponse.data);
+        
+        let allCategories = [];
+        if (categoriesResponse.data) {
+          if (categoriesResponse.data.success) {
+            allCategories = categoriesResponse.data.data || [];
+          } else if (categoriesResponse.data.data) {
+            allCategories = categoriesResponse.data.data || [];
+          } else if (Array.isArray(categoriesResponse.data)) {
+            allCategories = categoriesResponse.data;
+          }
+        }
+        
+        setCategories(allCategories.slice(0, 6));
+      } catch (catError) {
+        console.error('Error fetching categories:', catError);
+        // Don't fail the whole page if categories fail
       }
       
     } catch (error) {
-      setError('Không thể tải dữ liệu trang chủ');
-      console.error('Error fetching home page data:', error);
+      console.error('Error fetching data:', error);
+      setError('Không thể tải dữ liệu trang chủ. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -90,7 +106,7 @@ const HomePage = () => {
 
   const productSliderSettings = {
     dots: false,
-    infinite: true,
+    infinite: false,
     speed: 500,
     slidesToShow: 4,
     slidesToScroll: 1,
@@ -149,6 +165,9 @@ const HomePage = () => {
     return (
       <Alert severity="error" sx={{ m: 2 }}>
         {error}
+        <Button onClick={fetchData} sx={{ ml: 2 }}>
+          Thử lại
+        </Button>
       </Alert>
     );
   }
@@ -162,7 +181,7 @@ const HomePage = () => {
             <Box key={banner.id}>
               <Paper
                 sx={{
-                  height: 400,
+                  height: { xs: 250, md: 400 },
                   backgroundImage: `url(${banner.image})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
@@ -183,11 +202,25 @@ const HomePage = () => {
                   },
                 }}
               >
-                <Box sx={{ position: 'relative', zIndex: 1 }}>
-                  <Typography variant="h2" component="h1" gutterBottom>
+                <Box sx={{ position: 'relative', zIndex: 1, p: 2 }}>
+                  <Typography 
+                    variant="h2" 
+                    component="h1" 
+                    gutterBottom
+                    sx={{ 
+                      fontSize: { xs: '2rem', md: '3rem' },
+                      fontWeight: 'bold'
+                    }}
+                  >
                     {banner.title}
                   </Typography>
-                  <Typography variant="h5" component="p">
+                  <Typography 
+                    variant="h5" 
+                    component="p"
+                    sx={{ 
+                      fontSize: { xs: '1rem', md: '1.5rem' }
+                    }}
+                  >
                     {banner.subtitle}
                   </Typography>
                 </Box>
@@ -198,92 +231,52 @@ const HomePage = () => {
       </Box>
 
       {/* Categories Section */}
-      <Container maxWidth="lg" sx={{ mb: 6 }}>
-        <Typography 
-          variant="h4" 
-          component="h2" 
-          gutterBottom 
-          textAlign="center"
-          sx={{ mb: 4 }}
-        >
-          Danh mục nổi bật
-        </Typography>
-        <Grid container spacing={2}>
-          {categories.map((category) => (
-            <Grid item xs={6} sm={4} md={2} key={category._id || category.id}>
-              <Card
-                sx={{
-                  cursor: 'pointer',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 4,
-                  },
-                  transition: 'all 0.2s ease-in-out',
-                }}
-                onClick={() => navigate(`/category/${category.slug || category._id}`)}
-              >
-                <CardMedia
-                  component="img"
-                  height="120"
-                  image={category.image || 'https://via.placeholder.com/200x120/e3f2fd/1976d2?text=Category'}
-                  alt={category.name}
-                />
-                <CardContent sx={{ p: 2 }}>
-                  <Typography variant="body2" textAlign="center" fontWeight="medium">
-                    {category.name}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+      {categories.length > 0 && (
+        <Container maxWidth="lg" sx={{ mb: 6 }}>
+          <Typography 
+            variant="h4" 
+            component="h2" 
+            gutterBottom 
+            textAlign="center"
+            sx={{ mb: 4 }}
+          >
+            Danh mục nổi bật
+          </Typography>
+          <Grid container spacing={2}>
+            {categories.map((category) => (
+              <Grid item xs={6} sm={4} md={2} key={category._id || category.id}>
+                <Card
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 4,
+                    },
+                    transition: 'all 0.2s ease-in-out',
+                  }}
+                  onClick={() => navigate(`/category/${category.slug || category._id}`)}
+                >
+                  <CardMedia
+                    component="img"
+                    height="120"
+                    image={category.image || 'https://via.placeholder.com/200x120/e3f2fd/1976d2?text=Category'}
+                    alt={category.name}
+                  />
+                  <CardContent sx={{ p: 2 }}>
+                    <Typography variant="body2" textAlign="center" fontWeight="medium">
+                      {category.name}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      )}
 
       {/* Product Sliders */}
       <Container maxWidth="lg" sx={{ mb: 6 }}>
-        {/* Hot Deals Slider */}
-        {discountedProducts.length > 0 && (
-          <Box sx={{ mb: 6 }}>
-            <Typography 
-              variant="h4" 
-              component="h2" 
-              gutterBottom 
-              sx={{ mb: 3 }}
-            >
-              Khuyến mãi hot
-            </Typography>
-            <Slider {...productSliderSettings}>
-              {discountedProducts.map((product) => (
-                <Box key={product._id || product.id} sx={{ px: 1 }}>
-                  <ProductCard product={product} />
-                </Box>
-              ))}
-            </Slider>
-          </Box>
-        )}
-
-        {/* Best Selling Slider */}
-        {bestSellingProducts.length > 0 && (
-          <Box sx={{ mb: 6 }}>
-            <Typography 
-              variant="h4" 
-              component="h2" 
-              gutterBottom 
-              sx={{ mb: 3 }}
-            >
-              Bán chạy nhất
-            </Typography>
-            <Slider {...productSliderSettings}>
-              {bestSellingProducts.map((product) => (
-                <Box key={product._id || product.id} sx={{ px: 1 }}>
-                  <ProductCard product={product} />
-                </Box>
-              ))}
-            </Slider>
-          </Box>
-        )}
-
-        {/* Featured Products Slider */}
+        {/* Featured Products */}
         {featuredProducts.length > 0 && (
           <Box sx={{ mb: 6 }}>
             <Typography 
@@ -294,13 +287,103 @@ const HomePage = () => {
             >
               Sản phẩm nổi bật
             </Typography>
-            <Slider {...productSliderSettings}>
-              {featuredProducts.map((product) => (
-                <Box key={product._id || product.id} sx={{ px: 1 }}>
-                  <ProductCard product={product} />
-                </Box>
-              ))}
-            </Slider>
+            {featuredProducts.length <= 4 ? (
+              <Grid container spacing={2}>
+                {featuredProducts.map((product) => (
+                  <Grid item xs={12} sm={6} md={3} key={product._id || product.id}>
+                    <ProductCard product={product} />
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Slider {...productSliderSettings}>
+                {featuredProducts.map((product) => (
+                  <Box key={product._id || product.id} sx={{ px: 1 }}>
+                    <ProductCard product={product} />
+                  </Box>
+                ))}
+              </Slider>
+            )}
+          </Box>
+        )}
+
+        {/* Discounted Products */}
+        {discountedProducts.length > 0 && (
+          <Box sx={{ mb: 6 }}>
+            <Typography 
+              variant="h4" 
+              component="h2" 
+              gutterBottom 
+              sx={{ mb: 3 }}
+            >
+              Khuyến mãi hot
+            </Typography>
+            {discountedProducts.length <= 4 ? (
+              <Grid container spacing={2}>
+                {discountedProducts.map((product) => (
+                  <Grid item xs={12} sm={6} md={3} key={product._id || product.id}>
+                    <ProductCard product={product} />
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Slider {...productSliderSettings}>
+                {discountedProducts.map((product) => (
+                  <Box key={product._id || product.id} sx={{ px: 1 }}>
+                    <ProductCard product={product} />
+                  </Box>
+                ))}
+              </Slider>
+            )}
+          </Box>
+        )}
+
+        {/* Best Selling Products */}
+        {bestSellingProducts.length > 0 && (
+          <Box sx={{ mb: 6 }}>
+            <Typography 
+              variant="h4" 
+              component="h2" 
+              gutterBottom 
+              sx={{ mb: 3 }}
+            >
+              Bán chạy nhất
+            </Typography>
+            {bestSellingProducts.length <= 4 ? (
+              <Grid container spacing={2}>
+                {bestSellingProducts.map((product) => (
+                  <Grid item xs={12} sm={6} md={3} key={product._id || product.id}>
+                    <ProductCard product={product} />
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Slider {...productSliderSettings}>
+                {bestSellingProducts.map((product) => (
+                  <Box key={product._id || product.id} sx={{ px: 1 }}>
+                    <ProductCard product={product} />
+                  </Box>
+                ))}
+              </Slider>
+            )}
+          </Box>
+        )}
+
+        {/* Fallback when no products */}
+        {featuredProducts.length === 0 && discountedProducts.length === 0 && bestSellingProducts.length === 0 && (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Typography variant="h5" gutterBottom>
+              Chưa có sản phẩm nào
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Hệ thống đang cập nhật sản phẩm mới
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={fetchData}
+            >
+              Tải lại
+            </Button>
           </Box>
         )}
       </Container>

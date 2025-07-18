@@ -33,7 +33,7 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import ProductCard from '../components/ProductCard';
-import { productAPI, categoryAPI } from '../services/api';
+import { productAPI, categoryAPI } from '../api';
 
 const ProductsPage = () => {
   const theme = useTheme();

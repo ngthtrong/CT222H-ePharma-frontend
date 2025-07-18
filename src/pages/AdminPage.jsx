@@ -32,7 +32,7 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
-import { productAPI, categoryAPI, userAPI } from '../services/api';
+import { productAPI, categoryAPI, userAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminPage = () => {
