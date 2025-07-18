@@ -10,12 +10,20 @@ import {
   Container,
   CircularProgress,
   Alert,
+  Button,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import Slider from 'react-slick';
 import ProductCard from '../components/ProductCard';
-import { productAPI, categoryAPI } from '../services/api';
+import { productAPI, categoryAPI } from '../api';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [discountedProducts, setDiscountedProducts] = useState([]);
+  const [bestSellingProducts, setBestSellingProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,16 +38,30 @@ const HomePage = () => {
       
       // Fetch featured products
       const productsResponse = await productAPI.getProducts({ limit: 8, featured: true });
-      // Backend returns {success: true, message: "...", data: [...]}
       if (productsResponse.data && productsResponse.data.success) {
         setFeaturedProducts(productsResponse.data.data.slice(0, 8));
       } else {
         setFeaturedProducts(productsResponse.data.products || productsResponse.data.slice(0, 8));
       }
       
+      // Fetch discounted products
+      const discountedResponse = await productAPI.getProducts({ limit: 8, discounted: true });
+      if (discountedResponse.data && discountedResponse.data.success) {
+        setDiscountedProducts(discountedResponse.data.data.slice(0, 8));
+      } else {
+        setDiscountedProducts(discountedResponse.data.products || discountedResponse.data.slice(0, 8));
+      }
+      
+      // Fetch best selling products
+      const bestSellingResponse = await productAPI.getProducts({ limit: 8, bestSelling: true });
+      if (bestSellingResponse.data && bestSellingResponse.data.success) {
+        setBestSellingProducts(bestSellingResponse.data.data.slice(0, 8));
+      } else {
+        setBestSellingProducts(bestSellingResponse.data.products || bestSellingResponse.data.slice(0, 8));
+      }
+      
       // Fetch categories
       const categoriesResponse = await categoryAPI.getCategories();
-      // Backend returns {success: true, message: "...", data: [...]}
       if (categoriesResponse.data && categoriesResponse.data.success) {
         setCategories(categoriesResponse.data.data.slice(0, 6));
       } else {
@@ -54,17 +76,62 @@ const HomePage = () => {
     }
   };
 
+  // Carousel settings
+  const heroCarouselSettings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 4000,
+    arrows: false,
+  };
+
+  const productSliderSettings = {
+    dots: false,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 4,
+    slidesToScroll: 1,
+    autoplay: false,
+    arrows: true,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 3,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 768,
+        settings: {
+          slidesToShow: 2,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 480,
+        settings: {
+          slidesToShow: 1,
+          slidesToScroll: 1,
+        }
+      }
+    ]
+  };
+
   // Mock data for hero banners
   const heroBanners = [
     {
       id: 1,
-      image: '/api/placeholder/1200/400',
+      image: 'https://via.placeholder.com/1200x400/0D47A1/FFFFFF?text=Khuyen+mai+lon+cuoi+nam',
       title: 'Khuyến mãi lớn cuối năm',
       subtitle: 'Giảm giá lên đến 50% cho tất cả sản phẩm',
     },
     {
       id: 2,
-      image: '/api/placeholder/1200/400',
+      image: 'https://via.placeholder.com/1200x400/2E7D32/FFFFFF?text=San+pham+moi+ve',
       title: 'Sản phẩm mới về',
       subtitle: 'Bộ sưu tập chăm sóc sức khỏe mới nhất',
     },
@@ -88,40 +155,46 @@ const HomePage = () => {
 
   return (
     <Box>
-      {/* Hero Section */}
+      {/* Hero Section - Banner Carousel */}
       <Box sx={{ mb: 4 }}>
-        <Paper
-          sx={{
-            height: 400,
-            backgroundImage: `url(${heroBanners[0].image})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            textAlign: 'center',
-            position: 'relative',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            },
-          }}
-        >
-          <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <Typography variant="h2" component="h1" gutterBottom>
-              {heroBanners[0].title}
-            </Typography>
-            <Typography variant="h5" component="p">
-              {heroBanners[0].subtitle}
-            </Typography>
-          </Box>
-        </Paper>
+        <Slider {...heroCarouselSettings}>
+          {heroBanners.map((banner) => (
+            <Box key={banner.id}>
+              <Paper
+                sx={{
+                  height: 400,
+                  backgroundImage: `url(${banner.image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  textAlign: 'center',
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                  },
+                }}
+              >
+                <Box sx={{ position: 'relative', zIndex: 1 }}>
+                  <Typography variant="h2" component="h1" gutterBottom>
+                    {banner.title}
+                  </Typography>
+                  <Typography variant="h5" component="p">
+                    {banner.subtitle}
+                  </Typography>
+                </Box>
+              </Paper>
+            </Box>
+          ))}
+        </Slider>
       </Box>
 
       {/* Categories Section */}
@@ -131,77 +204,33 @@ const HomePage = () => {
           component="h2" 
           gutterBottom 
           textAlign="center"
-          sx={{
-            mb: 4,
-            fontWeight: 600,
-            color: 'primary.main',
-          }}
+          sx={{ mb: 4 }}
         >
-          Danh mục sản phẩm
+          Danh mục nổi bật
         </Typography>
-        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+        <Grid container spacing={2}>
           {categories.map((category) => (
-            <Grid item xs={6} sm={4} md={2} key={category.id}>
+            <Grid item xs={6} sm={4} md={2} key={category._id || category.id}>
               <Card
                 sx={{
-                  textAlign: 'center',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease-in-out',
-                  borderRadius: 2,
-                  overflow: 'hidden',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: 6,
+                    boxShadow: 4,
                   },
+                  transition: 'all 0.2s ease-in-out',
                 }}
+                onClick={() => navigate(`/category/${category.slug || category._id}`)}
               >
-                <Box
-                  sx={{
-                    position: 'relative',
-                    width: '100%',
-                    paddingTop: '100%', // 1:1 aspect ratio
-                    overflow: 'hidden',
-                    backgroundColor: '#f5f5f5',
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    image={category.image || 'https://via.placeholder.com/200x200/e3f2fd/1976d2?text=Category'}
-                    alt={category.name}
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      transition: 'transform 0.3s ease-in-out',
-                      '&:hover': {
-                        transform: 'scale(1.05)',
-                      },
-                    }}
-                  />
-                </Box>
-                <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-                  <Typography 
-                    variant="h6" 
-                    component="div"
-                    sx={{
-                      fontSize: { xs: '0.875rem', sm: '1rem' },
-                      fontWeight: 500,
-                      mb: 0.5,
-                    }}
-                  >
+                <CardMedia
+                  component="img"
+                  height="120"
+                  image={category.image || 'https://via.placeholder.com/200x120/e3f2fd/1976d2?text=Category'}
+                  alt={category.name}
+                />
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="body2" textAlign="center" fontWeight="medium">
                     {category.name}
-                  </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    }}
-                  >
-                    {category.count || 0} sản phẩm
                   </Typography>
                 </CardContent>
               </Card>
@@ -210,28 +239,70 @@ const HomePage = () => {
         </Grid>
       </Container>
 
-      {/* Featured Products Section */}
+      {/* Product Sliders */}
       <Container maxWidth="lg" sx={{ mb: 6 }}>
-        <Typography 
-          variant="h4" 
-          component="h2" 
-          gutterBottom 
-          textAlign="center"
-          sx={{
-            mb: 4,
-            fontWeight: 600,
-            color: 'primary.main',
-          }}
-        >
-          Sản phẩm nổi bật
-        </Typography>
-        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
-          {featuredProducts.map((product) => (
-            <Grid item xs={6} sm={4} md={3} lg={3} key={product.id}>
-              <ProductCard product={product} />
-            </Grid>
-          ))}
-        </Grid>
+        {/* Hot Deals Slider */}
+        {discountedProducts.length > 0 && (
+          <Box sx={{ mb: 6 }}>
+            <Typography 
+              variant="h4" 
+              component="h2" 
+              gutterBottom 
+              sx={{ mb: 3 }}
+            >
+              Khuyến mãi hot
+            </Typography>
+            <Slider {...productSliderSettings}>
+              {discountedProducts.map((product) => (
+                <Box key={product._id || product.id} sx={{ px: 1 }}>
+                  <ProductCard product={product} />
+                </Box>
+              ))}
+            </Slider>
+          </Box>
+        )}
+
+        {/* Best Selling Slider */}
+        {bestSellingProducts.length > 0 && (
+          <Box sx={{ mb: 6 }}>
+            <Typography 
+              variant="h4" 
+              component="h2" 
+              gutterBottom 
+              sx={{ mb: 3 }}
+            >
+              Bán chạy nhất
+            </Typography>
+            <Slider {...productSliderSettings}>
+              {bestSellingProducts.map((product) => (
+                <Box key={product._id || product.id} sx={{ px: 1 }}>
+                  <ProductCard product={product} />
+                </Box>
+              ))}
+            </Slider>
+          </Box>
+        )}
+
+        {/* Featured Products Slider */}
+        {featuredProducts.length > 0 && (
+          <Box sx={{ mb: 6 }}>
+            <Typography 
+              variant="h4" 
+              component="h2" 
+              gutterBottom 
+              sx={{ mb: 3 }}
+            >
+              Sản phẩm nổi bật
+            </Typography>
+            <Slider {...productSliderSettings}>
+              {featuredProducts.map((product) => (
+                <Box key={product._id || product.id} sx={{ px: 1 }}>
+                  <ProductCard product={product} />
+                </Box>
+              ))}
+            </Slider>
+          </Box>
+        )}
       </Container>
     </Box>
   );

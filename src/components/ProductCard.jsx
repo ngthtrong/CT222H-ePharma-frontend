@@ -8,8 +8,11 @@ import {
   Box,
 } from '@mui/material';
 import { AddShoppingCart as AddShoppingCartIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { cartAPI } from '../api/cartApi';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onAddToCart }) => {
+  const navigate = useNavigate();
   const hasDiscount = product.originalPrice && product.originalPrice > product.price;
   
   // Get the first image from images array, fallback to placeholder
@@ -20,13 +23,29 @@ const ProductCard = ({ product }) => {
     return 'https://via.placeholder.com/300x225/e3f2fd/1976d2?text=No+Image+Available';
   };
 
-  const handleAddToCart = () => {
-    console.log('Added to cart:', product.name);
-    // TODO: Implement add to cart functionality
+  const handleAddToCart = async (e) => {
+    e.stopPropagation(); // Prevent card click navigation
+    try {
+      await cartAPI.addToCart(product._id || product.id, 1);
+      console.log('Added to cart:', product.name);
+      // Call parent callback if provided
+      if (onAddToCart) {
+        onAddToCart(product);
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
+  };
+
+  const handleCardClick = () => {
+    // Navigate to product detail page using slug
+    const slug = product.slug || product._id || product.id;
+    navigate(`/product/${slug}`);
   };
 
   return (
     <Card
+      onClick={handleCardClick}
       sx={{
         height: '100%',
         display: 'flex',

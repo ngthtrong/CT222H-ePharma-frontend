@@ -37,13 +37,23 @@ export const cartAPI = {
   },
   
   // Cập nhật số lượng sản phẩm trong giỏ hàng
-  updateCartItem: (itemId, quantity) => {
-    return api.put(`/cart/items/${itemId}`, { quantity });
+  updateCartItem: (productId, quantity) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      // Guest cart - đảm bảo có sessionId
+      createGuestSession();
+    }
+    return api.put(`/cart/items/${productId}`, { quantity });
   },
   
   // Xóa sản phẩm khỏi giỏ hàng
-  removeFromCart: (itemId) => {
-    return api.delete(`/cart/items/${itemId}`);
+  removeFromCart: (productId) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      // Guest cart - đảm bảo có sessionId
+      createGuestSession();
+    }
+    return api.delete(`/cart/items/${productId}`);
   },
   
   // Xóa toàn bộ giỏ hàng

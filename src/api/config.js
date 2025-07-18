@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL từ environment variable
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api';
 
 // Tạo axios instance với base configuration
 const api = axios.create({
