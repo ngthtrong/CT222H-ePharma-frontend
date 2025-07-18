@@ -10,6 +10,8 @@ import {
   IconButton,
   FormControlLabel,
   Checkbox,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Google as GoogleIcon,
@@ -18,11 +20,13 @@ import {
   VisibilityOff,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { register, loading, error } = useAuth();
   const [formData, setFormData] = useState({
-    fullName: '',
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -30,6 +34,7 @@ const RegisterPage = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
@@ -37,20 +42,36 @@ const RegisterPage = () => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
     });
+    setLocalError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLocalError('');
+    
+    if (!formData.name || !formData.email || !formData.password) {
+      setLocalError('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+    
     if (formData.password !== formData.confirmPassword) {
-      alert('Mật khẩu xác nhận không khớp!');
+      setLocalError('Mật khẩu xác nhận không khớp!');
       return;
     }
+    
     if (!formData.agreeTerms) {
-      alert('Vui lòng đồng ý với điều khoản sử dụng!');
+      setLocalError('Vui lòng đồng ý với điều khoản sử dụng!');
       return;
     }
-    console.log('Register data:', formData);
-    // TODO: Implement register logic
+    
+    const { confirmPassword, agreeTerms, ...registerData } = formData;
+    const result = await register(registerData);
+    
+    if (result.success) {
+      navigate('/');
+    } else {
+      setLocalError(result.error);
+    }
   };
 
   const handleLoginClick = () => {
@@ -95,15 +116,22 @@ const RegisterPage = () => {
         </Typography>
 
         <Box component="form" onSubmit={handleSubmit}>
+          {(localError || error) && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {localError || error}
+            </Alert>
+          )}
+          
           <TextField
             fullWidth
             label="Họ và tên"
-            name="fullName"
+            name="name"
             variant="outlined"
             margin="normal"
-            value={formData.fullName}
+            value={formData.name}
             onChange={handleChange}
             required
+            disabled={loading}
           />
 
           <TextField
@@ -116,6 +144,7 @@ const RegisterPage = () => {
             value={formData.email}
             onChange={handleChange}
             required
+            disabled={loading}
           />
           
           <TextField
@@ -128,11 +157,13 @@ const RegisterPage = () => {
             value={formData.password}
             onChange={handleChange}
             required
+            disabled={loading}
             InputProps={{
               endAdornment: (
                 <IconButton
                   onClick={() => setShowPassword(!showPassword)}
                   edge="end"
+                  disabled={loading}
                 >
                   {showPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
@@ -150,11 +181,13 @@ const RegisterPage = () => {
             value={formData.confirmPassword}
             onChange={handleChange}
             required
+            disabled={loading}
             InputProps={{
               endAdornment: (
                 <IconButton
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   edge="end"
+                  disabled={loading}
                 >
                   {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
@@ -169,6 +202,7 @@ const RegisterPage = () => {
                 checked={formData.agreeTerms}
                 onChange={handleChange}
                 color="primary"
+                disabled={loading}
               />
             }
             label={
@@ -192,8 +226,9 @@ const RegisterPage = () => {
             size="large"
             fullWidth
             sx={{ mb: 3, py: 1.5 }}
+            disabled={loading}
           >
-            Đăng ký
+            {loading ? <CircularProgress size={24} /> : 'Đăng ký'}
           </Button>
         </Box>
 

@@ -20,16 +20,17 @@ import {
   Phone as PhoneIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
   Person as PersonIcon,
+  ExitToApp as LogoutIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Header = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
   const [searchValue, setSearchValue] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [cartItemCount] = useState(3); // Mock data
-  const [isLoggedIn] = useState(false); // Mock data
-  const [userName] = useState('Nguyễn Văn A'); // Mock data
 
   // Mock search suggestions
   const searchSuggestions = [
@@ -58,6 +59,22 @@ const Header = () => {
 
   const handleLoginClick = () => {
     navigate('/login');
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    handleMenuClose();
+    navigate('/');
+  };
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+    handleMenuClose();
+  };
+
+  const handleAdminClick = () => {
+    navigate('/admin');
+    handleMenuClose();
   };
 
   return (
@@ -163,11 +180,11 @@ const Header = () => {
           </IconButton>
 
           {/* User Actions */}
-          {isLoggedIn ? (
+          {isAuthenticated ? (
             <>
               <Chip
-                avatar={<Avatar sx={{ width: 24, height: 24 }}>{userName.charAt(0)}</Avatar>}
-                label={userName}
+                avatar={<Avatar sx={{ width: 24, height: 24 }}>{user?.name?.charAt(0) || 'U'}</Avatar>}
+                label={user?.name || 'User'}
                 onClick={handleMenuOpen}
                 deleteIcon={<KeyboardArrowDownIcon />}
                 onDelete={handleMenuOpen}
@@ -188,7 +205,7 @@ const Header = () => {
                   display: { xs: 'flex', md: 'none' }
                 }}
               >
-                <Avatar sx={{ width: 32, height: 32 }}>{userName.charAt(0)}</Avatar>
+                <Avatar sx={{ width: 32, height: 32 }}>{user?.name?.charAt(0) || 'U'}</Avatar>
               </IconButton>
               <Menu
                 anchorEl={anchorEl}
@@ -203,9 +220,15 @@ const Header = () => {
                   horizontal: 'right',
                 }}
               >
-                <MenuItem onClick={handleMenuClose}>Tài khoản của tôi</MenuItem>
+                <MenuItem onClick={handleProfileClick}>Tài khoản của tôi</MenuItem>
                 <MenuItem onClick={handleMenuClose}>Đơn hàng</MenuItem>
-                <MenuItem onClick={handleMenuClose}>Đăng xuất</MenuItem>
+                {user?.role === 'admin' && (
+                  <MenuItem onClick={handleAdminClick}>Quản trị</MenuItem>
+                )}
+                <MenuItem onClick={handleLogout}>
+                  <LogoutIcon sx={{ mr: 1 }} />
+                  Đăng xuất
+                </MenuItem>
               </Menu>
             </>
           ) : (

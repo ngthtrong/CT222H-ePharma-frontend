@@ -11,6 +11,14 @@ import { AddShoppingCart as AddShoppingCartIcon } from '@mui/icons-material';
 
 const ProductCard = ({ product }) => {
   const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  
+  // Get the first image from images array, fallback to placeholder
+  const getProductImage = () => {
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      return product.images[0];
+    }
+    return 'https://via.placeholder.com/300x225/e3f2fd/1976d2?text=No+Image+Available';
+  };
 
   const handleAddToCart = () => {
     console.log('Added to cart:', product.name);
@@ -23,32 +31,61 @@ const ProductCard = ({ product }) => {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'box-shadow 0.3s ease-in-out',
+        transition: 'all 0.3s ease-in-out',
+        borderRadius: 2,
+        overflow: 'hidden',
         '&:hover': {
           boxShadow: 6,
           cursor: 'pointer',
+          transform: 'translateY(-4px)',
         },
       }}
     >
-      <CardMedia
-        component="img"
-        height="200"
-        image={product.image || '/api/placeholder/300/200'}
-        alt={product.name}
-        sx={{ objectFit: 'cover' }}
-      />
+      {/* Image Container với aspect ratio cố định */}
+      <Box
+        sx={{
+          position: 'relative',
+          width: '100%',
+          paddingTop: '75%', // 4:3 aspect ratio
+          overflow: 'hidden',
+          backgroundColor: '#f5f5f5',
+        }}
+      >
+        <CardMedia
+          component="img"
+          image={getProductImage()}
+          alt={product.name}
+          sx={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transition: 'transform 0.3s ease-in-out',
+            '&:hover': {
+              transform: 'scale(1.05)',
+            },
+          }}
+          onError={(e) => {
+            e.target.src = 'https://via.placeholder.com/300x225/e3f2fd/1976d2?text=Image+Error';
+          }}
+        />
+      </Box>
       
       <CardContent sx={{ 
         flexGrow: 1, 
         display: 'flex', 
         flexDirection: 'column',
-        p: { xs: 1.5, sm: 2 }
+        p: { xs: 1.5, sm: 2 },
+        gap: 1
       }}>
+        {/* Product Name */}
         <Typography
           variant="body1"
           fontWeight="medium"
           sx={{
-            mb: 2,
+            mb: 1,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -56,73 +93,93 @@ const ProductCard = ({ product }) => {
             textOverflow: 'ellipsis',
             lineHeight: 1.4,
             minHeight: '2.8em',
-            fontSize: { xs: '0.875rem', sm: '1rem' }
+            fontSize: { xs: '0.875rem', sm: '1rem' },
+            fontWeight: 500,
+            color: 'text.primary',
           }}
         >
           {product.name}
         </Typography>
 
-        <Box sx={{ mt: 'auto' }}>
-          {/* Price Section */}
-          <Box sx={{ mb: 2 }}>
-            {hasDiscount ? (
-              <Box>
-                <Typography
-                  variant="h6"
-                  color="error"
-                  fontWeight="bold"
-                  sx={{ 
-                    mb: 0.5,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}
-                >
-                  {product.price.toLocaleString('vi-VN')}đ
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ 
-                    textDecoration: 'line-through',
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                  }}
-                >
-                  {product.originalPrice.toLocaleString('vi-VN')}đ
-                </Typography>
-              </Box>
-            ) : (
+        {/* Brand */}
+        {product.brand && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              fontWeight: 400,
+              mb: 1,
+            }}
+          >
+            Thương hiệu: {product.brand}
+          </Typography>
+        )}
+
+        {/* Spacer */}
+        <Box sx={{ flexGrow: 1 }} />
+
+        {/* Price Section */}
+        <Box sx={{ mb: 2 }}>
+          {hasDiscount ? (
+            <Box>
               <Typography
                 variant="h6"
-                color="primary"
+                color="error"
                 fontWeight="bold"
-                sx={{
+                sx={{ 
+                  mb: 0.5,
                   fontSize: { xs: '1rem', sm: '1.25rem' }
                 }}
               >
                 {product.price.toLocaleString('vi-VN')}đ
               </Typography>
-            )}
-          </Box>
-
-          {/* Add to Cart Button */}
-          <Button
-            variant="contained"
-            fullWidth
-            startIcon={<AddShoppingCartIcon sx={{ fontSize: { xs: '1rem', sm: '1.2rem' } }} />}
-            onClick={handleAddToCart}
-            sx={{
-              py: { xs: 0.8, sm: 1 },
-              borderRadius: 2,
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
-          >
-            <Box component="span" sx={{ display: { xs: 'none', sm: 'block' } }}>
-              Thêm vào giỏ
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ 
+                  textDecoration: 'line-through',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                }}
+              >
+                {product.originalPrice.toLocaleString('vi-VN')}đ
+              </Typography>
             </Box>
-            <Box component="span" sx={{ display: { xs: 'block', sm: 'none' } }}>
-              Thêm
-            </Box>
-          </Button>
+          ) : (
+            <Typography
+              variant="h6"
+              color="primary"
+              fontWeight="bold"
+              sx={{
+                fontSize: { xs: '1rem', sm: '1.25rem' }
+              }}
+            >
+              {product.price.toLocaleString('vi-VN')}đ
+            </Typography>
+          )}
         </Box>
+
+        {/* Add to Cart Button */}
+        <Button
+          variant="contained"
+          fullWidth
+          startIcon={<AddShoppingCartIcon sx={{ fontSize: { xs: '1rem', sm: '1.2rem' } }} />}
+          onClick={handleAddToCart}
+          sx={{
+            py: { xs: 0.8, sm: 1 },
+            borderRadius: 2,
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            textTransform: 'none',
+            fontWeight: 500,
+          }}
+        >
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'block' } }}>
+            Thêm vào giỏ
+          </Box>
+          <Box component="span" sx={{ display: { xs: 'block', sm: 'none' } }}>
+            Thêm
+          </Box>
+        </Button>
       </CardContent>
     </Card>
   );

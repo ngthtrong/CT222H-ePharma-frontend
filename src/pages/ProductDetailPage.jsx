@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -13,6 +13,8 @@ import {
   Rating,
   Chip,
   TextField,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -21,38 +23,57 @@ import {
   FavoriteBorder as FavoriteBorderIcon,
   NavigateNext as NavigateNextIcon,
 } from '@mui/icons-material';
+import { useParams } from 'react-router-dom';
+import { productAPI } from '../services/api';
 
 const ProductDetailPage = () => {
+  const { id } = useParams();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState(0);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock product data
-  const product = {
-    id: 1,
-    name: 'Paracetamol 500mg - Hộp 20 viên',
-    brand: 'Abbott',
-    price: 15000,
-    originalPrice: 20000,
-    inStock: true,
-    stockCount: 50,
-    rating: 4.5,
-    reviewCount: 234,
-    images: [
-      '/api/placeholder/400/400',
-      '/api/placeholder/400/400',
-      '/api/placeholder/400/400',
-    ],
-    description: 'Thuốc giảm đau, hạ sốt hiệu quả. Thành phần chính là Paracetamol 500mg.',
-    ingredients: 'Paracetamol 500mg, Tá dược vừa đủ',
-    instructions: 'Uống 1-2 viên mỗi lần, cách 4-6 giờ. Không quá 8 viên trong 24 giờ.',
-    specifications: {
-      'Dạng bào chế': 'Viên nén',
-      'Quy cách đóng gói': 'Hộp 2 vỉ x 10 viên',
-      'Xuất xứ': 'Việt Nam',
-      'Hạn sử dụng': '36 tháng',
-    },
+  useEffect(() => {
+    fetchProduct();
+  }, [id]);
+
+  const fetchProduct = async () => {
+    try {
+      setLoading(true);
+      const response = await productAPI.getProductById(id);
+      setProduct(response.data);
+    } catch (error) {
+      setError('Không thể tải thông tin sản phẩm');
+      console.error('Error fetching product:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <Alert severity="error" sx={{ m: 2 }}>
+        {error || 'Sản phẩm không tồn tại'}
+      </Alert>
+    );
+  }
+
+  // Mock images if not provided
+  const images = product.images || [
+    '/api/placeholder/400/400',
+    '/api/placeholder/400/400',
+    '/api/placeholder/400/400',
+  ];
 
   const handleQuantityChange = (delta) => {
     setQuantity(prev => Math.max(1, prev + delta));

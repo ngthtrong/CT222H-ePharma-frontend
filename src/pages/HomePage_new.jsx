@@ -30,21 +30,11 @@ const HomePage = () => {
       
       // Fetch featured products
       const productsResponse = await productAPI.getProducts({ limit: 8, featured: true });
-      // Backend returns {success: true, message: "...", data: [...]}
-      if (productsResponse.data && productsResponse.data.success) {
-        setFeaturedProducts(productsResponse.data.data.slice(0, 8));
-      } else {
-        setFeaturedProducts(productsResponse.data.products || productsResponse.data.slice(0, 8));
-      }
+      setFeaturedProducts(productsResponse.data.products || productsResponse.data.slice(0, 8));
       
       // Fetch categories
       const categoriesResponse = await categoryAPI.getCategories();
-      // Backend returns {success: true, message: "...", data: [...]}
-      if (categoriesResponse.data && categoriesResponse.data.success) {
-        setCategories(categoriesResponse.data.data.slice(0, 6));
-      } else {
-        setCategories(categoriesResponse.data.slice(0, 6));
-      }
+      setCategories(categoriesResponse.data.slice(0, 6));
       
     } catch (error) {
       setError('Không thể tải dữ liệu trang chủ');
@@ -126,81 +116,33 @@ const HomePage = () => {
 
       {/* Categories Section */}
       <Container maxWidth="lg" sx={{ mb: 6 }}>
-        <Typography 
-          variant="h4" 
-          component="h2" 
-          gutterBottom 
-          textAlign="center"
-          sx={{
-            mb: 4,
-            fontWeight: 600,
-            color: 'primary.main',
-          }}
-        >
+        <Typography variant="h4" component="h2" gutterBottom textAlign="center">
           Danh mục sản phẩm
         </Typography>
-        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+        <Grid container spacing={3}>
           {categories.map((category) => (
             <Grid item xs={6} sm={4} md={2} key={category.id}>
               <Card
                 sx={{
                   textAlign: 'center',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease-in-out',
-                  borderRadius: 2,
-                  overflow: 'hidden',
+                  transition: 'transform 0.2s',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: 6,
                   },
                 }}
               >
-                <Box
-                  sx={{
-                    position: 'relative',
-                    width: '100%',
-                    paddingTop: '100%', // 1:1 aspect ratio
-                    overflow: 'hidden',
-                    backgroundColor: '#f5f5f5',
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    image={category.image || 'https://via.placeholder.com/200x200/e3f2fd/1976d2?text=Category'}
-                    alt={category.name}
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      transition: 'transform 0.3s ease-in-out',
-                      '&:hover': {
-                        transform: 'scale(1.05)',
-                      },
-                    }}
-                  />
-                </Box>
-                <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-                  <Typography 
-                    variant="h6" 
-                    component="div"
-                    sx={{
-                      fontSize: { xs: '0.875rem', sm: '1rem' },
-                      fontWeight: 500,
-                      mb: 0.5,
-                    }}
-                  >
+                <CardMedia
+                  component="img"
+                  height="140"
+                  image={category.image || '/api/placeholder/200/200'}
+                  alt={category.name}
+                />
+                <CardContent>
+                  <Typography variant="h6" component="div">
                     {category.name}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    }}
-                  >
+                  <Typography variant="body2" color="text.secondary">
                     {category.count || 0} sản phẩm
                   </Typography>
                 </CardContent>
@@ -212,22 +154,12 @@ const HomePage = () => {
 
       {/* Featured Products Section */}
       <Container maxWidth="lg" sx={{ mb: 6 }}>
-        <Typography 
-          variant="h4" 
-          component="h2" 
-          gutterBottom 
-          textAlign="center"
-          sx={{
-            mb: 4,
-            fontWeight: 600,
-            color: 'primary.main',
-          }}
-        >
+        <Typography variant="h4" component="h2" gutterBottom textAlign="center">
           Sản phẩm nổi bật
         </Typography>
-        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+        <Grid container spacing={3}>
           {featuredProducts.map((product) => (
-            <Grid item xs={6} sm={4} md={3} lg={3} key={product.id}>
+            <Grid item xs={6} sm={4} md={3} key={product.id}>
               <ProductCard product={product} />
             </Grid>
           ))}

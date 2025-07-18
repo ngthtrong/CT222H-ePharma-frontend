@@ -8,6 +8,8 @@ import {
   Link,
   Divider,
   IconButton,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Google as GoogleIcon,
@@ -16,26 +18,41 @@ import {
   VisibilityOff,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login, loading, error } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+    setLocalError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login data:', formData);
-    // TODO: Implement login logic
+    setLocalError('');
+    
+    if (!formData.email || !formData.password) {
+      setLocalError('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+
+    const result = await login(formData);
+    if (result.success) {
+      navigate('/');
+    } else {
+      setLocalError(result.error);
+    }
   };
 
   const handleRegisterClick = () => {
@@ -80,6 +97,12 @@ const LoginPage = () => {
         </Typography>
 
         <Box component="form" onSubmit={handleSubmit}>
+          {(localError || error) && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {localError || error}
+            </Alert>
+          )}
+          
           <TextField
             fullWidth
             label="Email"
@@ -90,6 +113,7 @@ const LoginPage = () => {
             value={formData.email}
             onChange={handleChange}
             required
+            disabled={loading}
           />
           
           <TextField
@@ -102,11 +126,13 @@ const LoginPage = () => {
             value={formData.password}
             onChange={handleChange}
             required
+            disabled={loading}
             InputProps={{
               endAdornment: (
                 <IconButton
                   onClick={() => setShowPassword(!showPassword)}
                   edge="end"
+                  disabled={loading}
                 >
                   {showPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
@@ -126,8 +152,9 @@ const LoginPage = () => {
             size="large"
             fullWidth
             sx={{ mb: 3, py: 1.5 }}
+            disabled={loading}
           >
-            Đăng nhập
+            {loading ? <CircularProgress size={24} /> : 'Đăng nhập'}
           </Button>
         </Box>
 

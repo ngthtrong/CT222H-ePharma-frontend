@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -24,6 +24,8 @@ import {
   useMediaQuery,
   useTheme,
   Button,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import { 
   NavigateNext as NavigateNextIcon,
@@ -31,6 +33,7 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import ProductCard from '../components/ProductCard';
+import { productAPI, categoryAPI } from '../services/api';
 
 const ProductsPage = () => {
   const theme = useTheme();
@@ -41,28 +44,69 @@ const ProductsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  
+  // API states
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Mock data
-  const categories = [
-    { id: 'all', name: 'Tất cả sản phẩm', count: 245 },
-    { id: 'medicine', name: 'Dược phẩm', count: 150 },
-    { id: 'personal-care', name: 'Chăm sóc cá nhân', count: 89 },
-    { id: 'medical-devices', name: 'Thiết bị y tế', count: 45 },
-    { id: 'supplements', name: 'Thực phẩm chức năng', count: 78 },
-    { id: 'mother-baby', name: 'Mẹ và bé', count: 112 },
-    { id: 'beauty', name: 'Làm đẹp', count: 67 },
-  ];
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+  }, []);
 
+  useEffect(() => {
+    fetchProducts();
+  }, [currentPage, sortBy, selectedCategory, priceRange]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryAPI.getCategories();
+      setCategories([
+        { id: 'all', name: 'Tất cả sản phẩm', count: 0 },
+        ...response.data.map(cat => ({ ...cat, count: 0 }))
+      ]);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: currentPage,
+        limit: 12,
+        sortBy,
+        ...(selectedCategory !== 'all' && { category: selectedCategory }),
+        minPrice: priceRange[0],
+        maxPrice: priceRange[1],
+      };
+      
+      const response = await productAPI.getProducts(params);
+      setProducts(response.data.products || response.data);
+      setTotalPages(response.data.totalPages || Math.ceil(response.data.length / 12));
+    } catch (error) {
+      setError('Không thể tải danh sách sản phẩm');
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mock brands for now
   const brands = [
-    { id: 'abbott', name: 'Abbott', count: 23 },
-    { id: 'pfizer', name: 'Pfizer', count: 18 },
-    { id: 'johnson', name: 'Johnson & Johnson', count: 31 },
-    { id: 'nestle', name: 'Nestlé', count: 15 },
-    { id: 'unilever', name: 'Unilever', count: 27 },
-    { id: 'colgate', name: 'Colgate', count: 12 },
+    { id: 'brand1', name: 'Traphaco', count: 45 },
+    { id: 'brand2', name: 'Imexpharm', count: 32 },
+    { id: 'brand3', name: 'Domesco', count: 28 },
+    { id: 'brand4', name: 'Pymepharco', count: 25 },
+    { id: 'brand5', name: 'Pfizer', count: 20 },
   ];
 
-  const products = [
+  // Mock products data (will be replaced by API data)
+  const mockProducts = [
     {
       id: 1,
       name: 'Paracetamol 500mg - Hộp 20 viên',
@@ -307,18 +351,28 @@ const ProductsPage = () => {
           </Box>
 
           {/* Products Grid */}
-          <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
-            {products.map((product) => (
-              <Grid item xs={6} sm={4} md={4} lg={3} key={product.id}>
-                <ProductCard product={product} />
-              </Grid>
-            ))}
-          </Grid>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mb: 4 }}>
+              {error}
+            </Alert>
+          ) : (
+            <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
+              {products.map((product) => (
+                <Grid item xs={6} sm={4} md={4} lg={3} key={product.id}>
+                  <ProductCard product={product} />
+                </Grid>
+              ))}
+            </Grid>
+          )}
 
           {/* Pagination */}
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Pagination
-              count={10}
+              count={totalPages}
               page={currentPage}
               onChange={handlePageChange}
               color="primary"
