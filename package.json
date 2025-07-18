@@ -7,7 +7,19 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker:build": "docker build -t wellverse-frontend .",
+    "docker:run": "docker run -p 5173:5173 wellverse-frontend",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "docker:dev-down": "docker-compose -f docker-compose.dev.yml down",
+    "docker:logs": "docker-compose -f docker-compose.dev.yml logs -f frontend",
+    "docker:prod": "docker build -f Dockerfile.prod -t wellverse-frontend-prod .",
+    "docker:run-prod": "docker run -p 80:80 wellverse-frontend-prod",
+    "docker:full": "docker-compose up --build",
+    "docker:full-down": "docker-compose down -v",
+    "docker:prod-up": "docker-compose -f docker-compose.prod.yml up --build -d",
+    "docker:prod-down": "docker-compose -f docker-compose.prod.yml down -v",
+    "docker:clean": "docker system prune -f && docker volume prune -f"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - app-network
+
+  # Backend service - uncomment and configure if needed
+  # backend:
+  #   image: your-backend-image:latest
+  #   ports:
+  #     - "8000:8000"
+  #   networks:
+  #     - app-network
+
+networks:
+  app-network:
+    driver: bridge

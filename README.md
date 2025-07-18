@@ -1,6 +1,6 @@
 
 
----
+
 
 # Kế hoạch Hành động - Dự án 
 
@@ -12,7 +12,7 @@
 ### Nguyên tắc chỉ đạo (Mantra)
 > **"Hoàn thành hơn Hoàn hảo"** - Chúng ta sẽ tập trung vào việc hoàn thành các tính năng cốt lõi để đảm bảo có sản phẩm chạy được để báo cáo. Các tính năng nâng cao hoặc các chi tiết nhỏ sẽ được xem xét sau nếu còn thời gian.
 
----
+
 
 ## **Tuần 1 (13/07 - 19/07): Nền móng & Tái cấu trúc**
 

@@ -1,0 +1,6 @@
+copilot:
+  instructions:
+
+    # Hướng dẫn cho code JavaScript/TypeScript (Frontend)
+    - language: [javascript, typescript, javascriptreact, typescriptreact]
+      file: .github/copilot/frontend.instructions.md
