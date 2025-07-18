@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, cartAPI } from '../api';
+import { getLocalStorage, setLocalStorage, removeLocalStorage } from '../utils/localStorage';
 
 const AuthContext = createContext();
 
@@ -56,16 +57,15 @@ export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
+    const token = getLocalStorage('accessToken');
+    const user = getLocalStorage('user');
     
     if (token && user) {
       try {
-        const userData = JSON.parse(user);
-        dispatch({ type: 'LOAD_USER', payload: userData });
+        dispatch({ type: 'LOAD_USER', payload: user });
       } catch (error) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        removeLocalStorage('accessToken');
+        removeLocalStorage('user');
         dispatch({ type: 'STOP_LOADING' });
       }
     } else {
@@ -77,12 +77,25 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'LOGIN_START' });
       const response = await authAPI.login(credentials);
-      const { token, user } = response.data;
+      const { data } = response;
+      const { user, accessToken } = data;
       
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      setLocalStorage('accessToken', accessToken);
+      setLocalStorage('user', user);
       
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user } });
+      
+      // Sau khi đăng nhập thành công, kiểm tra và merge giỏ hàng
+      const sessionId = getLocalStorage('sessionId');
+      if (sessionId) {
+        try {
+          await cartAPI.mergeCart();
+          console.log('Cart merged successfully');
+        } catch (error) {
+          console.error('Error merging cart:', error);
+        }
+      }
+      
       return { success: true };
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Login failed';
@@ -95,12 +108,25 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'LOGIN_START' });
       const response = await authAPI.register(userData);
-      const { token, user } = response.data;
+      const { data } = response;
+      const { user, accessToken } = data;
       
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      setLocalStorage('accessToken', accessToken);
+      setLocalStorage('user', user);
       
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user } });
+      
+      // Sau khi đăng ký thành công, kiểm tra và merge giỏ hàng
+      const sessionId = getLocalStorage('sessionId');
+      if (sessionId) {
+        try {
+          await cartAPI.mergeCart();
+          console.log('Cart merged successfully');
+        } catch (error) {
+          console.error('Error merging cart:', error);
+        }
+      }
+      
       return { success: true };
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Registration failed';
@@ -115,8 +141,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      removeLocalStorage('accessToken');
+      removeLocalStorage('user');
       dispatch({ type: 'LOGOUT' });
     }
   };
