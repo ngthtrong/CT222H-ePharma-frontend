@@ -1,104 +1,39 @@
 import { createTheme } from '@mui/material/styles';
 
+// A custom theme for this app
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#0D47A1', // Xanh dương đậm, chuyên nghiệp
+      main: '#00735A', // Xanh lá cây đậm, sang trọng
     },
     secondary: {
-      main: '#757575', // Xám
-    },
-    background: {
-      default: '#f4f6f8', // Xám nhạt cho nền
-    },
-    text: {
-      primary: '#212121', // Đen cho tiêu đề
-      secondary: '#424242', // Xám đậm cho văn bản thường
+      main: '#FF9900', // Cam cho các điểm nhấn, khuyến mãi
     },
     error: {
-      main: '#d32f2f', // Đỏ cho lỗi
+      main: '#f44336',
     },
-    success: {
-      main: '#2e7d32', // Xanh lá cho thành công
+    background: {
+      default: '#FFFFFF', // Nền chính là trắng
+      paper: '#F5F5F5', // Nền phụ cho card, section
     },
-  },
-  breakpoints: {
-    values: {
-      xs: 0,
-      sm: 600,
-      md: 900,
-      lg: 1200,
-      xl: 1536,
+    text: {
+      primary: '#212B36', // Đen đậm cho tiêu đề
+      secondary: '#637381', // Xám cho văn bản phụ
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontWeight: 600,
-    },
-    h2: {
-      fontWeight: 600,
-    },
-    h3: {
-      fontWeight: 600,
-    },
+    fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
     h4: {
-      fontWeight: 600,
-    },
-    h5: {
-      fontWeight: 500,
+      fontWeight: 700,
     },
     h6: {
-      fontWeight: 500,
+      fontWeight: 600,
     },
-  },
-  components: {
-    MuiContainer: {
-      styleOverrides: {
-        root: {
-          paddingLeft: '16px',
-          paddingRight: '16px',
-          '@media (min-width: 600px)': {
-            paddingLeft: '24px',
-            paddingRight: '24px',
-          },
-        },
-      },
+    subtitle1: {
+      fontWeight: 700,
     },
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none', // Không viết hoa tự động
-          borderRadius: 8,
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          '&:hover': {
-            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-          },
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
-          },
-        },
-      },
-    },
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        },
-      },
+    body1: {
+      // Cấu hình mặc định cho body1
     },
   },
 });

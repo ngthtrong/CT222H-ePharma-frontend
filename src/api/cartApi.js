@@ -1,4 +1,5 @@
 import api from './config';
+import { setSessionId, getSessionId, clearSessionId } from '../utils/localStorage';
 
 // Tạo sessionId cho guest cart
 export const createGuestSession = () => {
@@ -15,104 +16,62 @@ export const clearGuestSession = () => {
   localStorage.removeItem('sessionId');
 };
 
-export const cartAPI = {
-  // Lấy giỏ hàng (tự động phân biệt guest/user)
-  getCart: () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      // Guest cart - đảm bảo có sessionId
-      createGuestSession();
-    }
-    return api.get('/cart');
-  },
-  
-  // Thêm sản phẩm vào giỏ hàng
-  addToCart: (productId, quantity = 1) => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      // Guest cart - đảm bảo có sessionId
-      createGuestSession();
-    }
-    return api.post('/cart/items', { productId, quantity });
-  },
-  
-  // Cập nhật số lượng sản phẩm trong giỏ hàng
-  updateCartItem: (productId, quantity) => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      // Guest cart - đảm bảo có sessionId
-      createGuestSession();
-    }
-    return api.put(`/cart/items/${productId}`, { quantity });
-  },
-  
-  // Xóa sản phẩm khỏi giỏ hàng
-  removeFromCart: (productId) => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      // Guest cart - đảm bảo có sessionId
-      createGuestSession();
-    }
-    return api.delete(`/cart/items/${productId}`);
-  },
-  
-  // Xóa toàn bộ giỏ hàng
-  clearCart: () => {
-    return api.delete('/cart');
-  },
-  
-  // Gộp giỏ hàng guest vào user cart khi đăng nhập
-  mergeCart: () => {
-    const token = localStorage.getItem('accessToken');
-    const sessionId = localStorage.getItem('sessionId');
-    
-    if (!token || !sessionId) {
-      return Promise.reject(new Error('Token hoặc sessionId không tồn tại'));
-    }
-    
-    // Gọi API merge với cả hai header
-    return api.post('/cart/merge', {}, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'X-Cart-Session-ID': sessionId
-      }
-    }).then(response => {
-      // Sau khi merge thành công, xóa sessionId
-      clearGuestSession();
-      return response;
-    });
-  },
-  
-  // Lấy số lượng item trong giỏ hàng
-  getCartItemCount: async () => {
-    try {
-      const response = await cartAPI.getCart();
-      const cart = response.data;
-      if (cart && cart.items) {
-        return cart.items.reduce((total, item) => total + item.quantity, 0);
-      }
-      return 0;
-    } catch (error) {
-      console.error('Error getting cart item count:', error);
-      return 0;
-    }
-  },
-  
-  // Tính tổng tiền giỏ hàng
-  getCartTotal: async () => {
-    try {
-      const response = await cartAPI.getCart();
-      const cart = response.data;
-      if (cart && cart.items) {
-        return cart.items.reduce((total, item) => {
-          const price = item.productId.price || 0;
-          return total + (price * item.quantity);
-        }, 0);
-      }
-      return 0;
-    } catch (error) {
-      console.error('Error getting cart total:', error);
-      return 0;
-    }
-  },
+// =================================================================================
+// Cart API
+// =================================================================================
+
+/**
+ * Gets the current user's or guest's cart.
+ * The distinction is handled by the axios interceptor which adds
+ * the appropriate 'Authorization' or 'X-Cart-Session-ID' header.
+ */
+export const getCart = async () => {
+  const { data } = await api.get('/cart');
+  return data;
+};
+
+/**
+ * Adds an item to the cart.
+ * @param {{ productId: string, quantity: number }} item - The item to add.
+ */
+export const addItemToCart = async (item) => {
+  const { data } = await api.post('/cart/items', item);
+  return data;
+};
+
+/**
+ * Updates the quantity of an item in the cart.
+ * @param {string} productId - The ID of the product to update.
+ * @param {{ quantity: number }} payload - The new quantity.
+ */
+export const updateCartItem = async (productId, payload) => {
+  const { data } = await api.put(`/cart/items/${productId}`, payload);
+  return data;
+};
+
+/**
+ * Removes an item from the cart.
+ * @param {string} productId - The ID of the product to remove.
+ */
+export const removeCartItem = async (productId) => {
+  const { data } = await api.delete(`/cart/items/${productId}`);
+  return data;
+};
+
+/**
+ * Clears all items from the cart.
+ */
+export const clearCart = async () => {
+  const { data } = await api.delete('/cart');
+  return data;
+};
+
+/**
+ * Merges the guest cart into the user's cart after login.
+ * The axios interceptor will attach both the auth token and the session ID.
+ */
+export const mergeCart = async () => {
+  // No need to pass headers here, the interceptor handles it.
+  const { data } = await api.post('/cart/merge');
+  return data;
 };

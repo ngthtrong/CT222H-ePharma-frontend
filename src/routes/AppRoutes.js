@@ -12,41 +12,66 @@ import ProductDetailPage from '../pages/ProductDetailPage';
 import CartPage from '../pages/CartPage';
 import ProfilePage from '../pages/ProfilePage';
 import AdminPage from '../pages/AdminPage';
+import OrderHistoryPage from '../pages/OrderHistoryPage';
+import OrderDetailPage from '../pages/OrderDetailPage';
+import CheckoutPage from '../pages/CheckoutPage';
 
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/products" element={<MainLayout><ProductsPage /></MainLayout>} />
-      <Route path="/category/:slug" element={<MainLayout><ProductsPage /></MainLayout>} />
-      <Route path="/product/:slug" element={<MainLayout><ProductDetailPage /></MainLayout>} />
-      <Route path="/cart" element={<MainLayout><CartPage /></MainLayout>} />
-      
-      {/* Protected routes */}
-      <Route 
-        path="/profile" 
-        element={
-          <PrivateRoute>
-            <MainLayout><ProfilePage /></MainLayout>
-          </PrivateRoute>
-        } 
-      />
-      
-      {/* Admin routes */}
-      <Route 
-        path="/admin/*" 
-        element={
-          <PrivateRoute requiredRole="admin">
-            <MainLayout><AdminPage /></MainLayout>
-          </PrivateRoute>
-        } 
-      />
-      
-      {/* Fallback route */}
-      <Route path="*" element={<MainLayout><div>404 - Trang không tồn tại</div></MainLayout>} />
+      <Route element={<MainLayout />}>
+        {/* Public routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/product/:slug" element={<ProductDetailPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        
+        {/* Protected routes */}
+        <Route 
+          path="/profile" 
+          element={
+            <PrivateRoute>
+              <ProfilePage />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/checkout" 
+          element={
+            <PrivateRoute>
+              <CheckoutPage />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/orders" 
+          element={
+            <PrivateRoute>
+              <OrderHistoryPage />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/orders/:orderCode" 
+          element={
+            <PrivateRoute>
+              <OrderDetailPage />
+            </PrivateRoute>
+          } 
+        />
+
+        {/* Admin routes */}
+        <Route 
+          path="/admin/*" 
+          element={
+            <PrivateRoute requiredRole="admin">
+              <AdminPage />
+            </PrivateRoute>
+          } 
+        />
+      </Route>
     </Routes>
   );
 };

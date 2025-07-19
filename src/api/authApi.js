@@ -1,24 +1,34 @@
 import api from './config';
 
+// Auth API functions with proper response handling
+export const login = async (credentials) => {
+  const response = await api.post('/auth/login', credentials);
+  return response.data;
+};
+
+export const register = async (userData) => {
+  const response = await api.post('/auth/register', userData);
+  return response.data;
+};
+
+export const logout = async () => {
+  const response = await api.post('/auth/logout');
+  return response.data;
+};
+
+export const getMyProfile = async () => {
+  const response = await api.get('/users/me');
+  return response.data;
+};
+
+// Legacy export for backward compatibility
 export const authAPI = {
-  // Đăng ký tài khoản
   register: (userData) => api.post('/auth/register', userData),
-  
-  // Đăng nhập
   login: (credentials) => api.post('/auth/login', credentials),
-  
-  // Đăng xuất
   logout: () => api.post('/auth/logout'),
-  
-  // Lấy profile người dùng
-  getProfile: () => api.get('/auth/profile'),
-  
-  // Refresh token
+  getProfile: () => api.get('/users/me'),
+  getMyProfile: () => api.get('/users/me'),
   refreshToken: () => api.post('/auth/refresh'),
-  
-  // Forgot password
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  
-  // Reset password
   resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
 };

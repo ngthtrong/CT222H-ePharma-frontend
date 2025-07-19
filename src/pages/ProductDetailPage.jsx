@@ -10,11 +10,13 @@ import {
   Link,
   Tabs,
   Tab,
-  Rating,
   Chip,
   TextField,
   CircularProgress,
   Alert,
+  Container,
+  Divider,
+  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -22,13 +24,17 @@ import {
   AddShoppingCart as AddShoppingCartIcon,
   FavoriteBorder as FavoriteBorderIcon,
   NavigateNext as NavigateNextIcon,
+  CheckCircleOutline as CheckCircleOutlineIcon,
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
 import { productAPI } from '../api';
+import { useCart } from '../contexts/CartContext';
 
 const ProductDetailPage = () => {
-  const { id } = useParams();
-  const [selectedImage, setSelectedImage] = useState(0);
+  const { slug } = useParams();
+  const theme = useTheme();
+  const { addToCart } = useCart();
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState(0);
   const [product, setProduct] = useState(null);
@@ -36,254 +42,190 @@ const ProductDetailPage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const response = await productAPI.getProductBySlug(slug);
+        const productData = response.data?.data || response.data;
+        setProduct(productData);
+        if (productData?.images?.length > 0) {
+          setSelectedImageIndex(0);
+        }
+      } catch (error) {
+        setError('Không thể tải thông tin sản phẩm.');
+        console.error('Error fetching product:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchProduct();
-  }, [id]);
+  }, [slug]);
 
-  const fetchProduct = async () => {
-    try {
-      setLoading(true);
-      const response = await productAPI.getProductById(id);
-      setProduct(response.data);
-    } catch (error) {
-      setError('Không thể tải thông tin sản phẩm');
-      console.error('Error fetching product:', error);
-    } finally {
-      setLoading(false);
+  const handleQuantityChange = (e) => {
+    const value = parseInt(e.target.value, 10);
+    if (value > 0) {
+      setQuantity(value);
     }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error || !product) {
-    return (
-      <Alert severity="error" sx={{ m: 2 }}>
-        {error || 'Sản phẩm không tồn tại'}
-      </Alert>
-    );
-  }
-
-  // Mock images if not provided
-  const images = product.images || [
-    '/api/placeholder/400/400',
-    '/api/placeholder/400/400',
-    '/api/placeholder/400/400',
-  ];
-
-  const handleQuantityChange = (delta) => {
-    setQuantity(prev => Math.max(1, prev + delta));
+  const handleIncrement = () => {
+    setQuantity((prev) => prev + 1);
   };
 
-  const handleAddToCart = () => {
-    console.log('Added to cart:', { productId: product.id, quantity });
+  const handleDecrement = () => {
+    setQuantity((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+    try {
+      await addToCart(product._id, quantity);
+      // Optionally, show a success notification
+    } catch (err) {
+      console.error("Failed to add to cart", err);
+      // Optionally, show an error notification
+    }
   };
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
+  if (loading) {
+    return (
+      <Container sx={{ py: 8, textAlign: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <Container sx={{ py: 4 }}>
+        <Alert severity="error">{error || 'Sản phẩm không tồn tại.'}</Alert>
+      </Container>
+    );
+  }
+
+  const { name, images, price, discountPercent, stockQuantity, brand, description, components, usageGuide } = product;
+  const hasDiscount = discountPercent && discountPercent > 0;
+  const discountedPrice = hasDiscount ? price * (1 - discountPercent / 100) : price;
+
   return (
-    <Box>
-      {/* Breadcrumbs */}
-      <Breadcrumbs
-        separator={<NavigateNextIcon fontSize="small" />}
-        sx={{ mb: 3 }}
-      >
-        <Link color="inherit" href="/">
-          Trang chủ
-        </Link>
-        <Link color="inherit" href="/products">
-          Sản phẩm
-        </Link>
-        <Typography color="text.primary">
-          {product.name}
-        </Typography>
-      </Breadcrumbs>
-
-      <Grid container spacing={4}>
-        {/* Left Column - Images */}
-        <Grid item xs={12} md={6}>
-          <Box sx={{ mb: 2 }}>
-            <img
-              src={product.images[selectedImage]}
-              alt={product.name}
-              style={{
-                width: '100%',
-                height: '400px',
-                objectFit: 'cover',
-                borderRadius: '8px',
-              }}
-            />
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {product.images.map((image, index) => (
-              <Box
-                key={index}
-                onClick={() => setSelectedImage(index)}
-                sx={{
-                  cursor: 'pointer',
-                  border: selectedImage === index ? '2px solid' : '1px solid',
-                  borderColor: selectedImage === index ? 'primary.main' : 'grey.300',
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                }}
-              >
-                <img
-                  src={image}
-                  alt={`${product.name} ${index + 1}`}
-                  style={{
-                    width: '80px',
-                    height: '80px',
-                    objectFit: 'cover',
-                  }}
-                />
-              </Box>
-            ))}
-          </Box>
-        </Grid>
-
-        {/* Right Column - Product Info */}
-        <Grid item xs={12} md={6}>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            {product.name}
-          </Typography>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Thương hiệu: {product.brand}
-            </Typography>
-            <Chip
-              label={product.inStock ? 'Còn hàng' : 'Hết hàng'}
-              color={product.inStock ? 'success' : 'error'}
-              size="small"
-            />
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-            <Rating value={product.rating} precision={0.1} readOnly />
-            <Typography variant="body2" color="text.secondary">
-              ({product.reviewCount} đánh giá)
-            </Typography>
-          </Box>
-
-          {/* Price */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h4" color="error" fontWeight="bold">
-              {product.price.toLocaleString('vi-VN')}đ
-            </Typography>
-            {product.originalPrice && (
-              <Typography
-                variant="h6"
-                color="text.secondary"
-                sx={{ textDecoration: 'line-through' }}
-              >
-                {product.originalPrice.toLocaleString('vi-VN')}đ
-              </Typography>
-            )}
-          </Box>
-
-          {/* Quantity Selector */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <Typography variant="body1" fontWeight="medium">
-              Số lượng:
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', border: 1, borderColor: 'grey.300', borderRadius: 1 }}>
-              <IconButton onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1}>
-                <RemoveIcon />
-              </IconButton>
-              <TextField
-                value={quantity}
-                size="small"
-                sx={{
-                  width: '60px',
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': { border: 'none' },
-                  },
-                  '& input': { textAlign: 'center' },
-                }}
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Paper elevation={0} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2 }}>
+        <Grid container spacing={4}>
+          {/* Left Column: Product Images */}
+          <Grid item xs={12} md={5}>
+            <Box sx={{ mb: 2, border: `1px solid ${theme.palette.divider}`, borderRadius: 2, overflow: 'hidden' }}>
+              <img
+                src={images?.[selectedImageIndex] || 'https://via.placeholder.com/400'}
+                alt={`${name} - view ${selectedImageIndex + 1}`}
+                style={{ width: '100%', height: 'auto', display: 'block' }}
               />
-              <IconButton onClick={() => handleQuantityChange(1)}>
-                <AddIcon />
-              </IconButton>
             </Box>
-            <Typography variant="body2" color="text.secondary">
-              ({product.stockCount} sản phẩm có sẵn)
-            </Typography>
-          </Box>
+            <Grid container spacing={1}>
+              {images?.map((img, index) => (
+                <Grid item xs={3} key={index}>
+                  <Box
+                    component="img"
+                    src={img}
+                    alt={`${name} thumbnail ${index + 1}`}
+                    onClick={() => setSelectedImageIndex(index)}
+                    sx={{
+                      width: '100%',
+                      height: 'auto',
+                      borderRadius: 1,
+                      border: index === selectedImageIndex ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
+                      cursor: 'pointer',
+                    }}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </Grid>
 
-          {/* Action Buttons */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+          {/* Right Column: Product Info & Actions */}
+          <Grid item xs={12} md={7}>
+            <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 2 }}>
+              <Link underline="hover" color="inherit" href="/">Trang chủ</Link>
+              <Link underline="hover" color="inherit" href="/products">Sản phẩm</Link>
+              <Typography color="text.primary">{name}</Typography>
+            </Breadcrumbs>
+
+            <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+              {name}
+            </Typography>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="body2">Thương hiệu: <Link href="#" underline="hover">{brand || 'N/A'}</Link></Typography>
+              <Divider orientation="vertical" flexItem />
+              <Typography variant="body2">Tình trạng: <Chip label={stockQuantity > 0 ? 'Còn hàng' : 'Hết hàng'} color={stockQuantity > 0 ? 'success' : 'error'} size="small" /></Typography>
+            </Box>
+
+            <Box sx={{ my: 2 }}>
+              <Typography variant="h4" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(discountedPrice)}
+              </Typography>
+              {hasDiscount && (
+                <Typography variant="h6" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)}
+                </Typography>
+              )}
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: 2 }}>
+              <Typography>Số lượng:</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+                <IconButton onClick={handleDecrement} size="small"><RemoveIcon /></IconButton>
+                <TextField
+                  value={quantity}
+                  onChange={handleQuantityChange}
+                  size="small"
+                  inputProps={{ style: { textAlign: 'center', width: 40 }, readOnly: true }}
+                  sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { border: 'none' } } }}
+                />
+                <IconButton onClick={handleIncrement} size="small"><AddIcon /></IconButton>
+              </Box>
+            </Box>
+
             <Button
               variant="contained"
               size="large"
               startIcon={<AddShoppingCartIcon />}
               onClick={handleAddToCart}
-              disabled={!product.inStock}
-              sx={{ flex: 1 }}
+              disabled={stockQuantity === 0}
+              sx={{ mt: 2, mb: 2, width: { xs: '100%', sm: 'auto' } }}
             >
               Thêm vào giỏ hàng
             </Button>
-            <IconButton
-              size="large"
-              sx={{ border: 1, borderColor: 'grey.300' }}
-            >
-              <FavoriteBorderIcon />
-            </IconButton>
-          </Box>
+
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 2 }}>
+              <Typography sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><CheckCircleOutlineIcon color="success" sx={{ mr: 1 }} /> Cam kết chính hãng 100%</Typography>
+              <Typography sx={{ display: 'flex', alignItems: 'center' }}><CheckCircleOutlineIcon color="success" sx={{ mr: 1 }} /> Giao hàng nhanh toàn quốc</Typography>
+            </Paper>
+          </Grid>
         </Grid>
-      </Grid>
 
-      {/* Product Details Tabs */}
-      <Paper sx={{ mt: 4 }}>
-        <Tabs value={activeTab} onChange={handleTabChange}>
-          <Tab label="Mô tả chi tiết" />
-          <Tab label="Thành phần" />
-          <Tab label="Hướng dẫn sử dụng" />
-          <Tab label="Thông số kỹ thuật" />
-          <Tab label={`Đánh giá (${product.reviewCount})`} />
-        </Tabs>
-
-        <Box sx={{ p: 3 }}>
-          {activeTab === 0 && (
-            <Typography variant="body1">
-              {product.description}
-            </Typography>
-          )}
-          {activeTab === 1 && (
-            <Typography variant="body1">
-              {product.ingredients}
-            </Typography>
-          )}
-          {activeTab === 2 && (
-            <Typography variant="body1">
-              {product.instructions}
-            </Typography>
-          )}
-          {activeTab === 3 && (
-            <Box>
-              {Object.entries(product.specifications).map(([key, value]) => (
-                <Box key={key} sx={{ display: 'flex', py: 1, borderBottom: '1px solid #eee' }}>
-                  <Typography variant="body2" fontWeight="medium" sx={{ minWidth: 150 }}>
-                    {key}:
-                  </Typography>
-                  <Typography variant="body2">{value}</Typography>
-                </Box>
-              ))}
-            </Box>
-          )}
-          {activeTab === 4 && (
-            <Typography variant="body1">
-              Phần đánh giá sẽ được bổ sung sau...
-            </Typography>
-          )}
+        {/* Bottom Section: Detailed Info */}
+        <Box sx={{ mt: 5 }}>
+          <Tabs value={activeTab} onChange={handleTabChange} indicatorColor="primary" textColor="primary">
+            <Tab label="Mô tả sản phẩm" />
+            <Tab label="Thành phần" />
+            <Tab label="Hướng dẫn sử dụng" />
+            <Tab label="Đánh giá" />
+          </Tabs>
+          <Paper variant="outlined" sx={{ p: 3, mt: 2, borderRadius: 2 }}>
+            {activeTab === 0 && <Typography>{description || 'Chưa có mô tả cho sản phẩm này.'}</Typography>}
+            {activeTab === 1 && <Typography>{components || 'Thông tin thành phần chưa được cập nhật.'}</Typography>}
+            {activeTab === 2 && <Typography>{usageGuide || 'Hướng dẫn sử dụng chưa được cập nhật.'}</Typography>}
+            {activeTab === 3 && <Typography>Tính năng đánh giá đang được phát triển.</Typography>}
+          </Paper>
         </Box>
       </Paper>
-    </Box>
+    </Container>
   );
 };
 

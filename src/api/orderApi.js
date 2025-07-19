@@ -48,3 +48,34 @@ export const orderAPI = {
     return api.post(`/orders/${orderId}/rate`, { rating, review });
   },
 };
+
+// Direct export functions for easier use
+export const createOrder = async (orderData) => {
+  const response = await orderAPI.createOrder(orderData);
+  return response.data;
+};
+
+export const getMyOrders = async (params = {}) => {
+  const response = await orderAPI.getUserOrders(params);
+  return response.data;
+};
+
+export const getOrderByCode = async (orderCode) => {
+  const response = await orderAPI.getOrderById(orderCode);
+  return response.data;
+};
+
+export const cancelOrder = async (orderCode, reason) => {
+  const response = await orderAPI.cancelOrder(orderCode, reason);
+  return response.data;
+};
+
+export const getAllOrders = async (params = {}) => {
+  const response = await orderAPI.getAllOrders(params);
+  return response.data;
+};
+
+export const updateOrderStatus = async (orderCode, status) => {
+  const response = await orderAPI.updateOrderStatus(orderCode, status);
+  return response.data;
+};

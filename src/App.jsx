@@ -5,6 +5,7 @@ import { CssBaseline } from '@mui/material';
 import theme from './theme';
 import Layout from './components/layout/Layout';
 import { AuthProvider } from './contexts/AuthContext';
+import { CartProvider } from './contexts/CartContext';
 import PrivateRoute from './components/PrivateRoute';
 
 // Pages
@@ -22,9 +23,10 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Router>
-          <Layout>
-            <Routes>
+        <CartProvider>
+          <Router>
+            <Layout>
+              <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -51,6 +53,7 @@ function App() {
             </Routes>
           </Layout>
         </Router>
+        </CartProvider>
       </AuthProvider>
     </ThemeProvider>
   );

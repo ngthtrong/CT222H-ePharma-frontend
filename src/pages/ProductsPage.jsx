@@ -1,404 +1,218 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
-  Box,
+  Container,
   Grid,
-  Paper,
   Typography,
-  List,
-  ListItemButton,
-  ListItemText,
-  Slider,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  Select,
-  MenuItem,
+  CircularProgress,
+  Box,
+  Pagination,
   FormControl,
   InputLabel,
-  Breadcrumbs,
-  Link,
-  Pagination,
-  Divider,
-  Drawer,
-  IconButton,
-  useMediaQuery,
-  useTheme,
-  Button,
-  CircularProgress,
-  Alert,
+  Select,
+  MenuItem,
+  Slider,
+  TextField,
+  Paper,
 } from '@mui/material';
-import { 
-  NavigateNext as NavigateNextIcon,
-  FilterList as FilterListIcon,
-  Close as CloseIcon
-} from '@mui/icons-material';
+import { getProducts } from '../api/productApi';
+import { getCategories } from '../api/categoryApi';
 import ProductCard from '../components/ProductCard';
-import { productAPI, categoryAPI } from '../api';
+import { formatCurrency } from '../utils/formatters';
 
 const ProductsPage = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [sortBy, setSortBy] = useState('newest');
-  const [priceRange, setPriceRange] = useState([0, 1000000]);
-  const [selectedBrands, setSelectedBrands] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  
-  // API states
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchCategories();
-    fetchProducts();
-  }, []);
+  // Filter states
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [priceRange, setPriceRange] = useState([0, 5000000]);
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'name_asc');
 
-  useEffect(() => {
-    fetchProducts();
-  }, [currentPage, sortBy, selectedCategory, priceRange]);
-
-  const fetchCategories = async () => {
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
     try {
-      const response = await categoryAPI.getCategories();
-      setCategories([
-        { id: 'all', name: 'Tất cả sản phẩm', count: 0 },
-        ...response.data.map(cat => ({ ...cat, count: 0 }))
-      ]);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
       const params = {
-        page: currentPage,
+        page: searchParams.get('page') || 1,
         limit: 12,
-        sortBy,
-        ...(selectedCategory !== 'all' && { category: selectedCategory }),
-        minPrice: priceRange[0],
-        maxPrice: priceRange[1],
+        categoryId: searchParams.get('category'),
+        minPrice: searchParams.get('minPrice'),
+        maxPrice: searchParams.get('maxPrice'),
+        sortBy: searchParams.get('sortBy'),
+        search: searchParams.get('search'),
       };
-      
-      const response = await productAPI.getProducts(params);
-      setProducts(response.data.products || response.data);
-      setTotalPages(response.data.totalPages || Math.ceil(response.data.length / 12));
-    } catch (error) {
-      setError('Không thể tải danh sách sản phẩm');
-      console.error('Error fetching products:', error);
+      // Remove null/undefined params
+      Object.keys(params).forEach(key => params[key] == null && delete params[key]);
+
+      const response = await getProducts(params);
+      setProducts(response.data);
+      setPagination(response.pagination);
+    } catch (err) {
+      setError('Failed to fetch products.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
+  }, [searchParams]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const categoriesResponse = await getCategories();
+        setCategories(categoriesResponse.data);
+      } catch (err) {
+        console.error("Failed to fetch categories", err);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  const handlePageChange = (event, value) => {
+    setSearchParams(prev => {
+      prev.set('page', value);
+      return prev;
+    });
   };
 
-  // Mock brands for now
-  const brands = [
-    { id: 'brand1', name: 'Traphaco', count: 45 },
-    { id: 'brand2', name: 'Imexpharm', count: 32 },
-    { id: 'brand3', name: 'Domesco', count: 28 },
-    { id: 'brand4', name: 'Pymepharco', count: 25 },
-    { id: 'brand5', name: 'Pfizer', count: 20 },
-  ];
-
-  // Mock products data (will be replaced by API data)
-  const mockProducts = [
-    {
-      id: 1,
-      name: 'Paracetamol 500mg - Hộp 20 viên',
-      price: 15000,
-      originalPrice: 20000,
-      image: '/api/placeholder/300/200',
-      brand: 'abbott',
-    },
-    {
-      id: 2,
-      name: 'Vitamin C 1000mg - Chai 60 viên',
-      price: 120000,
-      image: '/api/placeholder/300/200',
-      brand: 'pfizer',
-    },
-    {
-      id: 3,
-      name: 'Thuốc cảm cúm 999 - Hộp 10 gói',
-      price: 45000,
-      originalPrice: 55000,
-      image: '/api/placeholder/300/200',
-      brand: 'johnson',
-    },
-    {
-      id: 4,
-      name: 'Khẩu trang y tế 4 lớp - Hộp 50 chiếc',
-      price: 85000,
-      image: '/api/placeholder/300/200',
-      brand: 'abbott',
-    },
-    {
-      id: 5,
-      name: 'Dầu gội đầu Clear Men - Chai 650ml',
-      price: 159000,
-      originalPrice: 189000,
-      image: '/api/placeholder/300/200',
-      brand: 'unilever',
-    },
-    {
-      id: 6,
-      name: 'Kem đánh răng Colgate - Tuýp 200g',
-      price: 45000,
-      image: '/api/placeholder/300/200',
-      brand: 'colgate',
-    },
-    {
-      id: 7,
-      name: 'Sữa rửa mặt Cetaphil - Chai 125ml',
-      price: 249000,
-      image: '/api/placeholder/300/200',
-      brand: 'johnson',
-    },
-    {
-      id: 8,
-      name: 'Nhiệt kế điện tử Omron - 1 chiếc',
-      price: 350000,
-      originalPrice: 420000,
-      image: '/api/placeholder/300/200',
-      brand: 'abbott',
-    },
-  ];
-
-  const handleSortChange = (event) => {
-    setSortBy(event.target.value);
+  const handleFilterChange = (setter) => (event) => {
+    const { name, value } = event.target;
+    setter(value);
+    setSearchParams(prev => {
+      if (value) {
+        prev.set(name, value);
+      } else {
+        prev.delete(name);
+      }
+      prev.set('page', '1'); // Reset to first page on filter change
+      return prev;
+    });
   };
-
+  
   const handlePriceChange = (event, newValue) => {
     setPriceRange(newValue);
   };
 
-  const handleBrandChange = (brandId) => {
-    setSelectedBrands(prev => 
-      prev.includes(brandId)
-        ? prev.filter(id => id !== brandId)
-        : [...prev, brandId]
-    );
+  const handlePriceChangeCommitted = (event, newValue) => {
+     setSearchParams(prev => {
+      prev.set('minPrice', newValue[0]);
+      prev.set('maxPrice', newValue[1]);
+      prev.set('page', '1');
+      return prev;
+    });
   };
 
-  const handleCategoryChange = (categoryId) => {
-    setSelectedCategory(categoryId);
-  };
-
-  const handlePageChange = (event, value) => {
-    setCurrentPage(value);
-  };
-
-  const FilterContent = () => (
-    <Box sx={{ p: isMobile ? 2 : 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" fontWeight="bold">
-          Bộ lọc
-        </Typography>
-        {isMobile && (
-          <IconButton onClick={() => setMobileFilterOpen(false)}>
-            <CloseIcon />
-          </IconButton>
-        )}
-      </Box>
-
-      {/* Category Filter */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-          Danh mục
-        </Typography>
-        <List disablePadding>
-          {categories.map((category) => (
-            <ListItemButton
-              key={category.id}
-              selected={selectedCategory === category.id}
-              onClick={() => handleCategoryChange(category.id)}
-              sx={{ px: 0 }}
-            >
-              <ListItemText
-                primary={category.name}
-                secondary={`${category.count} sản phẩm`}
-              />
-            </ListItemButton>
-          ))}
-        </List>
-      </Box>
-
-      <Divider sx={{ mb: 3 }} />
-
-      {/* Price Filter */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-          Khoảng giá
-        </Typography>
-        <Slider
-          value={priceRange}
-          onChange={handlePriceChange}
-          valueLabelDisplay="auto"
-          min={0}
-          max={1000000}
-          step={10000}
-          valueLabelFormat={(value) => `${(value / 1000).toFixed(0)}k`}
-          sx={{ mt: 2 }}
-        />
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            {(priceRange[0] / 1000).toFixed(0)}k
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {(priceRange[1] / 1000).toFixed(0)}k
-          </Typography>
-        </Box>
-      </Box>
-
-      <Divider sx={{ mb: 3 }} />
-
-      {/* Brand Filter */}
-      <Box>
-        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-          Thương hiệu
-        </Typography>
-        <FormGroup>
-          {brands.map((brand) => (
-            <FormControlLabel
-              key={brand.id}
-              control={
-                <Checkbox
-                  checked={selectedBrands.includes(brand.id)}
-                  onChange={() => handleBrandChange(brand.id)}
-                  size="small"
-                />
-              }
-              label={
-                <Typography variant="body2">
-                  {brand.name} ({brand.count})
-                </Typography>
-              }
-            />
-          ))}
-        </FormGroup>
-      </Box>
-    </Box>
-  );
 
   return (
-    <Box sx={{ overflow: 'hidden' }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs
-        separator={<NavigateNextIcon fontSize="small" />}
-        sx={{ mb: 3 }}
-      >
-        <Link color="inherit" href="/">
-          Trang chủ
-        </Link>
-        <Typography color="text.primary">Sản phẩm</Typography>
-      </Breadcrumbs>
-
-      <Grid container spacing={3}>
-        {/* Desktop Filters */}
-        {!isMobile && (
-          <Grid item xs={12} md={3}>
-            <Paper elevation={0} variant="outlined">
-              <FilterContent />
-            </Paper>
-          </Grid>
-        )}
-
-        {/* Products Column */}
-        <Grid item xs={12} md={isMobile ? 12 : 9}>
-          {/* Mobile Filter Button and Sort */}
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            mb: 3,
-            flexDirection: { xs: 'column', sm: 'row' },
-            gap: { xs: 2, sm: 0 }
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {isMobile && (
-                <Button
-                  variant="outlined"
-                  startIcon={<FilterListIcon />}
-                  onClick={() => setMobileFilterOpen(true)}
-                >
-                  Bộ lọc
-                </Button>
-              )}
-              <Typography variant="body1" color="text.secondary">
-                Hiển thị {products.length} sản phẩm
-              </Typography>
-            </Box>
-            
-            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
-              <InputLabel>Sắp xếp theo</InputLabel>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        Our Products
+      </Typography>
+      <Grid container spacing={4}>
+        {/* Filters */}
+        <Grid item xs={12} md={3}>
+          <Paper elevation={1} sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>Filters</Typography>
+            {/* Category Filter */}
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel id="category-select-label">Category</InputLabel>
               <Select
-                value={sortBy}
-                label="Sắp xếp theo"
-                onChange={handleSortChange}
+                labelId="category-select-label"
+                name="category"
+                value={selectedCategory}
+                label="Category"
+                onChange={handleFilterChange(setSelectedCategory)}
               >
-                <MenuItem value="newest">Mới nhất</MenuItem>
-                <MenuItem value="price-asc">Giá tăng dần</MenuItem>
-                <MenuItem value="price-desc">Giá giảm dần</MenuItem>
-                <MenuItem value="best-selling">Bán chạy nhất</MenuItem>
-                <MenuItem value="rating">Đánh giá cao nhất</MenuItem>
+                <MenuItem value="">
+                  <em>All</em>
+                </MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat._id} value={cat._id}>{cat.name}</MenuItem>
+                ))}
               </Select>
             </FormControl>
-          </Box>
 
-          {/* Products Grid */}
+            {/* Price Range Filter */}
+            <Typography gutterBottom>Price Range</Typography>
+             <Slider
+                value={priceRange}
+                onChange={handlePriceChange}
+                onChangeCommitted={handlePriceChangeCommitted}
+                valueLabelDisplay="auto"
+                min={0}
+                max={5000000}
+                step={50000}
+                getAriaValueText={(value) => `${formatCurrency(value)}`}
+                valueLabelFormat={(value) => `${formatCurrency(value)}`}
+            />
+             <Box display="flex" justifyContent="space-between">
+                <Typography variant="caption">{formatCurrency(priceRange[0])}</Typography>
+                <Typography variant="caption">{formatCurrency(priceRange[1])}</Typography>
+            </Box>
+
+
+            {/* Sort By */}
+             <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel id="sort-by-label">Sort By</InputLabel>
+              <Select
+                labelId="sort-by-label"
+                name="sortBy"
+                value={sortBy}
+                label="Sort By"
+                onChange={handleFilterChange(setSortBy)}
+              >
+                <MenuItem value="name_asc">Name (A-Z)</MenuItem>
+                <MenuItem value="name_desc">Name (Z-A)</MenuItem>
+                <MenuItem value="price_asc">Price (Low to High)</MenuItem>
+                <MenuItem value="price_desc">Price (High to Low)</MenuItem>
+              </Select>
+            </FormControl>
+          </Paper>
+        </Grid>
+
+        {/* Products Grid */}
+        <Grid item xs={12} md={9}>
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
               <CircularProgress />
             </Box>
           ) : error ? (
-            <Alert severity="error" sx={{ mb: 4 }}>
-              {error}
-            </Alert>
+            <Typography color="error">{error}</Typography>
           ) : (
-            <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
-              {products.map((product) => (
-                <Grid item xs={6} sm={4} md={4} lg={3} key={product.id}>
-                  <ProductCard product={product} />
-                </Grid>
-              ))}
-            </Grid>
+            <>
+              <Grid container spacing={2}>
+                {products.length > 0 ? (
+                  products.map((product) => (
+                    <Grid item key={product._id} xs={12} sm={6} md={4}>
+                      <ProductCard product={product} />
+                    </Grid>
+                  ))
+                ) : (
+                  <Typography sx={{p: 3}}>No products found matching your criteria.</Typography>
+                )}
+              </Grid>
+              {pagination.totalPages > 1 && (
+                <Box display="flex" justifyContent="center" mt={4}>
+                  <Pagination
+                    count={pagination.totalPages}
+                    page={pagination.currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                  />
+                </Box>
+              )}
+            </>
           )}
-
-          {/* Pagination */}
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Pagination
-              count={totalPages}
-              page={currentPage}
-              onChange={handlePageChange}
-              color="primary"
-              size={isMobile ? "medium" : "large"}
-              siblingCount={isMobile ? 0 : 1}
-              boundaryCount={isMobile ? 1 : 2}
-            />
-          </Box>
         </Grid>
       </Grid>
-
-      {/* Mobile Filter Drawer */}
-      <Drawer
-        anchor="left"
-        open={mobileFilterOpen}
-        onClose={() => setMobileFilterOpen(false)}
-        sx={{
-          '& .MuiDrawer-paper': {
-            width: 280,
-            maxWidth: '80vw',
-          },
-        }}
-      >
-        <FilterContent />
-      </Drawer>
-    </Box>
+    </Container>
   );
 };
 

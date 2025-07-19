@@ -73,28 +73,33 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const handleLoginSuccess = async (data) => {
+    setLocalStorage('accessToken', data.accessToken);
+    const guestCartSessionId = getLocalStorage('sessionId');
+
+    // Must fetch profile first to be authenticated for merge cart call
+    const profile = await authAPI.getMyProfile();
+    dispatch({ type: 'LOAD_USER', payload: profile });
+    
+    if (guestCartSessionId) {
+      try {
+        await cartAPI.mergeCart();
+        removeLocalStorage('sessionId'); // Clear guest cart session after successful merge
+        console.log('Guest cart merged successfully.');
+      } catch (error) {
+        console.error('Failed to merge guest cart:', error);
+        // Decide how to handle merge failure. Maybe notify the user.
+      }
+    }
+  };
+
   const login = async (credentials) => {
     try {
       dispatch({ type: 'LOGIN_START' });
       const response = await authAPI.login(credentials);
       const { data } = response;
-      const { user, accessToken } = data;
       
-      setLocalStorage('accessToken', accessToken);
-      setLocalStorage('user', user);
-      
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user } });
-      
-      // Sau khi đăng nhập thành công, kiểm tra và merge giỏ hàng
-      const sessionId = getLocalStorage('sessionId');
-      if (sessionId) {
-        try {
-          await cartAPI.mergeCart();
-          console.log('Cart merged successfully');
-        } catch (error) {
-          console.error('Error merging cart:', error);
-        }
-      }
+      await handleLoginSuccess(data);
       
       return { success: true };
     } catch (error) {
@@ -109,23 +114,9 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: 'LOGIN_START' });
       const response = await authAPI.register(userData);
       const { data } = response;
-      const { user, accessToken } = data;
       
-      setLocalStorage('accessToken', accessToken);
-      setLocalStorage('user', user);
-      
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user } });
-      
-      // Sau khi đăng ký thành công, kiểm tra và merge giỏ hàng
-      const sessionId = getLocalStorage('sessionId');
-      if (sessionId) {
-        try {
-          await cartAPI.mergeCart();
-          console.log('Cart merged successfully');
-        } catch (error) {
-          console.error('Error merging cart:', error);
-        }
-      }
+      // Automatically log in the user after successful registration
+      await handleLoginSuccess(data);
       
       return { success: true };
     } catch (error) {

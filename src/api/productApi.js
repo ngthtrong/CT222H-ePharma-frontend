@@ -59,3 +59,24 @@ export const productAPI = {
   // Lấy sản phẩm khuyến mãi
   getDiscountedProducts: (limit = 10) => api.get('/products/discounted', { params: { limit } }),
 };
+
+// Direct export functions for easier use
+export const getProducts = async (params = {}) => {
+  const response = await productAPI.getProducts(params);
+  return response.data;
+};
+
+export const getProductBySlug = async (slug) => {
+  const response = await productAPI.getProductBySlug(slug);
+  return response.data;
+};
+
+export const getRelatedProducts = async (productId) => {
+  const response = await productAPI.getRelatedProducts(productId);
+  return response.data;
+};
+
+export const searchProducts = async (query, params = {}) => {
+  const response = await productAPI.searchProducts(query, params);
+  return response.data;
+};

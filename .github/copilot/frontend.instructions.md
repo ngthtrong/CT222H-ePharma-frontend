@@ -3,30 +3,35 @@
 Mục tiêu: Hướng dẫn này giúp GitHub Copilot (và các thành viên trong nhóm) tạo ra code React nhất quán, dễ bảo trì và tương tác chính xác với Backend API của dự án WellVerse.
 
 ## 1. Tổng quan về Công nghệ (Tech Stack)
+
 - **Framework:** React 18+ (khởi tạo bằng Vite).
 - **Ngôn ngữ:** JavaScript (ES6+).
 - **Thư viện UI:** **Material-UI (MUI) v5**. Luôn ưu tiên sử dụng component của MUI.
 - **Routing:** `react-router-dom` v6.
 - **HTTP Client:** `axios` để gọi API.
 - **State Management:**
-    - `useState` cho state cục bộ của component.
-    - `useContext` + `useReducer` cho state toàn cục (ví dụ: thông tin người dùng, giỏ hàng).
+  - `useState` cho state cục bộ của component.
+  - `useContext` + `useReducer` cho state toàn cục (ví dụ: thông tin người dùng, giỏ hàng).
 
 ## 2. Quy ước về UI & Thiết kế (UI & Design Conventions)
+
 Luôn tuân thủ theo file `frontend_ui_spec.md`.
+
 - **Hệ thống thiết kế:**
-    - **Màu chủ đạo (Primary):** Xanh dương đậm (`#0D47A1`).
-    - **Nền (Background):** Xám rất nhạt (`#f4f6f8`).
+  - **Màu chủ đạo (Primary):** Xanh dương đậm (`#0D47A1`).
+  - **Nền (Background):** Xám rất nhạt (`#f4f6f8`).
 - **Bố cục chung (Layout):**
-    - **Header:** Dùng `<AppBar position="sticky">`.
-    - **Content:** Bọc trong `<Container maxWidth="lg">` để giữ nội dung ở giữa và không quá rộng.
-    - **Footer:** Dùng `<Box component="footer">`.
+  - **Header:** Dùng `<AppBar position="sticky">`.
+  - **Content:** Bọc trong `<Container maxWidth="lg">` để giữ nội dung ở giữa và không quá rộng.
+  - **Footer:** Dùng `<Box component="footer">`.
 - **Component tái sử dụng:**
-    - **ProductCard:** Dùng `<Card>`, `<CardMedia>`, `<Typography>`, `<Button>`.
-    - **Header:** Dùng `<Autocomplete>` cho thanh tìm kiếm, `<Badge>` cho icon giỏ hàng.
+  - **ProductCard:** Dùng `<Card>`, `<CardMedia>`, `<Typography>`, `<Button>`.
+  - **Header:** Dùng `<Autocomplete>` cho thanh tìm kiếm, `<Badge>` cho icon giỏ hàng.
 
 ## 3. Kiến trúc Thư mục (Folder Architecture)
+
 Để đảm bảo tính tổ chức, hãy tuân theo cấu trúc thư mục sau:
+
 - `src/api`: Chứa các file định nghĩa và gọi API bằng `axios` (ví dụ: `productApi.js`, `authApi.js`).
 - `src/assets`: Chứa hình ảnh tĩnh, icons, fonts.
 - `src/components`: Chứa các component UI tái sử dụng (ví dụ: `ProductCard`, `Header`, `Footer`).
@@ -42,8 +47,10 @@ Luôn tuân thủ theo file `frontend_ui_spec.md`.
 ## 4. NGỮ CẢNH DỰ ÁN CỐT LÕI (QUAN TRỌNG NHẤT)
 
 ### 4.1. Tương tác với WellVerse API
+
 Luôn tạo các hàm gọi API theo các đặc tả trong `api-description.md` và `demo_json_for_api.md`.
 
+- **Back-end**: các api ở giai đoạn 1 đã được cài đặt và khởi chạy ổn địnht trong quá trình phát triển phần Front-end hiện tại (được chạy bằng một docker riêng)
 - **Base URL:** Tạo một instance `axios` với `baseURL` là `import.meta.env.VITE_API_URL`.
 - **Lọc sản phẩm:** Khi gọi `GET /api/v1/products`, hãy xây dựng một object `params` chứa các bộ lọc (`categoryId`, `minPrice`, `sortBy`...) và truyền nó cho `axios`.
 - **Giỏ hàng của khách (Guest Cart):**
@@ -57,6 +64,7 @@ Luôn tạo các hàm gọi API theo các đặc tả trong `api-description.md`
   - Sau khi gọi merge thành công, **phải xóa `sessionId`** khỏi `localStorage`.
 
 ### 4.2. Cấu trúc Dữ liệu chính (API Responses)
+
 Hãy kỳ vọng API trả về dữ liệu có cấu trúc như sau.
 
 - **Đối tượng `Product`:** `{ _id, name, slug, images, price, discountPercent, stockQuantity, categoryId, brand }`
@@ -66,11 +74,12 @@ Hãy kỳ vọng API trả về dữ liệu có cấu trúc như sau.
 - **Login Response:** Khi đăng nhập, API trả về `{ data: { user: {...}, accessToken: "..." } }`. Hãy lưu `accessToken` vào `localStorage` và thông tin `user` vào `AuthContext`.
 
 ## 5. Quy trình logic quan trọng
+
 - **Loading & Error State:** Mọi hàm gọi API phải quản lý các state `loading`, `error`, và `data`. Nên tạo một custom hook `useApi(apiFunc)` để tái sử dụng logic này.
 - **Conditional Rendering:** Dựa vào state `user` từ `AuthContext` để hiển thị nút "Đăng nhập" hoặc "Tài khoản của tôi" trên Header.
 - **Protected Routes:** Tạo một component `ProtectedRoute` để bọc các route yêu cầu đăng nhập (ví dụ: `/profile`, `/orders`). Component này sẽ kiểm tra `user` trong `AuthContext`, nếu không có sẽ điều hướng về trang `/login`.
 - **Router:** Sử dụng các hook của `react-router-dom` v6:
-    - `useNavigate()` để điều hướng chương trình.
-    - `useParams()` để lấy tham số từ URL (ví dụ: `/product/:slug` -> `const { slug } = useParams()`).
-    - `useSearchParams()` để đọc và ghi query string (ví dụ: `/products?category=thuoc` -> `searchParams.get('category')`).
+  - `useNavigate()` để điều hướng chương trình.
+  - `useParams()` để lấy tham số từ URL (ví dụ: `/product/:slug` -> `const { slug } = useParams()`).
+  - `useSearchParams()` để đọc và ghi query string (ví dụ: `/products?category=thuoc` -> `searchParams.get('category')`).
 - **Xử lý tiền tệ:** Luôn định dạng giá sản phẩm hiển thị cho người dùng bằng cách sử dụng `Intl.NumberFormat` (ví dụ: `120000` -> `120.000 ₫`).

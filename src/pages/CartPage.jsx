@@ -31,52 +31,31 @@ import {
   ShoppingCart as ShoppingCartIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { cartAPI } from '../api';
+import { useCart } from '../contexts/CartContext';
 
 const CartPage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { 
+    items: cartItems, 
+    totalItems, 
+    totalPrice, 
+    loading, 
+    error, 
+    updateCartItem, 
+    removeFromCart,
+    clearCart: clearCartFromContext
+  } = useCart();
   
-  const [cartItems, setCartItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [updating, setUpdating] = useState({});
-
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-  const fetchCart = async () => {
-    try {
-      setLoading(true);
-      const response = await cartAPI.getCart();
-      if (response.data && response.data.success) {
-        setCartItems(response.data.data.items || []);
-      } else {
-        setCartItems(response.data.items || []);
-      }
-    } catch (error) {
-      setError('Không thể tải giỏ hàng');
-      console.error('Error fetching cart:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const updateQuantity = async (productId, newQuantity) => {
     if (newQuantity < 1) return;
     
     setUpdating(prev => ({ ...prev, [productId]: true }));
     try {
-      await cartAPI.updateCartItem(productId, newQuantity);
-      setCartItems(prev => 
-        prev.map(item => 
-          item.productId._id === productId || item.productId.id === productId
-            ? { ...item, quantity: newQuantity }
-            : item
-        )
-      );
+      await updateCartItem(productId, newQuantity);
     } catch (error) {
       console.error('Error updating cart item:', error);
     } finally {
@@ -87,12 +66,7 @@ const CartPage = () => {
   const removeItem = async (productId) => {
     setUpdating(prev => ({ ...prev, [productId]: true }));
     try {
-      await cartAPI.removeFromCart(productId);
-      setCartItems(prev => 
-        prev.filter(item => 
-          item.productId._id !== productId && item.productId.id !== productId
-        )
-      );
+      await removeFromCart(productId);
     } catch (error) {
       console.error('Error removing cart item:', error);
     } finally {
@@ -102,22 +76,14 @@ const CartPage = () => {
 
   const clearCart = async () => {
     try {
-      await cartAPI.clearCart();
-      setCartItems([]);
+      await clearCartFromContext();
     } catch (error) {
       console.error('Error clearing cart:', error);
     }
   };
 
-  // Calculate totals
-  const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => {
-      const price = item.productId.price || 0;
-      return total + (price * item.quantity);
-    }, 0);
-  };
-
-  const subtotal = calculateSubtotal();
+  // Calculate totals using context totalPrice
+  const subtotal = totalPrice;
   const shippingFee = subtotal > 500000 ? 0 : 30000; // Free shipping over 500k
   const total = subtotal + shippingFee;
 

@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Alert,
   Button,
+  useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Slider from 'react-slick';
@@ -21,6 +22,7 @@ import 'slick-carousel/slick/slick-theme.css';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [discountedProducts, setDiscountedProducts] = useState([]);
   const [bestSellingProducts, setBestSellingProducts] = useState([]);
@@ -100,8 +102,7 @@ const HomePage = () => {
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: true,
-    autoplaySpeed: 4000,
-    arrows: false,
+    autoplaySpeed: 3000,
   };
 
   const productSliderSettings = {
@@ -109,49 +110,62 @@ const HomePage = () => {
     infinite: false,
     speed: 500,
     slidesToShow: 4,
-    slidesToScroll: 1,
-    autoplay: false,
-    arrows: true,
+    slidesToScroll: 4,
     responsive: [
       {
-        breakpoint: 1024,
+        breakpoint: 1200,
         settings: {
           slidesToShow: 3,
-          slidesToScroll: 1,
-        }
+          slidesToScroll: 3,
+        },
       },
       {
-        breakpoint: 768,
+        breakpoint: 900,
         settings: {
           slidesToShow: 2,
-          slidesToScroll: 1,
-        }
+          slidesToScroll: 2,
+        },
       },
       {
-        breakpoint: 480,
+        breakpoint: 600,
         settings: {
           slidesToShow: 1,
           slidesToScroll: 1,
-        }
-      }
-    ]
+        },
+      },
+    ],
   };
 
   // Mock data for hero banners
   const heroBanners = [
     {
-      id: 1,
-      image: 'https://via.placeholder.com/1200x400/0D47A1/FFFFFF?text=Khuyen+mai+lon+cuoi+nam',
-      title: 'Khuyến mãi lớn cuối năm',
-      subtitle: 'Giảm giá lên đến 50% cho tất cả sản phẩm',
+      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/1080x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/smalls/dieu_hoa_mien_dich_14794e4a7b.png',
+      alt: 'Hero Banner 1',
     },
     {
-      id: 2,
-      image: 'https://via.placeholder.com/1200x400/2E7D32/FFFFFF?text=San+pham+moi+ve',
-      title: 'Sản phẩm mới về',
-      subtitle: 'Bộ sưu tập chăm sóc sức khỏe mới nhất',
+      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/1080x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/smalls/Vitamin_5e7105e1f3.png',
+      alt: 'Hero Banner 2',
     },
   ];
+
+  const renderProductSlider = (products, title) => (
+    <Box sx={{ my: 4 }}>
+      <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: '700', mb: 2 }}>
+        {title}
+      </Typography>
+      {products.length > 0 ? (
+        <Slider {...productSliderSettings}>
+          {products.map((product) => (
+            <Box key={product._id || product.id} sx={{ p: 1 }}>
+              <ProductCard product={product} />
+            </Box>
+          ))}
+        </Slider>
+      ) : (
+        <Typography>Không có sản phẩm để hiển thị.</Typography>
+      )}
+    </Box>
+  );
 
   if (loading) {
     return (
@@ -163,229 +177,117 @@ const HomePage = () => {
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ m: 2 }}>
-        {error}
-        <Button onClick={fetchData} sx={{ ml: 2 }}>
-          Thử lại
-        </Button>
-      </Alert>
+      <Container sx={{ py: 4 }}>
+        <Alert severity="error">{error}</Alert>
+      </Container>
     );
   }
 
   return (
-    <Box>
-      {/* Hero Section - Banner Carousel */}
+    <Box sx={{ bgcolor: 'background.default' }}>
+      {/* Hero Banner Carousel */}
       <Box sx={{ mb: 4 }}>
         <Slider {...heroCarouselSettings}>
-          {heroBanners.map((banner) => (
-            <Box key={banner.id}>
-              <Paper
-                sx={{
-                  height: { xs: 250, md: 400 },
-                  backgroundImage: `url(${banner.image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  textAlign: 'center',
-                  position: 'relative',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                  },
-                }}
-              >
-                <Box sx={{ position: 'relative', zIndex: 1, p: 2 }}>
-                  <Typography 
-                    variant="h2" 
-                    component="h1" 
-                    gutterBottom
-                    sx={{ 
-                      fontSize: { xs: '2rem', md: '3rem' },
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    {banner.title}
-                  </Typography>
-                  <Typography 
-                    variant="h5" 
-                    component="p"
-                    sx={{ 
-                      fontSize: { xs: '1rem', md: '1.5rem' }
-                    }}
-                  >
-                    {banner.subtitle}
-                  </Typography>
-                </Box>
-              </Paper>
+          {heroBanners.map((banner, index) => (
+            <Box key={index} sx={{ '&:focus': { outline: 'none' } }}>
+              <CardMedia
+                component="img"
+                image={banner.img}
+                alt={banner.alt}
+                sx={{ width: '100%', height: { xs: 200, sm: 300, md: 400 }, objectFit: 'cover' }}
+              />
             </Box>
           ))}
         </Slider>
       </Box>
 
-      {/* Categories Section */}
-      {categories.length > 0 && (
-        <Container maxWidth="lg" sx={{ mb: 6 }}>
-          <Typography 
-            variant="h4" 
-            component="h2" 
-            gutterBottom 
-            textAlign="center"
-            sx={{ mb: 4 }}
-          >
+      <Container maxWidth="lg">
+        {/* Featured Categories */}
+        <Box sx={{ my: 4 }}>
+          <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: '700', mb: 2 }}>
             Danh mục nổi bật
           </Typography>
           <Grid container spacing={2}>
             {categories.map((category) => (
               <Grid item xs={6} sm={4} md={2} key={category._id || category.id}>
-                <Card
+                <Paper
+                  elevation={0}
                   sx={{
-                    cursor: 'pointer',
+                    p: 2,
+                    textAlign: 'center',
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 2,
                     '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: 4,
+                      boxShadow: 3,
+                      cursor: 'pointer',
                     },
-                    transition: 'all 0.2s ease-in-out',
                   }}
-                  onClick={() => navigate(`/category/${category.slug || category._id}`)}
+                  onClick={() => navigate(`/category/${category.slug}`)}
                 >
                   <CardMedia
                     component="img"
-                    height="120"
-                    image={category.image || 'https://via.placeholder.com/200x120/e3f2fd/1976d2?text=Category'}
+                    image={category.image || 'https://via.placeholder.com/100'}
                     alt={category.name}
+                    sx={{ width: 64, height: 64, mx: 'auto', mb: 1, objectFit: 'contain' }}
                   />
-                  <CardContent sx={{ p: 2 }}>
-                    <Typography variant="body2" textAlign="center" fontWeight="medium">
-                      {category.name}
-                    </Typography>
-                  </CardContent>
-                </Card>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    {category.name}
+                  </Typography>
+                </Paper>
               </Grid>
             ))}
           </Grid>
-        </Container>
-      )}
+        </Box>
 
-      {/* Product Sliders */}
-      <Container maxWidth="lg" sx={{ mb: 6 }}>
-        {/* Featured Products */}
-        {featuredProducts.length > 0 && (
-          <Box sx={{ mb: 6 }}>
-            <Typography 
-              variant="h4" 
-              component="h2" 
-              gutterBottom 
-              sx={{ mb: 3 }}
-            >
-              Sản phẩm nổi bật
-            </Typography>
-            {featuredProducts.length <= 4 ? (
-              <Grid container spacing={2}>
-                {featuredProducts.map((product) => (
-                  <Grid item xs={12} sm={6} md={3} key={product._id || product.id}>
-                    <ProductCard product={product} />
-                  </Grid>
-                ))}
-              </Grid>
-            ) : (
-              <Slider {...productSliderSettings}>
-                {featuredProducts.map((product) => (
-                  <Box key={product._id || product.id} sx={{ px: 1 }}>
-                    <ProductCard product={product} />
-                  </Box>
-                ))}
-              </Slider>
-            )}
-          </Box>
-        )}
-
-        {/* Discounted Products */}
-        {discountedProducts.length > 0 && (
-          <Box sx={{ mb: 6 }}>
-            <Typography 
-              variant="h4" 
-              component="h2" 
-              gutterBottom 
-              sx={{ mb: 3 }}
-            >
-              Khuyến mãi hot
-            </Typography>
-            {discountedProducts.length <= 4 ? (
-              <Grid container spacing={2}>
-                {discountedProducts.map((product) => (
-                  <Grid item xs={12} sm={6} md={3} key={product._id || product.id}>
-                    <ProductCard product={product} />
-                  </Grid>
-                ))}
-              </Grid>
-            ) : (
-              <Slider {...productSliderSettings}>
-                {discountedProducts.map((product) => (
-                  <Box key={product._id || product.id} sx={{ px: 1 }}>
-                    <ProductCard product={product} />
-                  </Box>
-                ))}
-              </Slider>
-            )}
-          </Box>
-        )}
+        {/* Flash Sale / Discounted Products */}
+        <Box sx={{ my: 4, p: 3, bgcolor: 'secondary.light', borderRadius: 2 }}>
+          <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: '700', mb: 2, color: 'secondary.contrastText' }}>
+            Khuyến mãi hot
+          </Typography>
+          {discountedProducts.length > 0 ? (
+            <Slider {...productSliderSettings}>
+              {discountedProducts.map((product) => (
+                <Box key={product._id || product.id} sx={{ p: 1 }}>
+                  <ProductCard product={product} />
+                </Box>
+              ))}
+            </Slider>
+          ) : (
+            <Typography>Không có sản phẩm khuyến mãi.</Typography>
+          )}
+        </Box>
 
         {/* Best Selling Products */}
-        {bestSellingProducts.length > 0 && (
-          <Box sx={{ mb: 6 }}>
-            <Typography 
-              variant="h4" 
-              component="h2" 
-              gutterBottom 
-              sx={{ mb: 3 }}
-            >
-              Bán chạy nhất
-            </Typography>
-            {bestSellingProducts.length <= 4 ? (
-              <Grid container spacing={2}>
-                {bestSellingProducts.map((product) => (
-                  <Grid item xs={12} sm={6} md={3} key={product._id || product.id}>
-                    <ProductCard product={product} />
-                  </Grid>
-                ))}
-              </Grid>
-            ) : (
-              <Slider {...productSliderSettings}>
-                {bestSellingProducts.map((product) => (
-                  <Box key={product._id || product.id} sx={{ px: 1 }}>
-                    <ProductCard product={product} />
-                  </Box>
-                ))}
-              </Slider>
-            )}
-          </Box>
-        )}
+        {renderProductSlider(bestSellingProducts, 'Sản phẩm bán chạy')}
 
-        {/* Fallback when no products */}
-        {featuredProducts.length === 0 && discountedProducts.length === 0 && bestSellingProducts.length === 0 && (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Typography variant="h5" gutterBottom>
-              Chưa có sản phẩm nào
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              Hệ thống đang cập nhật sản phẩm mới
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={fetchData}
-            >
-              Tải lại
-            </Button>
-          </Box>
-        )}
+        {/* Featured Products */}
+        {renderProductSlider(featuredProducts, 'Sản phẩm nổi bật')}
+
+        {/* Featured Brands (Placeholder) */}
+        <Box sx={{ my: 4 }}>
+          <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: '700', mb: 2 }}>
+            Thương hiệu nổi bật
+          </Typography>
+          <Grid container spacing={2}>
+            {/* Placeholder for brand logos */}
+            {[...Array(6)].map((_, index) => (
+              <Grid item xs={4} sm={2} key={index}>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: 80,
+                  }}
+                >
+                  <Typography>Brand {index + 1}</Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
       </Container>
     </Box>
   );

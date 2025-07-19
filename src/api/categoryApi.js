@@ -25,3 +25,24 @@ export const categoryAPI = {
   // Lấy danh mục con
   getChildCategories: (parentId) => api.get(`/categories/${parentId}/children`),
 };
+
+// Direct export functions for easier use
+export const getCategories = async () => {
+  const response = await categoryAPI.getCategories();
+  return response.data;
+};
+
+export const getCategoryBySlug = async (slug) => {
+  const response = await categoryAPI.getCategoryBySlug(slug);
+  return response.data;
+};
+
+export const getParentCategories = async () => {
+  const response = await categoryAPI.getParentCategories();
+  return response.data;
+};
+
+export const getChildCategories = async (parentId) => {
+  const response = await categoryAPI.getChildCategories(parentId);
+  return response.data;
+};

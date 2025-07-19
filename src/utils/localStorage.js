@@ -101,3 +101,31 @@ export const clearSessionStorage = () => {
     console.error('Error clearing sessionStorage:', error);
   }
 };
+
+const SESSION_ID_KEY = 'cartSessionId';
+
+export const getSessionId = () => {
+  return localStorage.getItem(SESSION_ID_KEY);
+};
+
+export const setSessionId = (sessionId) => {
+  localStorage.setItem(SESSION_ID_KEY, sessionId);
+};
+
+export const clearSessionId = () => {
+  localStorage.removeItem(SESSION_ID_KEY);
+};
+
+const ACCESS_TOKEN_KEY = 'accessToken';
+
+export const getAccessToken = () => {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+export const setAccessToken = (token) => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+}
+
+export const clearAccessToken = () => {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
