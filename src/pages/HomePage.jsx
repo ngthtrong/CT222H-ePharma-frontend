@@ -19,6 +19,7 @@ import ProductCard from '../components/ProductCard';
 import { productAPI, categoryAPI } from '../api';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+import { getImageSrc } from '../utils/imageUtils';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -224,12 +225,40 @@ const HomePage = () => {
                   }}
                   onClick={() => navigate(`/category/${category.slug}`)}
                 >
-                  <CardMedia
-                    component="img"
-                    image={category.image || 'https://via.placeholder.com/100'}
-                    alt={category.name}
-                    sx={{ width: 64, height: 64, mx: 'auto', mb: 1, objectFit: 'contain' }}
-                  />
+                  {category.image ? (
+                    <CardMedia
+                      component="img"
+                      image={category.image}
+                      alt={category.name}
+                      sx={{ 
+                        width: 64, 
+                        height: 64, 
+                        mx: 'auto', 
+                        mb: 1, 
+                        objectFit: 'contain'
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        width: 64,
+                        height: 64,
+                        mx: 'auto',
+                        mb: 1,
+                        bgcolor: 'grey.100',
+                        border: '1px solid',
+                        borderColor: 'grey.300',
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'grey.500',
+                        fontSize: '12px'
+                      }}
+                    >
+                      No Image
+                    </Box>
+                  )}
                   <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
                     {category.name}
                   </Typography>

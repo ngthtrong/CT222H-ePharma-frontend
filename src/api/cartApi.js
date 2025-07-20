@@ -75,3 +75,13 @@ export const mergeCart = async () => {
   const { data } = await api.post('/cart/merge');
   return data;
 };
+
+// Export cartAPI object
+export const cartAPI = {
+  getCart,
+  addItemToCart,
+  updateCartItem,
+  removeCartItem,
+  clearCart,
+  mergeCart
+};

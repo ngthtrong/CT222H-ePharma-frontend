@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
+import { getImageSrc, handleImageError } from '../utils/imageUtils';
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -173,8 +174,9 @@ const CartPage = () => {
                                   borderRadius: 1,
                                   mr: 2,
                                 }}
-                                image={product.images?.[0] || 'https://via.placeholder.com/80'}
+                                image={getImageSrc(product.images?.[0], 80, 80)}
                                 alt={product.name}
+                                onError={handleImageError}
                               />
                               <Box>
                                 <Typography variant="body1" fontWeight="medium">
@@ -261,8 +263,9 @@ const CartPage = () => {
                               borderRadius: 1,
                               mr: 2,
                             }}
-                            image={product.images?.[0] || 'https://via.placeholder.com/80'}
+                            image={getImageSrc(product.images?.[0], 80, 80)}
                             alt={product.name}
+                            onError={handleImageError}
                           />
                           <Box sx={{ flexGrow: 1 }}>
                             <Typography variant="body1" fontWeight="medium">

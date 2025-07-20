@@ -15,11 +15,11 @@
 Dựa trên `pharmacity.vn`, chúng ta sẽ sử dụng tông màu xanh lá cây làm chủ đạo, tạo cảm giác an toàn, thiên nhiên và liên quan đến sức khỏe.
 
 -   **Primary (Màu chủ đạo):** Xanh lá cây. Dùng cho các nút chính, link, icon đang hoạt động, và các yếu tố thương hiệu.
-    -   *Gợi ý MUI Theme:* `{ palette: { primary: { main: '#00735A' } } }` (Một màu xanh lá đậm, sang trọng).
+    -   *Gợi ý MUI Theme:* `{ palette: { primary: { main: '#0D47A1' } } }` (Một màu xanh lá đậm, sang trọng).
 -   **Secondary (Màu phụ):** Cam. Dùng cho các tag khuyến mãi, banner đặc biệt để tạo điểm nhấn.
-    -   *Gợi ý MUI Theme:* `{ palette: { secondary: { main: '#FF9900' } } }`
--   **Background:** Màu nền chính là trắng (`#FFFFFF`), nền phụ (cho các section, card) là xám rất nhạt.
-    -   *Gợi ý MUI Theme:* `{ palette: { background: { default: '#FFFFFF', paper: '#F5F5F5' } } }`
+    -   *Gợi ý MUI Theme:* `{ palette: { secondary: { main: '#6dbd45' } } }`
+-   **Background:** Màu nền chính là trắng (`#f4f6f8`), nền phụ (cho các section, card) là xám rất nhạt.
+    -   *Gợi ý MUI Theme:* `{ palette: { background: { default: '#f4f6f8', paper: '#F5F5F5' } } }`
 -   **Text:** Màu đen đậm cho tiêu đề và xám cho các văn bản phụ.
     -   *Gợi ý MUI Theme:* `{ palette: { text: { primary: '#212B36', secondary: '#637381' } } }`
 

@@ -5,6 +5,12 @@
  */
 export const setLocalStorage = (key, value) => {
   try {
+    // Không lưu nếu value là undefined hoặc null
+    if (value === undefined || value === null) {
+      localStorage.removeItem(key);
+      return;
+    }
+    
     localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
     console.error('Error saving to localStorage:', error);
@@ -20,9 +26,17 @@ export const setLocalStorage = (key, value) => {
 export const getLocalStorage = (key, defaultValue = null) => {
   try {
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
+    
+    // Kiểm tra nếu item là null, undefined, hoặc chuỗi "undefined"
+    if (item === null || item === undefined || item === 'undefined') {
+      return defaultValue;
+    }
+    
+    return JSON.parse(item);
   } catch (error) {
     console.error('Error getting from localStorage:', error);
+    // Nếu có lỗi parse, xóa key bị lỗi và trả về default value
+    localStorage.removeItem(key);
     return defaultValue;
   }
 };
@@ -51,12 +65,36 @@ export const clearLocalStorage = () => {
 };
 
 /**
+ * Clean up invalid localStorage data
+ */
+export const cleanupLocalStorage = () => {
+  try {
+    const keysToCheck = ['accessToken', 'user', 'cartSessionId'];
+    keysToCheck.forEach(key => {
+      const item = localStorage.getItem(key);
+      if (item === 'undefined' || item === 'null') {
+        localStorage.removeItem(key);
+        console.log(`Removed invalid localStorage item: ${key}`);
+      }
+    });
+  } catch (error) {
+    console.error('Error cleaning localStorage:', error);
+  }
+};
+
+/**
  * Lưu data vào sessionStorage
  * @param {string} key - Key để lưu
  * @param {*} value - Value cần lưu
  */
 export const setSessionStorage = (key, value) => {
   try {
+    // Không lưu nếu value là undefined hoặc null
+    if (value === undefined || value === null) {
+      sessionStorage.removeItem(key);
+      return;
+    }
+    
     sessionStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
     console.error('Error saving to sessionStorage:', error);
@@ -72,9 +110,17 @@ export const setSessionStorage = (key, value) => {
 export const getSessionStorage = (key, defaultValue = null) => {
   try {
     const item = sessionStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
+    
+    // Kiểm tra nếu item là null, undefined, hoặc chuỗi "undefined"
+    if (item === null || item === undefined || item === 'undefined') {
+      return defaultValue;
+    }
+    
+    return JSON.parse(item);
   } catch (error) {
     console.error('Error getting from sessionStorage:', error);
+    // Nếu có lỗi parse, xóa key bị lỗi và trả về default value
+    sessionStorage.removeItem(key);
     return defaultValue;
   }
 };

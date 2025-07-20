@@ -15,6 +15,7 @@ import PropTypes from 'prop-types';
 import { useCart } from '../contexts/CartContext';
 import { formatCurrency } from '../utils/formatters';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import { getImageSrc, handleImageError } from '../utils/imageUtils';
 
 const ProductCard = ({ product }) => {
   const { addItem } = useCart();
@@ -38,8 +39,9 @@ const ProductCard = ({ product }) => {
           <CardMedia
             component="img"
             height="200"
-            image={product.images[0] || 'https://via.placeholder.com/300x200.png?text=No+Image'}
+            image={getImageSrc(product.images?.[0], 300, 200)}
             alt={product.name}
+            onError={handleImageError}
           />
           {hasDiscount && (
             <Chip 

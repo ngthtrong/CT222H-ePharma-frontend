@@ -29,6 +29,7 @@ import {
 import { useParams } from 'react-router-dom';
 import { productAPI } from '../api';
 import { useCart } from '../contexts/CartContext';
+import { getImageSrc, handleImageError } from '../utils/imageUtils';
 
 const ProductDetailPage = () => {
   const { slug } = useParams();
@@ -119,9 +120,10 @@ const ProductDetailPage = () => {
           <Grid item xs={12} md={5}>
             <Box sx={{ mb: 2, border: `1px solid ${theme.palette.divider}`, borderRadius: 2, overflow: 'hidden' }}>
               <img
-                src={images?.[selectedImageIndex] || 'https://via.placeholder.com/400'}
+                src={getImageSrc(images?.[selectedImageIndex], 400, 400)}
                 alt={`${name} - view ${selectedImageIndex + 1}`}
                 style={{ width: '100%', height: 'auto', display: 'block' }}
+                onError={handleImageError}
               />
             </Box>
             <Grid container spacing={1}>
@@ -158,9 +160,12 @@ const ProductDetailPage = () => {
             </Typography>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Typography variant="body2">Thương hiệu: <Link href="#" underline="hover">{brand || 'N/A'}</Link></Typography>
+              <Typography variant="body2" component="span">Thương hiệu: <Link href="#" underline="hover">{brand || 'N/A'}</Link></Typography>
               <Divider orientation="vertical" flexItem />
-              <Typography variant="body2">Tình trạng: <Chip label={stockQuantity > 0 ? 'Còn hàng' : 'Hết hàng'} color={stockQuantity > 0 ? 'success' : 'error'} size="small" /></Typography>
+              <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" component="span">Tình trạng:</Typography>
+                <Chip label={stockQuantity > 0 ? 'Còn hàng' : 'Hết hàng'} color={stockQuantity > 0 ? 'success' : 'error'} size="small" />
+              </Box>
             </Box>
 
             <Box sx={{ my: 2 }}>

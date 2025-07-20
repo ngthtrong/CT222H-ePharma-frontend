@@ -4,10 +4,10 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#00735A', // Xanh lá cây đậm, sang trọng
+      main: '#1a51a2', // Xanh lá cây đậm, sang trọng
     },
     secondary: {
-      main: '#FF9900', // Cam cho các điểm nhấn, khuyến mãi
+      main: '#ff9800', // Cam cho các điểm nhấn, khuyến mãi, giỏ hàng
     },
     error: {
       main: '#f44336',

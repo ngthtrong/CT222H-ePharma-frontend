@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { authAPI, cartAPI } from '../api';
-import { getLocalStorage, setLocalStorage, removeLocalStorage } from '../utils/localStorage';
+import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage } from '../utils/localStorage';
 
 const AuthContext = createContext();
 
@@ -57,6 +57,9 @@ export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   useEffect(() => {
+    // Cleanup invalid localStorage data first
+    cleanupLocalStorage();
+    
     const token = getLocalStorage('accessToken');
     const user = getLocalStorage('user');
     
