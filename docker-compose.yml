@@ -1,0 +1,30 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${NODE_ENV:-development}
+      args:
+        - NODE_ENV=${NODE_ENV:-development}
+    ports:
+      - "${PORT:-5173}:${CONTAINER_PORT:-5173}"
+    volumes:
+      # Conditional volume mounting based on NODE_ENV
+      - type: bind
+        source: .
+        target: /app
+        read_only: ${READ_ONLY:-false}
+      - /app/node_modules
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+    stdin_open: true
+    tty: true
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge

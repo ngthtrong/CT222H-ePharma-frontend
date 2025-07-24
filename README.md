@@ -2,6 +2,59 @@
 
 
 
+# WellVerse Frontend - React Application
+
+## 🐳 Docker Setup (Đã được đơn giản hóa)
+
+Dự án đã được đơn giản hóa với một kịch bản Docker duy nhất hỗ trợ cả development và production mode.
+
+### Cấu trúc Docker
+- **Dockerfile**: Multi-stage build duy nhất
+- **docker-compose.yml**: File compose chung với environment variables
+- **.env.development**: Cấu hình cho development
+- **.env.production**: Cấu hình cho production
+
+### Lệnh sử dụng nhanh
+
+```bash
+# Development mode (với hot-reload)
+npm run docker:dev
+
+# Production mode (chạy nền)
+npm run docker:prod
+
+# Dừng containers
+npm run docker:stop
+
+# Xem logs
+npm run docker:logs
+
+# Dọn dẹp hoàn toàn
+npm run docker:clean
+
+# Truy cập shell container
+npm run docker:shell
+```
+
+### Hoặc sử dụng script quản lý
+
+```bash
+# Windows
+docker-manager-simple.bat [dev|prod|stop|clean|logs|shell]
+
+# Linux/Mac
+chmod +x docker-manager-simple.sh
+./docker-manager-simple.sh [dev|prod|stop|clean|logs|shell]
+```
+
+### Truy cập ứng dụng
+- **Development**: http://localhost:5173
+- **Production**: http://localhost:80
+
+Xem thêm chi tiết trong [DOCKER_SIMPLE.md](DOCKER_SIMPLE.md)
+
+---
+
 # Kế hoạch Hành động - Dự án 
 
 -   **Ngày bắt đầu:** 13/07/2025
