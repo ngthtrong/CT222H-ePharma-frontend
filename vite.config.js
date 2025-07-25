@@ -11,8 +11,8 @@ export default defineConfig({
       usePolling: true
     },
     proxy: {
-      '/api': {
-        target: 'http://localhost:8081',
+      '/api/v1': {
+        target: 'http://localhost:8081', // Địa chỉ server backend của bạn
         changeOrigin: true,
         secure: false,
       },

@@ -53,7 +53,7 @@ export const getParentCategories = async () => {
     return parentCategories;
     
   } catch (error) {
-    console.error('Error in getParentCategories:', error);
+    console.error('Error in getParentCategories:', error.toJSON());
     return [];
   }
 };
