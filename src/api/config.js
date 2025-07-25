@@ -16,9 +16,27 @@ const api = axios.create({
 // Request interceptor để thêm auth token và session ID
 api.interceptors.request.use(
   (config) => {
+    // Các endpoint công khai không cần token
+    const publicEndpoints = ['/categories', '/products'];
+    const isPublicEndpoint = publicEndpoints.some(endpoint => config.url.includes(endpoint));
+    
     const token = localStorage.getItem('accessToken');
-    if (token) {
+    
+    // Chỉ thêm token nếu không phải public endpoint và có token
+    if (token && !isPublicEndpoint) {
       config.headers['Authorization'] = `Bearer ${token}`;
+      // Debug log for logout requests
+      if (config.url.includes('/auth/logout')) {
+        console.log('Logout request with token:', token.substring(0, 20) + '...');
+      }
+    } else {
+      // Debug log if no token found for auth endpoints
+      if (config.url.includes('/auth/logout') && !token) {
+        console.log('Logout request without token - this might cause 403 error');
+      }
+      if (isPublicEndpoint) {
+        console.log('Public endpoint request:', config.url, '- not sending token');
+      }
     }
 
     // For guest cart management, we need a session ID.
@@ -53,11 +71,16 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Không tự động xóa token và redirect nếu đang gọi logout API
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/logout')) {
       // Token hết hạn hoặc không hợp lệ
+      console.log('401 error detected - URL:', error.config?.url);
+      console.log('401 error - removing token and redirecting to login');
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    } else if (error.response?.status === 401 && error.config?.url?.includes('/auth/logout')) {
+      console.log('401 error on logout API - this is expected, not removing token here');
     }
     return Promise.reject(error);
   }

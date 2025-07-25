@@ -12,6 +12,7 @@ export const register = async (userData) => {
 };
 
 export const logout = async () => {
+  // Token sẽ được tự động thêm vào header bởi request interceptor trong config.js
   const response = await api.post('/auth/logout');
   return response.data;
 };

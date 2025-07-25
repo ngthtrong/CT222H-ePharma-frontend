@@ -49,8 +49,8 @@ const ProductsPage = () => {
       Object.keys(params).forEach(key => params[key] == null && delete params[key]);
 
       const response = await getProducts(params);
-      setProducts(response.data);
-      setPagination(response.pagination);
+      setProducts(response.data.data || response.data.products || response.data || []);
+      setPagination(response.pagination || {});
     } catch (err) {
       setError('Failed to fetch products.');
       console.error(err);
@@ -67,9 +67,17 @@ const ProductsPage = () => {
     const fetchInitialData = async () => {
       try {
         const categoriesResponse = await getCategories();
-        setCategories(categoriesResponse.data);
+        const cats = categoriesResponse.data;
+        if (cats && cats.data) {
+          setCategories(cats.data || []);
+        } else if (Array.isArray(cats)) {
+          setCategories(cats);
+        } else {
+          setCategories([]);
+        }
       } catch (err) {
         console.error("Failed to fetch categories", err);
+        setCategories([]);
       }
     };
     fetchInitialData();
@@ -133,8 +141,8 @@ const ProductsPage = () => {
                 <MenuItem value="">
                   <em>All</em>
                 </MenuItem>
-                {categories.map((cat) => (
-                  <MenuItem key={cat._id} value={cat._id}>{cat.name}</MenuItem>
+                {categories.map((cat, index) => (
+                  <MenuItem key={cat._id || index} value={cat._id}>{cat.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>

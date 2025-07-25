@@ -1,24 +1,45 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { authAPI, cartAPI } from '../api';
+import { logout as logoutAPI } from '../api/authApi';
 import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage } from '../utils/localStorage';
 
 const AuthContext = createContext();
 
 const initialState = {
   user: null,
+  token: null,
   isAuthenticated: false,
   loading: true,
   error: null,
 };
 
 const authReducer = (state, action) => {
+  console.log('AuthReducer:', action.type, { 
+    currentState: { 
+      isAuthenticated: state.isAuthenticated, 
+      hasUser: !!state.user, 
+      hasToken: !!state.token 
+    },
+    action: action.type,
+    payload: action.payload 
+  });
+  
   switch (action.type) {
     case 'LOGIN_START':
       return { ...state, loading: true, error: null };
+    case 'SET_TOKEN':
+      return {
+        ...state,
+        token: action.payload,
+        isAuthenticated: !!action.payload,
+        loading: false,
+        error: null,
+      };
     case 'LOGIN_SUCCESS':
       return {
         ...state,
         user: action.payload.user,
+        token: action.payload.token,
         isAuthenticated: true,
         loading: false,
         error: null,
@@ -27,14 +48,17 @@ const authReducer = (state, action) => {
       return {
         ...state,
         user: null,
+        token: null,
         isAuthenticated: false,
         loading: false,
         error: action.payload,
       };
     case 'LOGOUT':
+      console.log('LOGOUT action dispatched - resetting all auth state');
       return {
         ...state,
         user: null,
+        token: null,
         isAuthenticated: false,
         loading: false,
         error: null,
@@ -55,58 +79,149 @@ const authReducer = (state, action) => {
 
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
+
+
+  // Effect để theo dõi sự thay đổi của token và tự động gọi getMyProfile
   useEffect(() => {
-    // Cleanup invalid localStorage data first
+    const fetchUserProfile = async () => {
+      if (state.token && !state.user) {
+        try {
+          const profile = await authAPI.getMyProfile();
+          setLocalStorage('user', profile); // Lưu user data vào localStorage
+          dispatch({ type: 'LOAD_USER', payload: profile });
+          
+          // Merge guest cart if available
+          const guestCartSessionId = getLocalStorage('sessionId');
+          if (guestCartSessionId) {
+            try {
+              await cartAPI.mergeCart();
+              removeLocalStorage('sessionId');
+              console.log('Guest cart merged successfully.');
+            } catch (error) {
+              console.error('Failed to merge guest cart:', error);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch user profile:', error);
+          // Token might be invalid, clean up
+          console.log('Removing token due to profile fetch error');
+          removeLocalStorage('accessToken');
+          removeLocalStorage('user');
+          // Use LOGOUT action to ensure complete state reset
+          dispatch({ type: 'LOGOUT' });
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [state.token]);
+
+  // Effect để khởi tạo từ localStorage khi app load
+  useEffect(() => {
+    console.log('=== Initial localStorage check ===');
     cleanupLocalStorage();
     
     const token = getLocalStorage('accessToken');
     const user = getLocalStorage('user');
     
+    console.log('Initial load - Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'null/undefined');
+    console.log('Initial load - User from localStorage:', user ? 'found' : 'not found');
+    console.log('Initial load - Current auth state:', { 
+      isAuthenticated: state.isAuthenticated, 
+      hasUser: !!state.user, 
+      hasToken: !!state.token 
+    });
+    
     if (token && user) {
+      console.log('Both token and user found - setting authenticated state');
       try {
-        dispatch({ type: 'LOAD_USER', payload: user });
+        // Set both token and user together to maintain consistency
+        dispatch({ 
+          type: 'LOGIN_SUCCESS', 
+          payload: { 
+            user: user, 
+            token: token 
+          } 
+        });
       } catch (error) {
+        console.log('Error setting initial state:', error);
         removeLocalStorage('accessToken');
         removeLocalStorage('user');
         dispatch({ type: 'STOP_LOADING' });
       }
+    } else if (token) {
+      console.log('Only token found - will fetch user profile');
+      // Có token nhưng không có user data, cần fetch lại
+      dispatch({ type: 'SET_TOKEN', payload: token });
     } else {
+      console.log('No token found - user not authenticated');
+      // Ensure clean state if no valid authentication data
+      dispatch({ type: 'LOGOUT' });
       dispatch({ type: 'STOP_LOADING' });
     }
   }, []);
 
-  const handleLoginSuccess = async (data) => {
-    setLocalStorage('accessToken', data.accessToken);
-    const guestCartSessionId = getLocalStorage('sessionId');
-
-    // Must fetch profile first to be authenticated for merge cart call
-    const profile = await authAPI.getMyProfile();
-    dispatch({ type: 'LOAD_USER', payload: profile });
-    
-    if (guestCartSessionId) {
-      try {
-        await cartAPI.mergeCart();
-        removeLocalStorage('sessionId'); // Clear guest cart session after successful merge
-        console.log('Guest cart merged successfully.');
-      } catch (error) {
-        console.error('Failed to merge guest cart:', error);
-        // Decide how to handle merge failure. Maybe notify the user.
-      }
-    }
-  };
-
   const login = async (credentials) => {
     try {
       dispatch({ type: 'LOGIN_START' });
+      console.log('Attempting login with:', credentials);
+      
       const response = await authAPI.login(credentials);
+      console.log('Login response:', response);
+      
       const { data } = response;
       
-      await handleLoginSuccess(data);
+      // Lưu token và user data vào localStorage
+      setLocalStorage('accessToken', data.accessToken);
+      setLocalStorage('user', data.user);
+      
+      // Debug: Verify token was saved
+      const savedToken = getLocalStorage('accessToken');
+      console.log('Token saved to localStorage:', savedToken ? `${savedToken.substring(0, 20)}...` : 'failed to save');
+      
+      // Dispatch LOGIN_SUCCESS với đầy đủ thông tin user và token
+      dispatch({ 
+        type: 'LOGIN_SUCCESS', 
+        payload: { 
+          user: data.user, 
+          token: data.accessToken 
+        } 
+      });
+      
+      // Merge guest cart if available
+      const guestCartSessionId = getLocalStorage('sessionId');
+      if (guestCartSessionId) {
+        try {
+          await cartAPI.mergeCart();
+          removeLocalStorage('sessionId');
+          console.log('Guest cart merged successfully.');
+        } catch (error) {
+          console.error('Failed to merge guest cart:', error);
+        }
+      }
       
       return { success: true };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Login failed';
+      console.error('Login error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText
+      });
+      
+      let errorMessage = 'Login failed';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Invalid email or password';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
       return { success: false, error: errorMessage };
     }
@@ -118,8 +233,18 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.register(userData);
       const { data } = response;
       
-      // Automatically log in the user after successful registration
-      await handleLoginSuccess(data);
+      // Lưu token và user data vào localStorage
+      setLocalStorage('accessToken', data.accessToken);
+      setLocalStorage('user', data.user);
+      
+      // Dispatch LOGIN_SUCCESS với đầy đủ thông tin user và token
+      dispatch({ 
+        type: 'LOGIN_SUCCESS', 
+        payload: { 
+          user: data.user, 
+          token: data.accessToken 
+        } 
+      });
       
       return { success: true };
     } catch (error) {
@@ -130,14 +255,56 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    // Ngăn double logout calls
+    if (isLoggingOut) {
+      console.log('Logout already in progress, ignoring...');
+      return;
+    }
+    
+    setIsLoggingOut(true);
+    
     try {
-      await authAPI.logout();
+      // Debug: Kiểm tra token từ cả localStorage và state
+      const tokenFromStorage = getLocalStorage('accessToken');
+      const tokenFromState = state.token;
+      
+      console.log('=== Logout Debug Info ===');
+      console.log('Logout function called');
+      console.log('Token from localStorage:', tokenFromStorage ? `${tokenFromStorage.substring(0, 20)}...` : 'null/undefined');
+      console.log('Token from state:', tokenFromState ? `${tokenFromState.substring(0, 20)}...` : 'null/undefined');
+      console.log('Is authenticated:', state.isAuthenticated);
+      console.log('User in state:', state.user ? 'present' : 'null/undefined');
+      
+      // Check for inconsistent state and handle gracefully
+      if (state.isAuthenticated && !tokenFromState && !state.user && !tokenFromStorage) {
+        console.log('Detected inconsistent state during logout - will clean up without API call');
+      } else {
+        // If user is actually authenticated with valid token, make API call
+        const tokenToUse = tokenFromState || tokenFromStorage;
+        
+        if (tokenToUse && (state.isAuthenticated || state.user)) {
+          console.log('Calling logout API with token present');
+          // Tạm thời set lại token vào localStorage để interceptor có thể sử dụng
+          if (!tokenFromStorage && tokenFromState) {
+            console.log('Setting token back to localStorage for API call');
+            setLocalStorage('accessToken', tokenFromState);
+          }
+          
+          // Gọi API logout với token được gửi tự động trong header
+          await logoutAPI();
+          console.log('Logout API call successful');
+        } else {
+          console.log('No valid authentication state found, skipping logout API call');
+        }
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      removeLocalStorage('accessToken');
-      removeLocalStorage('user');
+      // Dọn dẹp local storage và cập nhật state dù API có lỗi hay không
+      console.log('Cleaning up localStorage and state');
+      cleanupLocalStorage(); // Use the cleanup function for thorough cleanup
       dispatch({ type: 'LOGOUT' });
+      setIsLoggingOut(false);
     }
   };
 

@@ -140,12 +140,16 @@ const HomePage = () => {
   // Mock data for hero banners
   const heroBanners = [
     {
-      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/1080x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/smalls/dieu_hoa_mien_dich_14794e4a7b.png',
+      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/1920x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/Top_Banner1440x414_424904014f.png',
       alt: 'Hero Banner 1',
     },
     {
-      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/1080x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/smalls/Vitamin_5e7105e1f3.png',
+      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/2560x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/banner_desktop_fb383b0f89.png',
       alt: 'Hero Banner 2',
+    },
+    {
+      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/2560x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/Ruot_2062e1ea49.png',
+      alt: 'Hero Banner 3',
     },
   ];
 

@@ -353,7 +353,7 @@ const Header = () => {
                       }
                     }}
                   >
-                    Đăng nhập/ Đăng ký
+                    Login / Sign up
                   </Button>
                 )}
 
