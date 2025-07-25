@@ -39,11 +39,11 @@ const HomePage = () => {
     try {
       setLoading(true);
       console.log('Fetching data...');
-      
+
       // Fetch all products first
       const productsResponse = await productAPI.getProducts({ limit: 24 });
       console.log('Products response:', productsResponse.data);
-      
+
       let allProducts = [];
       if (productsResponse.data) {
         // Handle different response structures
@@ -57,19 +57,19 @@ const HomePage = () => {
           allProducts = productsResponse.data.products || [];
         }
       }
-      
+
       console.log('All products:', allProducts);
-      
+
       // Distribute products into different categories
       setFeaturedProducts(allProducts.slice(0, 8));
       setDiscountedProducts(allProducts.slice(8, 16));
       setBestSellingProducts(allProducts.slice(16, 24));
-      
+
       // Fetch categories
       try {
         const categoriesResponse = await categoryAPI.getCategories();
         console.log('Categories response:', categoriesResponse.data);
-        
+
         let allCategories = [];
         if (categoriesResponse.data) {
           if (categoriesResponse.data.success) {
@@ -80,13 +80,13 @@ const HomePage = () => {
             allCategories = categoriesResponse.data;
           }
         }
-        
+
         setCategories(allCategories.slice(0, 6));
       } catch (catError) {
         console.error('Error fetching categories:', catError);
         // Don't fail the whole page if categories fail
       }
-      
+
     } catch (error) {
       console.error('Error fetching data:', error);
       setError('Không thể tải dữ liệu trang chủ. Vui lòng thử lại.');
@@ -140,16 +140,13 @@ const HomePage = () => {
   // Mock data for hero banners
   const heroBanners = [
     {
-      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/1920x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/Top_Banner1440x414_424904014f.png',
-      alt: 'Hero Banner 1',
+      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/1920x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/Top_Banner1440x414_424904014f.png', alt: 'Hero Banner 1',
     },
     {
-      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/2560x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/banner_desktop_fb383b0f89.png',
-      alt: 'Hero Banner 2',
+      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/2560x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/banner_desktop_fb383b0f89.png', alt: 'Hero Banner 2',
     },
     {
-      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/2560x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/Ruot_2062e1ea49.png',
-      alt: 'Hero Banner 3',
+      img: 'https://cdn.nhathuoclongchau.com.vn/unsafe/2560x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/Ruot_2062e1ea49.png', alt: 'Hero Banner 3',
     },
   ];
 
@@ -219,8 +216,7 @@ const HomePage = () => {
                   elevation={0}
                   sx={{
                     p: 2,
-                    textAlign: 'center',
-                    border: `1px solid ${theme.palette.divider}`,
+                    textAlign: 'center', border: `1px solid ${theme.palette.divider}`,
                     borderRadius: 2,
                     '&:hover': {
                       boxShadow: 3,
@@ -234,11 +230,11 @@ const HomePage = () => {
                       component="img"
                       image={category.image}
                       alt={category.name}
-                      sx={{ 
-                        width: 64, 
-                        height: 64, 
-                        mx: 'auto', 
-                        mb: 1, 
+                      sx={{
+                        width: 64,
+                        height: 64,
+                        mx: 'auto',
+                        mb: 1,
                         objectFit: 'contain'
                       }}
                     />
@@ -247,17 +243,9 @@ const HomePage = () => {
                       sx={{
                         width: 64,
                         height: 64,
-                        mx: 'auto',
-                        mb: 1,
-                        bgcolor: 'grey.100',
-                        border: '1px solid',
-                        borderColor: 'grey.300',
-                        borderRadius: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'grey.500',
-                        fontSize: '12px'
+                        mx: 'auto', mb: 1,
+                        bgcolor: 'grey.100', border: '1px solid', borderColor: 'grey.300', borderRadius: 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'grey.500', fontSize: '12px'
                       }}
                     >
                       No Image
@@ -308,11 +296,7 @@ const HomePage = () => {
                 <Paper
                   variant="outlined"
                   sx={{
-                    p: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: 80,
+                    p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 80,
                   }}
                 >
                   <Typography>Brand {index + 1}</Typography>

@@ -6,8 +6,6 @@ import {
   Button,
   Paper,
   IconButton,
-  Breadcrumbs,
-  Link,
   Tabs,
   Tab,
   Chip,
@@ -17,6 +15,7 @@ import {
   Container,
   Divider,
   useTheme,
+  Link,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -268,12 +267,6 @@ const ProductDetailPage = () => {
               flex: 1
             }}
           >
-            <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 2 }}>
-              <Link underline="hover" color="inherit" href="/">Trang chủ</Link>
-              <Link underline="hover" color="inherit" href="/products">Sản phẩm</Link>
-              <Typography color="text.primary">{name}</Typography>
-            </Breadcrumbs>
-
             <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
               {name}
             </Typography>

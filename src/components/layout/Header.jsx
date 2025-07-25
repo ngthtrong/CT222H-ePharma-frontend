@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -16,11 +16,14 @@ import {
   Divider,
   TextField,
   Autocomplete,
+  Breadcrumbs,
+  Link,
 } from '@mui/material';
 import {
   ShoppingCart,
   Search as SearchIcon,
   Person as PersonIcon,
+  NavigateNext as NavigateNextIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
@@ -28,11 +31,45 @@ import { getParentCategories } from '../../api/categoryApi';
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, user, logout } = useAuth();
   const { totalItems } = useCart();
   const [anchorEl, setAnchorEl] = useState(null);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(0);
+
+  // Function to generate breadcrumb based on current path
+  const generateBreadcrumbs = () => {
+    const path = location.pathname;
+    const breadcrumbs = [];
+
+    // Always add home
+    breadcrumbs.push({ label: 'Trang chủ', path: '/' });
+
+    if (path.startsWith('/product/') && path !== '/product') {
+      // Product detail page - note: /product/:slug not /products/:slug
+      breadcrumbs.push({ label: 'Sản phẩm', path: '/products' });
+      // For now, just show "Chi tiết sản phẩm" - could be enhanced to show actual product name
+      breadcrumbs.push({ label: 'Chi tiết sản phẩm', path: path, isActive: true });
+    } else if (path === '/products') {
+      breadcrumbs.push({ label: 'Sản phẩm', path: '/products', isActive: true });
+    } else if (path === '/cart') {
+      breadcrumbs.push({ label: 'Giỏ hàng', path: '/cart', isActive: true });
+    } else if (path === '/profile') {
+      breadcrumbs.push({ label: 'Thông tin tài khoản', path: '/profile', isActive: true });
+    } else if (path === '/login') {
+      breadcrumbs.push({ label: 'Đăng nhập', path: '/login', isActive: true });
+    } else if (path === '/register') {
+      breadcrumbs.push({ label: 'Đăng ký', path: '/register', isActive: true });
+    } else if (path === '/admin') {
+      breadcrumbs.push({ label: 'Trang quản trị', path: '/admin', isActive: true });
+    }
+
+    return breadcrumbs;
+  };
+
+  const breadcrumbs = generateBreadcrumbs();
+  const shouldShowBreadcrumbs = location.pathname !== '/' && breadcrumbs.length > 1;
 
   // Fetch parent categories on mount
   useEffect(() => {
@@ -392,8 +429,51 @@ const Header = () => {
               </Box>
             </Box>
           </Container>
+
+
+          {shouldShowBreadcrumbs && (
+            <Box sx={{ bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider', py: 1.5 }}>
+              <Container maxWidth="xl">
+                <Breadcrumbs
+                  separator={<NavigateNextIcon fontSize="small" />}
+                  sx={{
+                    '& .MuiBreadcrumbs-ol': {
+                      alignItems: 'center'
+                    }
+                  }}
+                >
+                  {breadcrumbs.map((crumb, index) => (
+                    crumb.isActive ? (
+                      <Typography
+                        key={index}
+                        color="text.primary"
+                        sx={{ fontWeight: 500 }}
+                      >
+                        {crumb.label}
+                      </Typography>
+                    ) : (
+                      <Link
+                        key={index}
+                        component={RouterLink}
+                        to={crumb.path}
+                        underline="hover"
+                        color="inherit"
+                        sx={{
+                          fontSize: '0.875rem',
+                          '&:hover': { color: 'primary.main' }
+                        }}
+                      >
+                        {crumb.label}
+                      </Link>
+                    )
+                  ))}
+                </Breadcrumbs>
+              </Container>
+            </Box>
+          )}
         </Box>
       </AppBar>
+
     </>
   );
 };
