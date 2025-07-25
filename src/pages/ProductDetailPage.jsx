@@ -24,6 +24,7 @@ import {
   AddShoppingCart as AddShoppingCartIcon,
   FavoriteBorder as FavoriteBorderIcon,
   NavigateNext as NavigateNextIcon,
+  NavigateBefore as NavigateBeforeIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
@@ -92,6 +93,18 @@ const ProductDetailPage = () => {
     setActiveTab(newValue);
   };
 
+  const handlePrevImage = () => {
+    setSelectedImageIndex((prev) => 
+      prev === 0 ? (images?.length || 1) - 1 : prev - 1
+    );
+  };
+
+  const handleNextImage = () => {
+    setSelectedImageIndex((prev) => 
+      prev === (images?.length || 1) - 1 ? 0 : prev + 1
+    );
+  };
+
   if (loading) {
     return (
       <Container sx={{ py: 8, textAlign: 'center' }}>
@@ -115,40 +128,146 @@ const ProductDetailPage = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper elevation={0} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2 }}>
-        <Grid container spacing={4}>
-          {/* Left Column: Product Images */}
-          <Grid item xs={12} md={5}>
-            <Box sx={{ mb: 2, border: `1px solid ${theme.palette.divider}`, borderRadius: 2, overflow: 'hidden' }}>
+        <Box 
+          sx={{ 
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 4,
+            alignItems: 'flex-start'
+          }}
+        >
+          {/* Left Column: Product Images (40%) */}
+          <Box 
+            sx={{ 
+              width: { xs: '100%', md: '40%' },
+              flexShrink: 0
+            }}
+          >
+            <Box sx={{ mb: 2, border: `1px solid ${theme.palette.divider}`, borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
               <img
                 src={getImageSrc(images?.[selectedImageIndex], 400, 400)}
                 alt={`${name} - view ${selectedImageIndex + 1}`}
                 style={{ width: '100%', height: 'auto', display: 'block' }}
                 onError={handleImageError}
               />
-            </Box>
-            <Grid container spacing={1}>
-              {images?.map((img, index) => (
-                <Grid item xs={3} key={index}>
-                  <Box
-                    component="img"
-                    src={img}
-                    alt={`${name} thumbnail ${index + 1}`}
-                    onClick={() => setSelectedImageIndex(index)}
+              
+              {/* Navigation Arrows - only show if more than 1 image */}
+              {images && images.length > 1 && (
+                <>
+                  <IconButton
+                    onClick={handlePrevImage}
                     sx={{
-                      width: '100%',
-                      height: 'auto',
-                      borderRadius: 1,
-                      border: index === selectedImageIndex ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
-                      cursor: 'pointer',
+                      position: 'absolute',
+                      top: '50%',
+                      left: 8,
+                      transform: 'translateY(-50%)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      },
+                      boxShadow: 1,
                     }}
-                  />
-                </Grid>
+                    size="small"
+                  >
+                    <NavigateBeforeIcon />
+                  </IconButton>
+                  
+                  <IconButton
+                    onClick={handleNextImage}
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      right: 8,
+                      transform: 'translateY(-50%)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      },
+                      boxShadow: 1,
+                    }}
+                    size="small"
+                  >
+                    <NavigateNextIcon />
+                  </IconButton>
+                  
+                  {/* Image counter */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 8,
+                      right: 8,
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      color: 'white',
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    {selectedImageIndex + 1} / {images.length}
+                  </Box>
+                </>
+              )}
+            </Box>
+            
+            {/* Thumbnail Carousel */}
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                gap: 1, 
+                overflowX: 'auto',
+                paddingBottom: 1,
+                '&::-webkit-scrollbar': {
+                  height: 6,
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: 'grey.200',
+                  borderRadius: 3,
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: 'grey.400',
+                  borderRadius: 3,
+                  '&:hover': {
+                    backgroundColor: 'grey.500',
+                  },
+                },
+              }}
+            >
+              {images?.map((img, index) => (
+                <Box
+                  key={index}
+                  component="img"
+                  src={img}
+                  alt={`${name} thumbnail ${index + 1}`}
+                  onClick={() => setSelectedImageIndex(index)}
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    objectFit: 'cover',
+                    borderRadius: 1,
+                    border: index === selectedImageIndex 
+                      ? `2px solid ${theme.palette.primary.main}` 
+                      : `1px solid ${theme.palette.divider}`,
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      borderColor: theme.palette.primary.light,
+                      transform: 'scale(1.05)',
+                    },
+                  }}
+                />
               ))}
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
 
-          {/* Right Column: Product Info & Actions */}
-          <Grid item xs={12} md={7}>
+          {/* Right Column: Product Info & Actions (60%) */}
+          <Box 
+            sx={{ 
+              width: { xs: '100%', md: '60%' },
+              flex: 1
+            }}
+          >
             <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 2 }}>
               <Link underline="hover" color="inherit" href="/">Trang chủ</Link>
               <Link underline="hover" color="inherit" href="/products">Sản phẩm</Link>
@@ -159,8 +278,14 @@ const ProductDetailPage = () => {
               {name}
             </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Typography variant="body2" component="span">Thương hiệu: <Link href="#" underline="hover">{brand || 'N/A'}</Link></Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+              <Typography variant="body2" component="span">
+                Mã SKU: <strong>{product.sku || product._id}</strong>
+              </Typography>
+              <Divider orientation="vertical" flexItem />
+              <Typography variant="body2" component="span">
+                Thương hiệu: <Link href="#" underline="hover">{brand || 'N/A'}</Link>
+              </Typography>
               <Divider orientation="vertical" flexItem />
               <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="body2" component="span">Tình trạng:</Typography>
@@ -181,18 +306,49 @@ const ProductDetailPage = () => {
 
             <Divider sx={{ my: 2 }} />
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: 2 }}>
-              <Typography>Số lượng:</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
-                <IconButton onClick={handleDecrement} size="small"><RemoveIcon /></IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 3 }}>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>Số lượng:</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <IconButton 
+                  onClick={handleDecrement} 
+                  size="small"
+                  sx={{ 
+                    border: `1px solid ${theme.palette.divider}`, 
+                    borderRadius: '4px 0 0 4px',
+                    borderRight: 'none'
+                  }}
+                >
+                  <RemoveIcon fontSize="small" />
+                </IconButton>
                 <TextField
                   value={quantity}
                   onChange={handleQuantityChange}
                   size="small"
-                  inputProps={{ style: { textAlign: 'center', width: 40 }, readOnly: true }}
-                  sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { border: 'none' } } }}
+                  inputProps={{ 
+                    style: { textAlign: 'center', width: 60, height: 20 },
+                    min: 1
+                  }}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': { 
+                      borderRadius: 0,
+                      '& fieldset': { 
+                        borderLeft: 'none',
+                        borderRight: 'none'
+                      } 
+                    } 
+                  }}
                 />
-                <IconButton onClick={handleIncrement} size="small"><AddIcon /></IconButton>
+                <IconButton 
+                  onClick={handleIncrement} 
+                  size="small"
+                  sx={{ 
+                    border: `1px solid ${theme.palette.divider}`, 
+                    borderRadius: '0 4px 4px 0',
+                    borderLeft: 'none'
+                  }}
+                >
+                  <AddIcon fontSize="small" />
+                </IconButton>
               </Box>
             </Box>
 
@@ -202,31 +358,90 @@ const ProductDetailPage = () => {
               startIcon={<AddShoppingCartIcon />}
               onClick={handleAddToCart}
               disabled={stockQuantity === 0}
-              sx={{ mt: 2, mb: 2, width: { xs: '100%', sm: 'auto' } }}
+              sx={{ 
+                mt: 2, 
+                mb: 3, 
+                width: { xs: '100%', sm: '300px' }, 
+                height: 48,
+                fontSize: '1.1rem',
+                fontWeight: 600
+              }}
             >
               Thêm vào giỏ hàng
             </Button>
 
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 2 }}>
-              <Typography sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><CheckCircleOutlineIcon color="success" sx={{ mr: 1 }} /> Cam kết chính hãng 100%</Typography>
-              <Typography sx={{ display: 'flex', alignItems: 'center' }}><CheckCircleOutlineIcon color="success" sx={{ mr: 1 }} /> Giao hàng nhanh toàn quốc</Typography>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 2, backgroundColor: 'grey.50' }}>
+              <Typography sx={{ display: 'flex', alignItems: 'center', mb: 1, fontSize: '0.9rem' }}>
+                <CheckCircleOutlineIcon color="success" sx={{ mr: 1, fontSize: '1.2rem' }} /> 
+                Cam kết chính hãng 100%
+              </Typography>
+              <Typography sx={{ display: 'flex', alignItems: 'center', mb: 1, fontSize: '0.9rem' }}>
+                <CheckCircleOutlineIcon color="success" sx={{ mr: 1, fontSize: '1.2rem' }} /> 
+                Giao hàng nhanh toàn quốc
+              </Typography>
+              <Typography sx={{ display: 'flex', alignItems: 'center', fontSize: '0.9rem' }}>
+                <CheckCircleOutlineIcon color="success" sx={{ mr: 1, fontSize: '1.2rem' }} /> 
+                Đổi trả trong 30 ngày
+              </Typography>
             </Paper>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
-        {/* Bottom Section: Detailed Info */}
-        <Box sx={{ mt: 5 }}>
-          <Tabs value={activeTab} onChange={handleTabChange} indicatorColor="primary" textColor="primary">
-            <Tab label="Mô tả sản phẩm" />
-            <Tab label="Thành phần" />
-            <Tab label="Hướng dẫn sử dụng" />
-            <Tab label="Đánh giá" />
+        {/* Bottom Section: Detailed Info (Full Width) */}
+        <Box sx={{ mt: 6 }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={handleTabChange} 
+            indicatorColor="primary" 
+            textColor="primary"
+            sx={{ borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Tab label="Mô tả sản phẩm" sx={{ fontWeight: 500 }} />
+            <Tab label="Thành phần" sx={{ fontWeight: 500 }} />
+            <Tab label="Hướng dẫn sử dụng" sx={{ fontWeight: 500 }} />
+            <Tab label="Đánh giá của khách hàng" sx={{ fontWeight: 500 }} />
           </Tabs>
-          <Paper variant="outlined" sx={{ p: 3, mt: 2, borderRadius: 2 }}>
-            {activeTab === 0 && <Typography>{description || 'Chưa có mô tả cho sản phẩm này.'}</Typography>}
-            {activeTab === 1 && <Typography>{components || 'Thông tin thành phần chưa được cập nhật.'}</Typography>}
-            {activeTab === 2 && <Typography>{usageGuide || 'Hướng dẫn sử dụng chưa được cập nhật.'}</Typography>}
-            {activeTab === 3 && <Typography>Tính năng đánh giá đang được phát triển.</Typography>}
+          <Paper variant="outlined" sx={{ p: 4, mt: 0, borderRadius: '0 0 8px 8px', borderTop: 'none', minHeight: 200 }}>
+            {activeTab === 0 && (
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  Mô tả sản phẩm
+                </Typography>
+                <Typography sx={{ lineHeight: 1.7, fontSize: '1rem' }}>
+                  {description || 'Chưa có mô tả cho sản phẩm này.'}
+                </Typography>
+              </Box>
+            )}
+            {activeTab === 1 && (
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  Thành phần
+                </Typography>
+                <Typography sx={{ lineHeight: 1.7, fontSize: '1rem' }}>
+                  {components || 'Thông tin thành phần chưa được cập nhật.'}
+                </Typography>
+              </Box>
+            )}
+            {activeTab === 2 && (
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  Hướng dẫn sử dụng
+                </Typography>
+                <Typography sx={{ lineHeight: 1.7, fontSize: '1rem' }}>
+                  {usageGuide || 'Hướng dẫn sử dụng chưa được cập nhật.'}
+                </Typography>
+              </Box>
+            )}
+            {activeTab === 3 && (
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  Đánh giá của khách hàng
+                </Typography>
+                <Typography sx={{ lineHeight: 1.7, fontSize: '1rem', fontStyle: 'italic', color: 'text.secondary' }}>
+                  Tính năng đánh giá đang được phát triển. Sẽ sớm có mặt để bạn có thể xem và chia sẻ trải nghiệm về sản phẩm.
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </Box>
       </Paper>
