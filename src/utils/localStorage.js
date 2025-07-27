@@ -74,7 +74,6 @@ export const cleanupLocalStorage = () => {
       const item = localStorage.getItem(key);
       if (item === 'undefined' || item === 'null') {
         localStorage.removeItem(key);
-        console.log(`Removed invalid localStorage item: ${key}`);
       }
     });
   } catch (error) {

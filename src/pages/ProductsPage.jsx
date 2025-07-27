@@ -53,7 +53,6 @@ const ProductsPage = () => {
       setPagination(response.pagination || {});
     } catch (err) {
       setError('Failed to fetch products.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -76,7 +75,6 @@ const ProductsPage = () => {
           setCategories([]);
         }
       } catch (err) {
-        console.error("Failed to fetch categories", err);
         setCategories([]);
       }
     };

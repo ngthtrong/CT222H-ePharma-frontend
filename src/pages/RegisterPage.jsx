@@ -79,12 +79,10 @@ const RegisterPage = () => {
   };
 
   const handleGoogleRegister = () => {
-    console.log('Google register');
     // TODO: Implement Google register
   };
 
   const handleFacebookRegister = () => {
-    console.log('Facebook register');
     // TODO: Implement Facebook register
   };
 

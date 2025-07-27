@@ -35,15 +35,43 @@ const ProfilePage = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
+      
+      // Debug: Check if token exists before making request
+      const token = localStorage.getItem('accessToken');
+      console.log('=== ProfilePage fetchProfile ===');
+      console.log('Token exists:', !!token);
+      if (token) {
+        console.log('Token preview:', token.substring(0, 20) + '...');
+      } else {
+        console.log('NO TOKEN FOUND - this will cause 403 error');
+      }
+      
       const response = await authAPI.getProfile();
-      setProfile(response.data);
+      console.log('Profile response:', response);
+      
+      // authAPI.getProfile() trả về response.data, có thể có cấu trúc:
+      // { success, message, data: { user info } } hoặc trực tiếp user data
+      let userData;
+      if (response.success && response.data) {
+        // Nested response structure
+        userData = response.data;
+      } else if (response.id || response.email) {
+        // Direct user data
+        userData = response;
+      } else {
+        throw new Error('Invalid profile response');
+      }
+      
+      setProfile(userData);
       setFormData({
-        name: response.data.name || '',
-        email: response.data.email || '',
-        phone: response.data.phone || '',
-        address: response.data.address || '',
+        name: userData.fullName || userData.name || '',
+        email: userData.email || '',
+        phone: userData.phoneNumber || userData.phone || '',
+        address: userData.addresses || userData.address || '',
       });
     } catch (error) {
+      console.error('Profile fetch error:', error);
+      console.error('Error response:', error.response);
       setError('Không thể tải thông tin profile');
     } finally {
       setLoading(false);

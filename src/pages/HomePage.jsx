@@ -38,11 +38,9 @@ const HomePage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('Fetching data...');
 
       // Fetch all products first
       const productsResponse = await productAPI.getProducts({ limit: 24 });
-      console.log('Products response:', productsResponse.data);
 
       let allProducts = [];
       if (productsResponse.data) {
@@ -58,8 +56,6 @@ const HomePage = () => {
         }
       }
 
-      console.log('All products:', allProducts);
-
       // Distribute products into different categories
       setFeaturedProducts(allProducts.slice(0, 8));
       setDiscountedProducts(allProducts.slice(8, 16));
@@ -68,7 +64,6 @@ const HomePage = () => {
       // Fetch categories
       try {
         const categoriesResponse = await categoryAPI.getCategories();
-        console.log('Categories response:', categoriesResponse.data);
 
         let allCategories = [];
         if (categoriesResponse.data) {
@@ -83,12 +78,10 @@ const HomePage = () => {
 
         setCategories(allCategories.slice(0, 6));
       } catch (catError) {
-        console.error('Error fetching categories:', catError);
         // Don't fail the whole page if categories fail
       }
 
     } catch (error) {
-      console.error('Error fetching data:', error);
       setError('Không thể tải dữ liệu trang chủ. Vui lòng thử lại.');
     } finally {
       setLoading(false);

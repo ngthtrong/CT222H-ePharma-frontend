@@ -88,9 +88,23 @@ export const AuthProvider = ({ children }) => {
     const fetchUserProfile = async () => {
       if (state.token && !state.user) {
         try {
-          const profile = await authAPI.getMyProfile();
-          setLocalStorage('user', profile); // Lưu user data vào localStorage
-          dispatch({ type: 'LOAD_USER', payload: profile });
+          const response = await authAPI.getMyProfile();
+          
+          // authAPI.getMyProfile() trả về response.data, có thể có cấu trúc:
+          // { success, message, data: { user info } } hoặc trực tiếp user data
+          let userProfile;
+          if (response.success && response.data) {
+            // Nested response structure
+            userProfile = response.data;
+          } else if (response.id || response.email) {
+            // Direct user data
+            userProfile = response;
+          } else {
+            throw new Error('Invalid user profile response');
+          }
+          
+          setLocalStorage('user', userProfile); // Lưu user data vào localStorage
+          dispatch({ type: 'LOAD_USER', payload: userProfile });
           
           // Merge guest cart if available
           const guestCartSessionId = getLocalStorage('sessionId');
@@ -171,22 +185,34 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.login(credentials);
       console.log('Login response:', response);
       
-      const { data } = response;
+      // authAPI.login() trả về response.data, có cấu trúc:
+      // { success, message, data: { accessToken, user, tokenType, ... } }
+      const { success, message, data } = response;
+      
+      if (!success) {
+        throw new Error(message || 'Login failed');
+      }
+      
+      const { accessToken, user } = data;
       
       // Lưu token và user data vào localStorage
-      setLocalStorage('accessToken', data.accessToken);
-      setLocalStorage('user', data.user);
+      setLocalStorage('accessToken', accessToken);
+      setLocalStorage('user', user);
       
       // Debug: Verify token was saved
       const savedToken = getLocalStorage('accessToken');
-      console.log('Token saved to localStorage:', savedToken ? `${savedToken.substring(0, 20)}...` : 'failed to save');
+      console.log('=== LOGIN DEBUG ===');
+      console.log('Full response structure:', response);
+      console.log('Token from response:', accessToken ? `${accessToken.substring(0, 20)}...` : 'NO TOKEN IN RESPONSE');
+      console.log('Token saved to localStorage:', savedToken ? `${savedToken.substring(0, 20)}...` : 'FAILED TO SAVE');
+      console.log('localStorage check:', localStorage.getItem('accessToken') ? 'TOKEN EXISTS' : 'NO TOKEN');
       
       // Dispatch LOGIN_SUCCESS với đầy đủ thông tin user và token
       dispatch({ 
         type: 'LOGIN_SUCCESS', 
         payload: { 
-          user: data.user, 
-          token: data.accessToken 
+          user: user, 
+          token: accessToken 
         } 
       });
       
@@ -231,24 +257,33 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'LOGIN_START' });
       const response = await authAPI.register(userData);
-      const { data } = response;
+      
+      // authAPI.register() trả về response.data, có cấu trúc:
+      // { success, message, data: { accessToken, user, tokenType, ... } }
+      const { success, message, data } = response;
+      
+      if (!success) {
+        throw new Error(message || 'Registration failed');
+      }
+      
+      const { accessToken, user } = data;
       
       // Lưu token và user data vào localStorage
-      setLocalStorage('accessToken', data.accessToken);
-      setLocalStorage('user', data.user);
+      setLocalStorage('accessToken', accessToken);
+      setLocalStorage('user', user);
       
       // Dispatch LOGIN_SUCCESS với đầy đủ thông tin user và token
       dispatch({ 
         type: 'LOGIN_SUCCESS', 
         payload: { 
-          user: data.user, 
-          token: data.accessToken 
+          user: user, 
+          token: accessToken 
         } 
       });
       
       return { success: true };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Registration failed';
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
       return { success: false, error: errorMessage };
     }

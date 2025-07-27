@@ -84,7 +84,6 @@ const CartPage = () => {
   };
 
   const handleCheckout = () => {
-    console.log('Proceeding to checkout...');
     // TODO: Implement checkout logic
   };
 

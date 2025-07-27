@@ -41,7 +41,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError('');
-    
+
     if (!formData.email || !formData.password) {
       setLocalError('Vui lòng nhập đầy đủ thông tin');
       return;
@@ -60,12 +60,10 @@ const LoginPage = () => {
   };
 
   const handleGoogleLogin = () => {
-    console.log('Google login');
     // TODO: Implement Google login
   };
 
   const handleFacebookLogin = () => {
-    console.log('Facebook login');
     // TODO: Implement Facebook login
   };
 
@@ -91,7 +89,7 @@ const LoginPage = () => {
         <Typography variant="h4" fontWeight="bold" textAlign="center" gutterBottom>
           Đăng nhập
         </Typography>
-        
+
         <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>
           Chào mừng bạn quay trở lại WellVerse
         </Typography>
@@ -102,7 +100,7 @@ const LoginPage = () => {
               {localError || error}
             </Alert>
           )}
-          
+
           <TextField
             fullWidth
             label="Email"
@@ -115,7 +113,7 @@ const LoginPage = () => {
             required
             disabled={loading}
           />
-          
+
           <TextField
             fullWidth
             label="Mật khẩu"
@@ -151,16 +149,18 @@ const LoginPage = () => {
             variant="contained"
             size="large"
             fullWidth
-            sx={{ mb: 3, py: 1.5 }}
+            sx={{ mb: 2, py: 1.5 }}
             disabled={loading}
           >
             {loading ? <CircularProgress size={24} /> : 'Đăng nhập'}
           </Button>
+
+          {/* Debug test buttons */}
         </Box>
 
         <Divider sx={{ my: 3 }}>
           <Typography variant="body2" color="text.secondary">
-            Hoặc
+            Hoặc đăng nhập với
           </Typography>
         </Divider>
 
