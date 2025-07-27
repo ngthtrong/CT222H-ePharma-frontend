@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { authAPI, cartAPI } from '../api';
 import { logout as logoutAPI } from '../api/authApi';
-import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage } from '../utils/localStorage';
+import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage, clearAuthData, getSessionId, clearSessionId } from '../utils/localStorage';
 
 const AuthContext = createContext();
 
@@ -107,12 +107,13 @@ export const AuthProvider = ({ children }) => {
           dispatch({ type: 'LOAD_USER', payload: userProfile });
           
           // Merge guest cart if available
-          const guestCartSessionId = getLocalStorage('sessionId');
+          const guestCartSessionId = getSessionId();
           if (guestCartSessionId) {
             try {
+              console.log('Found guest cart session ID, attempting to merge:', guestCartSessionId);
               await cartAPI.mergeCart();
-              removeLocalStorage('sessionId');
-              console.log('Guest cart merged successfully.');
+              clearSessionId(); // Sử dụng function từ localStorage utils
+              console.log('Guest cart merged successfully and session ID cleared.');
             } catch (error) {
               console.error('Failed to merge guest cart:', error);
             }
@@ -216,15 +217,18 @@ export const AuthProvider = ({ children }) => {
         } 
       });
       
-      // Merge guest cart if available
-      const guestCartSessionId = getLocalStorage('sessionId');
+      // Merge guest cart if available (Bước 3c, 3d trong yêu cầu)
+      const guestCartSessionId = getSessionId();
       if (guestCartSessionId) {
         try {
+          console.log('Found guest cart session ID after login, attempting to merge:', guestCartSessionId);
           await cartAPI.mergeCart();
-          removeLocalStorage('sessionId');
-          console.log('Guest cart merged successfully.');
+          clearSessionId(); // Xóa cartSessionId khỏi localStorage sau khi gộp thành công
+          console.log('Guest cart merged successfully after login and session ID cleared.');
         } catch (error) {
-          console.error('Failed to merge guest cart:', error);
+          console.error('Failed to merge guest cart after login:', error);
+          // Vẫn clear session ID ngay cả khi merge thất bại để tránh loop
+          clearSessionId();
         }
       }
       
@@ -288,9 +292,9 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: errorMessage };
     }
   };
-
+  // Main logout function theo flow chuẩn
   const logout = async () => {
-    // Ngăn double logout calls
+    // Tránh multiple concurrent logout calls
     if (isLoggingOut) {
       console.log('Logout already in progress, ignoring...');
       return;
@@ -299,47 +303,58 @@ export const AuthProvider = ({ children }) => {
     setIsLoggingOut(true);
     
     try {
-      // Debug: Kiểm tra token từ cả localStorage và state
+      // Bước 1: Lấy Token đã lưu
       const tokenFromStorage = getLocalStorage('accessToken');
       const tokenFromState = state.token;
+      const tokenToUse = tokenFromState || tokenFromStorage;
       
-      console.log('=== Logout Debug Info ===');
-      console.log('Logout function called');
-      console.log('Token from localStorage:', tokenFromStorage ? `${tokenFromStorage.substring(0, 20)}...` : 'null/undefined');
-      console.log('Token from state:', tokenFromState ? `${tokenFromState.substring(0, 20)}...` : 'null/undefined');
-      console.log('Is authenticated:', state.isAuthenticated);
-      console.log('User in state:', state.user ? 'present' : 'null/undefined');
+      console.log('=== Logout Process Started ===');
+      console.log('Token available:', !!tokenToUse);
+      console.log('User authenticated:', state.isAuthenticated);
       
-      // Check for inconsistent state and handle gracefully
-      if (state.isAuthenticated && !tokenFromState && !state.user && !tokenFromStorage) {
-        console.log('Detected inconsistent state during logout - will clean up without API call');
-      } else {
-        // If user is actually authenticated with valid token, make API call
-        const tokenToUse = tokenFromState || tokenFromStorage;
-        
-        if (tokenToUse && (state.isAuthenticated || state.user)) {
-          console.log('Calling logout API with token present');
-          // Tạm thời set lại token vào localStorage để interceptor có thể sử dụng
+      // Bước 2: Gọi API Logout (nếu có token)
+      if (tokenToUse && state.isAuthenticated) {
+        console.log('Calling logout API...');
+        try {
+          // Đảm bảo token có trong localStorage để API sử dụng
           if (!tokenFromStorage && tokenFromState) {
-            console.log('Setting token back to localStorage for API call');
             setLocalStorage('accessToken', tokenFromState);
           }
           
-          // Gọi API logout với token được gửi tự động trong header
-          await logoutAPI();
+          // Gọi API logout với timeout để tránh treo
+          const logoutPromise = logoutAPI();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Logout timeout')), 5000)
+          );
+          
+          await Promise.race([logoutPromise, timeoutPromise]);
           console.log('Logout API call successful');
-        } else {
-          console.log('No valid authentication state found, skipping logout API call');
+        } catch (apiError) {
+          // Log lỗi nhưng không dừng quá trình logout
+          console.warn('Logout API failed, but continuing with cleanup:', apiError.message);
         }
+      } else {
+        console.log('No valid authentication state, skipping API call');
       }
+      
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Dọn dẹp local storage và cập nhật state dù API có lỗi hay không
-      console.log('Cleaning up localStorage and state');
-      cleanupLocalStorage(); // Use the cleanup function for thorough cleanup
+      // Bước 3: Xử lý dọn dẹp ở Frontend (LUÔN THỰC HIỆN)
+      console.log('=== Frontend Cleanup Started ===');
+      
+      // 3.1: Xóa Token và thông tin người dùng
+      clearAuthData();
+      
+      // 3.2: Xóa cart session ID để tránh conflict
+      clearSessionId();
+      
+      // 3.3: Reset State về trạng thái ban đầu
       dispatch({ type: 'LOGOUT' });
+      
       setIsLoggingOut(false);
+      
+      console.log('=== Logout Process Completed ===');
     }
   };
 

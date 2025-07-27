@@ -14,9 +14,33 @@ export const register = async (userData) => {
 };
 
 export const logout = async () => {
-  // Token sẽ được tự động thêm vào header bởi request interceptor trong config.js
-  const response = await api.post('/auth/logout');
-  return response.data;
+  // Bước 1: Lấy Token đã lưu
+  const token = localStorage.getItem('accessToken');
+  
+  if (!token) {
+    console.warn('No access token found for logout API call');
+    throw new Error('No access token available for logout');
+  }
+  
+  // Bước 2: Gọi API Logout
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api/v1';
+  
+  const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({})
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+  }
+  
+  const data = await response.json();
+  return data;
 };
 
 export const getMyProfile = async () => {

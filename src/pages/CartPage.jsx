@@ -142,7 +142,7 @@ const CartPage = () => {
 
       <Grid container spacing={3}>
         {/* Cart Items */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper sx={{ p: 2, mb: 2 }}>
             {!isMobile ? (
               <TableContainer>
@@ -344,7 +344,7 @@ const CartPage = () => {
         </Grid>
 
         {/* Order Summary */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 3, position: 'sticky', top: 20 }}>
             <Typography variant="h6" gutterBottom>
               Tóm tắt đơn hàng

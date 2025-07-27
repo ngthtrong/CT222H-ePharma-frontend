@@ -3,17 +3,17 @@ import { setSessionId, getSessionId, clearSessionId } from '../utils/localStorag
 
 // Tạo sessionId cho guest cart
 export const createGuestSession = () => {
-  let sessionId = localStorage.getItem('sessionId');
+  let sessionId = getSessionId();
   if (!sessionId) {
     sessionId = crypto.randomUUID();
-    localStorage.setItem('sessionId', sessionId);
+    setSessionId(sessionId);
   }
   return sessionId;
 };
 
 // Xóa session sau khi merge
 export const clearGuestSession = () => {
-  localStorage.removeItem('sessionId');
+  clearSessionId();
 };
 
 // =================================================================================
@@ -32,9 +32,16 @@ export const getCart = async () => {
 
 /**
  * Adds an item to the cart.
+ * Tự động tạo session ID cho guest nếu chưa có.
  * @param {{ productId: string, quantity: number }} item - The item to add.
  */
 export const addItemToCart = async (item) => {
+  // Đảm bảo có session ID cho guest cart nếu chưa đăng nhập
+  const token = localStorage.getItem('accessToken');
+  if (!token) {
+    createGuestSession(); // Tạo session ID nếu chưa có
+  }
+  
   const { data } = await api.post('/cart/items', item);
   return data;
 };

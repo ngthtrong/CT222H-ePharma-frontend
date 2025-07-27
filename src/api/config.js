@@ -22,33 +22,51 @@ api.interceptors.request.use(
     const publicEndpoints = ['/categories', '/products'];
     const isPublicEndpoint = publicEndpoints.some(endpoint => config.url.includes(endpoint));
     
+    // Các endpoint auth không nên có X-Cart-Session-ID
+    const authEndpoints = ['/auth/login', '/auth/register', '/auth/logout', '/auth/refresh'];
+    const isAuthEndpoint = authEndpoints.some(endpoint => config.url.includes(endpoint));
+    
+    // Các endpoint auth cần token (trừ login và register)
+    const authEndpointsNeedToken = ['/auth/logout', '/auth/refresh'];
+    const isAuthEndpointNeedToken = authEndpointsNeedToken.some(endpoint => config.url.includes(endpoint));
+    
     const token = localStorage.getItem('accessToken');
     
-    // Chỉ thêm token nếu không phải public endpoint và có token
-    if (token && !isPublicEndpoint) {
+    // Thêm token nếu:
+    // 1. Không phải public endpoint và có token, HOẶC
+    // 2. Là auth endpoint cần token (logout, refresh)
+    if (token && (!isPublicEndpoint || isAuthEndpointNeedToken)) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // For guest cart management, we need a session ID.
-    // This logic should be applied to cart-related endpoints for non-authenticated users.
+    // Xử lý X-Cart-Session-ID cho các request liên quan đến cart (KHÔNG bao gồm auth endpoints)
     const isCartRequest = config.url.includes('/cart');
-    if (isCartRequest && !token) {
-        let sessionId = getSessionId();
-        if (!sessionId) {
-            sessionId = crypto.randomUUID();
-            setSessionId(sessionId);
-        }
-        config.headers['X-Cart-Session-ID'] = sessionId;
-    }
     
-    // Special case for merging cart: requires both auth token and session ID
-    if (config.url.includes('/cart/merge')) {
-        const sessionId = getSessionId();
-        if (sessionId) {
-            config.headers['X-Cart-Session-ID'] = sessionId;
-        }
+    if (isCartRequest && !isAuthEndpoint) {
+      const sessionId = getSessionId();
+      
+      // Nếu là guest (không có token) và có sessionId, thêm vào header
+      if (!token && sessionId) {
+        config.headers['X-Cart-Session-ID'] = sessionId;
+      }
+      
+      // Trường hợp đặc biệt: merge cart cần cả token và sessionId
+      if (config.url.includes('/cart/merge') && token && sessionId) {
+        config.headers['X-Cart-Session-ID'] = sessionId;
+      }
     }
 
+    // Debug logging (chỉ cho development)
+    if (import.meta.env.DEV) {
+      console.log('API Request:', {
+        url: config.url,
+        method: config.method,
+        isAuthEndpoint,
+        isAuthEndpointNeedToken,
+        hasAuthHeader: !!config.headers['Authorization'],
+        hasCartSessionHeader: !!config.headers['X-Cart-Session-ID']
+      });
+    }
 
     return config;
   },
@@ -57,10 +75,28 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor để xử lý lỗi chung
+// Response interceptor để xử lý lỗi chung và bắt X-Cart-Session-ID
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Bắt X-Cart-Session-ID từ response header và lưu vào localStorage
+    const cartSessionId = response.headers['x-cart-session-id'];
+    if (cartSessionId) {
+      setSessionId(cartSessionId);
+      console.log('Cart session ID received and saved:', cartSessionId);
+    }
+    
+    return response;
+  },
   (error) => {
+    // Debug logging for development
+    if (import.meta.env.DEV) {
+      console.error('API Error:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message
+      });
+    }
+    
     // Không tự động xóa token và redirect nếu đang gọi logout API
     if (error.response?.status === 401 && !error.config?.url?.includes('/auth/logout')) {
       // Token hết hạn hoặc không hợp lệ

@@ -76,8 +76,23 @@ export const cleanupLocalStorage = () => {
         localStorage.removeItem(key);
       }
     });
+    
+    console.log('localStorage cleaned up successfully');
   } catch (error) {
     console.error('Error cleaning localStorage:', error);
+  }
+};
+
+/**
+ * Clean up authentication data khi logout
+ */
+export const clearAuthData = () => {
+  try {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('user');
+    console.log('Authentication data cleared');
+  } catch (error) {
+    console.error('Error clearing auth data:', error);
   }
 };
 
@@ -154,11 +169,15 @@ export const getSessionId = () => {
 };
 
 export const setSessionId = (sessionId) => {
-  localStorage.setItem(SESSION_ID_KEY, sessionId);
+  if (sessionId) {
+    localStorage.setItem(SESSION_ID_KEY, sessionId);
+    console.log('Cart session ID saved to localStorage:', sessionId);
+  }
 };
 
 export const clearSessionId = () => {
   localStorage.removeItem(SESSION_ID_KEY);
+  console.log('Cart session ID cleared from localStorage');
 };
 
 const ACCESS_TOKEN_KEY = 'accessToken';

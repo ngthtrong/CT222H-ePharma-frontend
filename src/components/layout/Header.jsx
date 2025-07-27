@@ -96,6 +96,7 @@ const Header = () => {
   };
 
   const handleLogout = () => {
+    // Bước 3.4: Chuyển hướng về trang chủ sẽ được thực hiện sau khi logout hoàn tất
     logout();
     handleMenuClose();
     navigate('/');

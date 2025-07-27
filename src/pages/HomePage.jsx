@@ -204,7 +204,7 @@ const HomePage = () => {
           </Typography>
           <Grid container spacing={2}>
             {categories.map((category) => (
-              <Grid item xs={6} sm={4} md={2} key={category._id || category.id}>
+              <Grid size={{ xs: 6, sm: 4, md: 2 }} key={category._id || category.id}>
                 <Paper
                   elevation={0}
                   sx={{
@@ -285,7 +285,7 @@ const HomePage = () => {
           <Grid container spacing={2}>
             {/* Placeholder for brand logos */}
             {[...Array(6)].map((_, index) => (
-              <Grid item xs={4} sm={2} key={index}>
+              <Grid size={{ xs: 4, sm: 2 }} key={index}>
                 <Paper
                   variant="outlined"
                   sx={{

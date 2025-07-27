@@ -123,7 +123,7 @@ const ProductsPage = () => {
       </Typography>
       <Grid container spacing={4}>
         {/* Filters */}
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <Paper elevation={1} sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>Filters</Typography>
             {/* Category Filter */}
@@ -184,7 +184,7 @@ const ProductsPage = () => {
         </Grid>
 
         {/* Products Grid */}
-        <Grid item xs={12} md={9}>
+        <Grid size={{ xs: 12, md: 9 }}>
           {loading ? (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
               <CircularProgress />
@@ -196,7 +196,7 @@ const ProductsPage = () => {
               <Grid container spacing={2}>
                 {products.length > 0 ? (
                   products.map((product) => (
-                    <Grid item key={product._id} xs={12} sm={6} md={4}>
+                    <Grid key={product._id} size={{ xs: 12, sm: 6, md: 4 }}>
                       <ProductCard product={product} />
                     </Grid>
                   ))
