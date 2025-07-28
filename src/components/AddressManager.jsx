@@ -248,28 +248,29 @@ const AddressManager = () => {
       {/* Address List */}
       {addresses.length > 0 ? (
         <Grid container spacing={2}>
-          {addresses.map((address) => (
+          {addresses
+            .sort((a, b) => {
+              // Sắp xếp địa chỉ mặc định lên đầu
+              if (a.isDefault && !b.isDefault) return -1;
+              if (!a.isDefault && b.isDefault) return 1;
+              return 0;
+            })
+            .map((address) => (
             <Grid item xs={12} key={address.id}>
               <Card variant="outlined" sx={{ 
                 backgroundColor: address.isDefault ? '#f0f8ff' : 'white',
-                border: address.isDefault ? '2px solid #1976d2' : undefined
+                border: address.isDefault ? '2px solid #1976d2' : undefined,
+                minHeight: '140px', // Đảm bảo tất cả thẻ có chiều cao tối thiểu giống nhau
+                display: 'flex',
+                flexDirection: 'column'
               }}>
-                <CardContent>
+                <CardContent sx={{ flex: 1, pb: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <Typography variant="subtitle1" fontWeight="bold">
                           {address.recipientName}
                         </Typography>
-                        {address.isDefault && (
-                          <Chip
-                            label="Mặc định"
-                            size="small"
-                            color="primary"
-                            icon={<HomeIcon />}
-                            sx={{ ml: 1 }}
-                          />
-                        )}
                       </Box>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                         SĐT: {address.phoneNumber}
@@ -297,8 +298,9 @@ const AddressManager = () => {
                     </Box>
                   </Box>
                 </CardContent>
-                {!address.isDefault && (
-                  <CardActions sx={{ pt: 0 }}>
+                {/* Luôn hiển thị CardActions để đảm bảo chiều cao đồng nhất */}
+                <CardActions sx={{ pt: 0, minHeight: '52px', alignItems: 'flex-end' }}>
+                  {!address.isDefault ? (
                     <Button
                       size="small"
                       onClick={() => handleSetDefault(address.id)}
@@ -306,8 +308,17 @@ const AddressManager = () => {
                     >
                       Đặt làm mặc định
                     </Button>
-                  </CardActions>
-                )}
+                  ) : (
+                    // Chip mặc định ở vị trí button
+                    <Chip
+                      label="Mặc định"
+                      size="small"
+                      color="primary"
+                      icon={<HomeIcon />}
+                      variant="filled"
+                    />
+                  )}
+                </CardActions>
               </Card>
             </Grid>
           ))}
