@@ -225,29 +225,18 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.register(userData);
       
       // authAPI.register() trả về response.data, có cấu trúc:
-      // { success, message, data: { accessToken, user, tokenType, ... } }
+      // { success, message, data: { user data } }
       const { success, message, data } = response;
       
       if (!success) {
         throw new Error(message || 'Registration failed');
       }
       
-      const { accessToken, user } = data;
+      // Không tự động đăng nhập sau khi đăng ký
+      // Chỉ trả về thông báo thành công
+      dispatch({ type: 'STOP_LOADING' });
       
-      // Lưu token và user data vào localStorage
-      setLocalStorage('accessToken', accessToken);
-      setLocalStorage('user', user);
-      
-      // Dispatch LOGIN_SUCCESS với đầy đủ thông tin user và token
-      dispatch({ 
-        type: 'LOGIN_SUCCESS', 
-        payload: { 
-          user: user, 
-          token: accessToken 
-        } 
-      });
-      
-      return { success: true };
+      return { success: true, message: message || 'Đăng ký thành công' };
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });

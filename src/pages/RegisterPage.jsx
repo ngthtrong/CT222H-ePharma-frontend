@@ -12,6 +12,7 @@ import {
   Checkbox,
   Alert,
   CircularProgress,
+  Snackbar,
 } from '@mui/material';
 import {
   Google as GoogleIcon,
@@ -26,15 +27,17 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const { register, loading, error } = useAuth();
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
+    phoneNumber: '',
     agreeTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
@@ -48,8 +51,9 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError('');
+    setSuccessMessage('');
     
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.fullName || !formData.email || !formData.password || !formData.phoneNumber) {
       setLocalError('Vui lòng nhập đầy đủ thông tin');
       return;
     }
@@ -68,7 +72,11 @@ const RegisterPage = () => {
     const result = await register(registerData);
     
     if (result.success) {
-      navigate('/');
+      setSuccessMessage('Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...');
+      // Delay 2 seconds before navigating to login page
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } else {
       setLocalError(result.error);
     }
@@ -123,10 +131,10 @@ const RegisterPage = () => {
           <TextField
             fullWidth
             label="Họ và tên"
-            name="name"
+            name="fullName"
             variant="outlined"
             margin="normal"
-            value={formData.name}
+            value={formData.fullName}
             onChange={handleChange}
             required
             disabled={loading}
@@ -143,6 +151,19 @@ const RegisterPage = () => {
             onChange={handleChange}
             required
             disabled={loading}
+          />
+
+          <TextField
+            fullWidth
+            label="Số điện thoại"
+            name="phoneNumber"
+            variant="outlined"
+            margin="normal"
+            value={formData.phoneNumber}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            placeholder="Ví dụ: 0123456789"
           />
           
           <TextField
@@ -270,6 +291,22 @@ const RegisterPage = () => {
           </Link>
         </Typography>
       </Paper>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={6000}
+        onClose={() => setSuccessMessage('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSuccessMessage('')}
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
