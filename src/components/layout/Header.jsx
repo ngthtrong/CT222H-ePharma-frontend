@@ -18,6 +18,8 @@ import {
   Autocomplete,
   Breadcrumbs,
   Link,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   ShoppingCart,
@@ -37,6 +39,9 @@ const Header = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(0);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
 
   // Function to generate breadcrumb based on current path
   const generateBreadcrumbs = () => {
@@ -95,10 +100,18 @@ const Header = () => {
     setAnchorEl(null);
   };
 
+  // Hàm tiện ích để hiển thị snackbar
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
   const handleLogout = () => {
     // Bước 3.4: Chuyển hướng về trang chủ sẽ được thực hiện sau khi logout hoàn tất
     logout();
     handleMenuClose();
+    showSnackbar('Đăng xuất thành công', 'success');
     navigate('/');
   };
 
@@ -475,6 +488,21 @@ const Header = () => {
         </Box>
       </AppBar>
 
+      {/* Snackbar cho thông báo đăng xuất */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

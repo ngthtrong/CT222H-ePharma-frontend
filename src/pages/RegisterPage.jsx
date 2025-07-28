@@ -37,7 +37,9 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
@@ -48,10 +50,16 @@ const RegisterPage = () => {
     setLocalError('');
   };
 
+  // Hàm tiện ích để hiển thị snackbar
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError('');
-    setSuccessMessage('');
     
     if (!formData.fullName || !formData.email || !formData.password || !formData.phoneNumber) {
       setLocalError('Vui lòng nhập đầy đủ thông tin');
@@ -72,7 +80,7 @@ const RegisterPage = () => {
     const result = await register(registerData);
     
     if (result.success) {
-      setSuccessMessage('Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...');
+      showSnackbar('Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...', 'success');
       // Delay 2 seconds before navigating to login page
       setTimeout(() => {
         navigate('/login');
@@ -292,19 +300,19 @@ const RegisterPage = () => {
         </Typography>
       </Paper>
 
-      {/* Success Snackbar */}
+      {/* Snackbar cho thông báo đăng ký */}
       <Snackbar
-        open={!!successMessage}
-        autoHideDuration={6000}
-        onClose={() => setSuccessMessage('')}
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert
-          onClose={() => setSuccessMessage('')}
-          severity="success"
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
           sx={{ width: '100%' }}
         >
-          {successMessage}
+          {snackbarMessage}
         </Alert>
       </Snackbar>
     </Box>

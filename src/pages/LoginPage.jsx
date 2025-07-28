@@ -10,6 +10,7 @@ import {
   IconButton,
   Alert,
   CircularProgress,
+  Snackbar,
 } from '@mui/material';
 import {
   Google as GoogleIcon,
@@ -29,6 +30,9 @@ const LoginPage = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
 
   const handleChange = (e) => {
     setFormData({
@@ -36,6 +40,13 @@ const LoginPage = () => {
       [e.target.name]: e.target.value,
     });
     setLocalError('');
+  };
+
+  // Hàm tiện ích để hiển thị snackbar
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
   };
 
   const handleSubmit = async (e) => {
@@ -49,7 +60,11 @@ const LoginPage = () => {
 
     const result = await login(formData);
     if (result.success) {
-      navigate('/');
+      showSnackbar('Đăng nhập thành công! Đang chuyển hướng...', 'success');
+      // Delay nhỏ để người dùng thấy thông báo trước khi chuyển trang
+      setTimeout(() => {
+        navigate('/');
+      }, 1000);
     } else {
       setLocalError(result.error);
     }
@@ -198,6 +213,22 @@ const LoginPage = () => {
           </Link>
         </Typography>
       </Paper>
+
+      {/* Snackbar cho thông báo đăng nhập */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
