@@ -18,54 +18,61 @@ const api = axios.create({
 // Request interceptor để thêm auth token và session ID
 api.interceptors.request.use(
   (config) => {
+    // Helper function để thêm header an toàn, tương tự headers.append()
+    const appendHeader = (headers, key, value) => {
+      if (!headers) headers = {};
+      headers[key] = value;
+      return headers;
+    };
+
     // Các endpoint công khai không cần token
     const publicEndpoints = ['/categories', '/products'];
     const isPublicEndpoint = publicEndpoints.some(endpoint => config.url.includes(endpoint));
-    
+
     // Các endpoint auth không nên có X-Cart-Session-ID
     const authEndpoints = ['/auth/login', '/auth/register', '/auth/logout', '/auth/refresh'];
     const isAuthEndpoint = authEndpoints.some(endpoint => config.url.includes(endpoint));
-    
+
     // Các endpoint auth cần token (trừ login và register)
     const authEndpointsNeedToken = ['/auth/logout', '/auth/refresh'];
     const isAuthEndpointNeedToken = authEndpointsNeedToken.some(endpoint => config.url.includes(endpoint));
-    
+
     const token = localStorage.getItem('accessToken');
-    
-    // Thêm token nếu:
+
+    // Đảm bảo config.headers tồn tại
+    if (!config.headers) {
+      config.headers = {};
+    }
+
+    // Thêm Authorization token nếu:
     // 1. Không phải public endpoint và có token, HOẶC
     // 2. Là auth endpoint cần token (logout, refresh)
     if (token && (!isPublicEndpoint || isAuthEndpointNeedToken)) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      // Clean token - loại bỏ dấu ngoặc kép thừa nếu có
+      const cleanToken = token.replace(/^["']|["']$/g, '');
+      config.headers = appendHeader(config.headers, 'Authorization', `Bearer ${cleanToken}`);
     }
 
     // Xử lý X-Cart-Session-ID cho các request liên quan đến cart (KHÔNG bao gồm auth endpoints)
     const isCartRequest = config.url.includes('/cart');
-    
+
     if (isCartRequest && !isAuthEndpoint) {
       const sessionId = getSessionId();
-      
+
       // Nếu là guest (không có token) và có sessionId, thêm vào header
       if (!token && sessionId) {
-        config.headers['X-Cart-Session-ID'] = sessionId;
+        config.headers = appendHeader(config.headers, 'X-Cart-Session-ID', sessionId);
       }
-      
+
       // Trường hợp đặc biệt: merge cart cần cả token và sessionId
       if (config.url.includes('/cart/merge') && token && sessionId) {
-        config.headers['X-Cart-Session-ID'] = sessionId;
+        config.headers = appendHeader(config.headers, 'X-Cart-Session-ID', sessionId);
       }
     }
 
-    // Debug logging (chỉ cho development)
-    if (import.meta.env.DEV) {
-      console.log('API Request:', {
-        url: config.url,
-        method: config.method,
-        isAuthEndpoint,
-        isAuthEndpointNeedToken,
-        hasAuthHeader: !!config.headers['Authorization'],
-        hasCartSessionHeader: !!config.headers['X-Cart-Session-ID']
-      });
+    // Xử lý đặc biệt cho logout API - loại bỏ Content-Type nếu không có data
+    if (config.url.includes('/auth/logout') && (config.data === null || config.data === undefined)) {
+      delete config.headers['Content-Type'];
     }
 
     return config;
@@ -84,7 +91,7 @@ api.interceptors.response.use(
       setSessionId(cartSessionId);
       console.log('Cart session ID received and saved:', cartSessionId);
     }
-    
+
     return response;
   },
   (error) => {
@@ -93,17 +100,28 @@ api.interceptors.response.use(
       console.error('API Error:', {
         url: error.config?.url,
         status: error.response?.status,
-        message: error.response?.data?.message || error.message
+        message: error.response?.data?.message || error.message,
+        isLogoutCall: error.config?.url?.includes('/auth/logout')
       });
     }
-    
-    // Không tự động xóa token và redirect nếu đang gọi logout API
-    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/logout')) {
+
+    // Xử lý đặc biệt cho logout API
+    if (error.config?.url?.includes('/auth/logout')) {
+      // Đối với logout API, không redirect ngay cả khi lỗi 401 hoặc 500
+      // Vì có thể token đã hết hạn hoặc server có vấn đề
+      // Frontend sẽ tự cleanup và AuthContext sẽ xử lý
+      console.log('Logout API error - this is handled by AuthContext, not redirecting');
+      return Promise.reject(error);
+    }
+
+    // Chỉ redirect khi gặp 401 và KHÔNG phải logout API
+    if (error.response?.status === 401) {
       // Token hết hạn hoặc không hợp lệ
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
     return Promise.reject(error);
   }
 );

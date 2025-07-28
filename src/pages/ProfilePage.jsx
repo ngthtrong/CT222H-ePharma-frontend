@@ -14,67 +14,86 @@ import {
 import { Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../api';
+import api from '../api/config';
 
 const ProfilePage = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [addresses, setAddresses] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
-    phone: '',
-    address: '',
+    phoneNumber: '',
   });
 
   useEffect(() => {
     fetchProfile();
+    fetchAddresses();
   }, []);
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
+      setError('');
       
-      // Debug: Check if token exists before making request
-      const token = localStorage.getItem('accessToken');
+      // Lấy thông tin user từ localStorage thay vì gọi API
+      const storedUser = localStorage.getItem('user');
       console.log('=== ProfilePage fetchProfile ===');
-      console.log('Token exists:', !!token);
-      if (token) {
-        console.log('Token preview:', token.substring(0, 20) + '...');
-      } else {
-        console.log('NO TOKEN FOUND - this will cause 403 error');
+      console.log('Stored user data:', storedUser);
+      
+      if (!storedUser) {
+        throw new Error('Không tìm thấy thông tin người dùng trong localStorage');
       }
       
-      const response = await authAPI.getProfile();
-      console.log('Profile response:', response);
-      
-      // authAPI.getProfile() trả về response.data, có thể có cấu trúc:
-      // { success, message, data: { user info } } hoặc trực tiếp user data
-      let userData;
-      if (response.success && response.data) {
-        // Nested response structure
-        userData = response.data;
-      } else if (response.id || response.email) {
-        // Direct user data
-        userData = response;
-      } else {
-        throw new Error('Invalid profile response');
-      }
+      const userData = JSON.parse(storedUser);
+      console.log('Parsed user data:', userData);
       
       setProfile(userData);
       setFormData({
-        name: userData.fullName || userData.name || '',
+        fullName: userData.fullName || '',
         email: userData.email || '',
-        phone: userData.phoneNumber || userData.phone || '',
-        address: userData.addresses || userData.address || '',
+        phoneNumber: userData.phoneNumber || '',
       });
     } catch (error) {
       console.error('Profile fetch error:', error);
-      console.error('Error response:', error.response);
-      setError('Không thể tải thông tin profile');
+      setError('Không thể tải thông tin profile từ dữ liệu đã lưu');
+      
+      // Fallback: thử lấy từ AuthContext nếu localStorage không có
+      if (user) {
+        console.log('Using user from AuthContext:', user);
+        setProfile(user);
+        setFormData({
+          fullName: user.fullName || '',
+          email: user.email || '',
+          phoneNumber: user.phoneNumber || '',
+        });
+        setError('');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAddresses = async () => {
+    try {
+      // Chỉ gọi API địa chỉ khi có token (user đã đăng nhập)
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        console.log('No token found, skipping address fetch');
+        return;
+      }
+
+      const response = await api.get('/users/me/addresses');
+      if (response.data && response.data.success && response.data.data) {
+        setAddresses(response.data.data);
+        console.log('Addresses loaded:', response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      // Không hiển thị lỗi cho địa chỉ vì đây không phải là thông tin bắt buộc
     }
   };
 
@@ -114,14 +133,17 @@ const ProfilePage = () => {
           <Avatar
             sx={{ width: 80, height: 80, mr: 3, bgcolor: 'primary.main' }}
           >
-            {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+            {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
           </Avatar>
           <Box>
             <Typography variant="h4" gutterBottom>
-              {profile?.name || 'Người dùng'}
+              {profile?.fullName || 'Người dùng'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {profile?.email}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Vai trò: {profile?.role || 'USER'}
             </Typography>
           </Box>
         </Box>
@@ -139,8 +161,8 @@ const ProfilePage = () => {
             <TextField
               fullWidth
               label="Họ và tên"
-              name="name"
-              value={formData.name}
+              name="fullName"
+              value={formData.fullName}
               onChange={handleChange}
               disabled={!isEditing}
               variant={isEditing ? 'outlined' : 'standard'}
@@ -167,8 +189,8 @@ const ProfilePage = () => {
             <TextField
               fullWidth
               label="Số điện thoại"
-              name="phone"
-              value={formData.phone}
+              name="phoneNumber"
+              value={formData.phoneNumber}
               onChange={handleChange}
               disabled={!isEditing}
               variant={isEditing ? 'outlined' : 'standard'}
@@ -177,21 +199,40 @@ const ProfilePage = () => {
               }}
             />
           </Grid>
+          
+          {/* Hiển thị danh sách địa chỉ */}
           <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Địa chỉ"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              disabled={!isEditing}
-              variant={isEditing ? 'outlined' : 'standard'}
-              multiline
-              rows={isEditing ? 3 : 1}
-              InputProps={{
-                readOnly: !isEditing,
-              }}
-            />
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Địa chỉ của tôi
+            </Typography>
+            {addresses.length > 0 ? (
+              addresses.map((address, index) => (
+                <Paper key={address.id} sx={{ p: 2, mb: 2, backgroundColor: address.isDefault ? '#f0f8ff' : 'white' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        {address.recipientName}
+                        {address.isDefault && (
+                          <Typography component="span" variant="caption" sx={{ ml: 1, color: 'primary.main' }}>
+                            [Mặc định]
+                          </Typography>
+                        )}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        SĐT: {address.phoneNumber}
+                      </Typography>
+                      <Typography variant="body2">
+                        {address.street}, {address.ward}, {address.city}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+              ))
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Chưa có địa chỉ nào được thêm
+              </Typography>
+            )}
           </Grid>
         </Grid>
 
