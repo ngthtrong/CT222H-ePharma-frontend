@@ -2,9 +2,10 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useAuth } from '../contexts/AuthContext';
-import { CircularProgress, Box } from '@mui/material';
+import { CircularProgress, Box, Alert } from '@mui/material';
+import { isAdmin, isTokenValid } from '../utils/adminUtils';
 
-const PrivateRoute = ({ children, roles }) => {
+const PrivateRoute = ({ children, requiredRole }) => {
   const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
 
@@ -16,12 +17,35 @@ const PrivateRoute = ({ children, roles }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  // Kiểm tra xác thực cơ bản
+  if (!isAuthenticated || !isTokenValid()) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (roles && !roles.some((role) => user?.roles?.includes(role))) {
-    return <Navigate to="/" replace />;
+  // Kiểm tra quyền admin nếu được yêu cầu
+  if (requiredRole === 'admin') {
+    if (!user || user.role?.toLowerCase() !== 'admin') {
+      return (
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error">
+            Bạn không có quyền truy cập trang này. Cần quyền quản trị viên.
+          </Alert>
+        </Box>
+      );
+    }
+  }
+
+  // Kiểm tra các roles khác nếu cần
+  if (requiredRole && requiredRole !== 'admin') {
+    if (!user || user.role?.toLowerCase() !== requiredRole.toLowerCase()) {
+      return (
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error">
+            Bạn không có quyền truy cập trang này.
+          </Alert>
+        </Box>
+      );
+    }
   }
 
   return children;
@@ -29,7 +53,7 @@ const PrivateRoute = ({ children, roles }) => {
 
 PrivateRoute.propTypes = {
   children: PropTypes.node.isRequired,
-  roles: PropTypes.arrayOf(PropTypes.string),
+  requiredRole: PropTypes.string,
 };
 
 export default PrivateRoute;

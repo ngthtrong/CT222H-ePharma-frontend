@@ -33,7 +33,7 @@ function App() {
           } 
         />
         <Route 
-          path="/admin" 
+          path="/admin/*" 
           element={
             <PrivateRoute requiredRole="admin">
               <AdminPage />
