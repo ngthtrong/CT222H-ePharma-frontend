@@ -12,6 +12,7 @@ import {
   CircularProgress,
   Tabs,
   Tab,
+  Snackbar,
 } from '@mui/material';
 import { Edit as EditIcon, Save as SaveIcon, Person as PersonIcon, LocationOn as LocationIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +27,9 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState(0);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -35,6 +39,13 @@ const ProfilePage = () => {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  // Hàm tiện ích để hiển thị snackbar
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
 
   const fetchProfile = async () => {
     try {
@@ -89,12 +100,22 @@ const ProfilePage = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      await authAPI.updateProfile(formData);
-      setProfile({ ...profile, ...formData });
+      const response = await authAPI.updateProfile(formData);
+      
+      // Cập nhật state
+      const updatedProfile = { ...profile, ...formData };
+      setProfile(updatedProfile);
       setIsEditing(false);
       setError('');
+      
+      // Cập nhật localStorage với thông tin mới
+      localStorage.setItem('user', JSON.stringify(updatedProfile));
+      
+      // Hiển thị thông báo thành công
+      showSnackbar('Cập nhật thông tin cá nhân thành công', 'success');
     } catch (error) {
-      setError('Cập nhật thông tin thất bại');
+      console.error('Error updating profile:', error);
+      showSnackbar('Cập nhật thông tin thất bại', 'error');
     } finally {
       setLoading(false);
     }
@@ -254,6 +275,22 @@ const ProfilePage = () => {
           </Box>
         )}
       </Paper>
+
+      {/* Snackbar cho thông báo thông tin cá nhân */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
