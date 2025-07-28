@@ -15,6 +15,7 @@ import AdminPage from '../pages/AdminPage';
 import OrderHistoryPage from '../pages/OrderHistoryPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import CheckoutPage from '../pages/CheckoutPage';
+import AddressTestPage from '../pages/AddressTestPage';
 
 const AppRoutes = () => {
   return (
@@ -58,6 +59,16 @@ const AppRoutes = () => {
           element={
             <PrivateRoute>
               <OrderDetailPage />
+            </PrivateRoute>
+          } 
+        />
+        
+        {/* Test pages */}
+        <Route 
+          path="/test/address" 
+          element={
+            <PrivateRoute>
+              <AddressTestPage />
             </PrivateRoute>
           } 
         />

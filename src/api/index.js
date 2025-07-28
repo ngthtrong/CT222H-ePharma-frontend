@@ -5,6 +5,7 @@ export { categoryAPI } from './categoryApi';
 export { cartAPI, createGuestSession, clearGuestSession } from './cartApi';
 export { userAPI } from './userApi';
 export { orderAPI } from './orderApi';
+export { addressAPI } from './addressApi';
 export { default as api } from './config';
 
 // Export các hàm tiện ích
