@@ -1,130 +1,159 @@
 import api from './config';
 
+// Utility function để kiểm tra token admin
+const checkAdminToken = () => {
+  const token = localStorage.getItem('accessToken');
+  console.log('Checking admin token:', {
+    hasToken: !!token,
+    tokenLength: token ? token.length : 0,
+    tokenStart: token ? token.substring(0, 20) + '...' : 'null'
+  });
+  
+  if (!token) {
+    console.error('Admin API called without token');
+    throw new Error('Admin access requires authentication token');
+  }
+  return token;
+};
+
+// Wrapper function để đảm bảo token cho admin calls  
+const adminApiCall = (apiCall) => {
+  return (...args) => {
+    try {
+      checkAdminToken(); // Kiểm tra token trước khi gọi API
+      return apiCall(...args);
+    } catch (error) {
+      console.error('Admin API call failed:', error.message);
+      throw error;
+    }
+  };
+};
+
 export const adminAPI = {
   // Dashboard - Thống kê tổng quan
-  getDashboardStats: () => api.get('/admin/dashboard/stats'),
+  getDashboardStats: adminApiCall(() => api.get('/admin/dashboard/stats')),
   
   // Đơn hàng gần đây
-  getRecentOrders: (limit = 10) => api.get(`/admin/dashboard/recent-orders?limit=${limit}`),
+  getRecentOrders: adminApiCall((limit = 10) => api.get(`/admin/dashboard/recent-orders?limit=${limit}`)),
   
   // Sản phẩm bán chạy
-  getTopProducts: (limit = 10) => api.get(`/admin/dashboard/top-products?limit=${limit}`),
+  getTopProducts: adminApiCall((limit = 10) => api.get(`/admin/dashboard/top-products?limit=${limit}`)),
   
   // Quản lý sản phẩm
-  getAdminProducts: (params = {}) => {
+  getAdminProducts: adminApiCall((params = {}) => {
     return api.get('/admin/products', { params });
-  },
+  }),
   
-  createProduct: (productData) => api.post('/admin/products', productData),
+  createProduct: adminApiCall((productData) => api.post('/admin/products', productData)),
   
-  updateProduct: (id, productData) => api.put(`/admin/products/${id}`, productData),
+  updateProduct: adminApiCall((id, productData) => api.put(`/admin/products/${id}`, productData)),
   
-  deleteProduct: (id) => api.delete(`/admin/products/${id}`),
+  deleteProduct: adminApiCall((id) => api.delete(`/admin/products/${id}`)),
   
-  getProductById: (id) => api.get(`/admin/products/${id}`),
+  getProductById: adminApiCall((id) => api.get(`/admin/products/${id}`)),
   
   // Quản lý đơn hàng
-  getAllOrders: (params = {}) => {
+  getAllOrders: adminApiCall((params = {}) => {
     return api.get('/admin/orders', { params });
-  },
+  }),
   
-  getOrderById: (id) => api.get(`/admin/orders/${id}`),
+  getOrderById: adminApiCall((id) => api.get(`/admin/orders/${id}`)),
   
-  getOrderByCode: (orderCode) => api.get(`/admin/orders/code/${orderCode}`),
+  getOrderByCode: adminApiCall((orderCode) => api.get(`/admin/orders/code/${orderCode}`)),
   
-  updateOrderStatus: (orderId, statusData) => {
+  updateOrderStatus: adminApiCall((orderId, statusData) => {
     return api.patch(`/admin/orders/${orderId}/status`, statusData);
-  },
+  }),
   
-  updatePaymentStatus: (orderId, paymentStatusData) => {
+  updatePaymentStatus: adminApiCall((orderId, paymentStatusData) => {
     return api.put(`/admin/orders/${orderId}/payment-status`, paymentStatusData);
-  },
+  }),
   
-  deleteOrder: (id) => api.delete(`/admin/orders/${id}`),
+  deleteOrder: adminApiCall((id) => api.delete(`/admin/orders/${id}`)),
   
-  getOrderStats: (params = {}) => {
+  getOrderStats: adminApiCall((params = {}) => {
     return api.get('/admin/orders/stats', { params });
-  },
+  }),
   
   // Quản lý danh mục
-  getAdminCategories: () => api.get('/admin/categories'),
+  getAdminCategories: adminApiCall(() => api.get('/admin/categories')),
   
-  getCategoryById: (id) => api.get(`/admin/categories/${id}`),
+  getCategoryById: adminApiCall((id) => api.get(`/admin/categories/${id}`)),
   
-  createCategory: (categoryData) => api.post('/admin/categories', categoryData),
+  createCategory: adminApiCall((categoryData) => api.post('/admin/categories', categoryData)),
   
-  updateCategory: (id, categoryData) => api.put(`/admin/categories/${id}`, categoryData),
+  updateCategory: adminApiCall((id, categoryData) => api.put(`/admin/categories/${id}`, categoryData)),
   
-  deleteCategory: (id) => api.delete(`/admin/categories/${id}`),
+  deleteCategory: adminApiCall((id) => api.delete(`/admin/categories/${id}`)),
   
   // Quản lý người dùng
-  getAllUsers: (params = {}) => {
+  getAllUsers: adminApiCall((params = {}) => {
     return api.get('/admin/users', { params });
-  },
+  }),
   
-  getUserById: (id) => api.get(`/admin/users/${id}`),
+  getUserById: adminApiCall((id) => api.get(`/admin/users/${id}`)),
   
-  updateUser: (id, userData) => api.put(`/admin/users/${id}`, userData),
+  updateUser: adminApiCall((id, userData) => api.put(`/admin/users/${id}`, userData)),
   
-  deleteUser: (id) => api.delete(`/admin/users/${id}`),
+  deleteUser: adminApiCall((id) => api.delete(`/admin/users/${id}`)),
   
   // Quản lý khuyến mãi
-  getPromotions: (params = {}) => {
+  getPromotions: adminApiCall((params = {}) => {
     return api.get('/admin/promotions', { params });
-  },
+  }),
   
-  getPromotionById: (id) => api.get(`/admin/promotions/${id}`),
+  getPromotionById: adminApiCall((id) => api.get(`/admin/promotions/${id}`)),
   
-  createPromotion: (promotionData) => api.post('/admin/promotions', promotionData),
+  createPromotion: adminApiCall((promotionData) => api.post('/admin/promotions', promotionData)),
   
-  updatePromotion: (id, promotionData) => api.put(`/admin/promotions/${id}`, promotionData),
+  updatePromotion: adminApiCall((id, promotionData) => api.put(`/admin/promotions/${id}`, promotionData)),
   
-  deletePromotion: (id) => api.delete(`/admin/promotions/${id}`),
+  deletePromotion: adminApiCall((id) => api.delete(`/admin/promotions/${id}`)),
   
   // Quản lý đánh giá
-  getAllReviews: (params = {}) => {
+  getAllReviews: adminApiCall((params = {}) => {
     return api.get('/admin/reviews', { params });
-  },
+  }),
   
-  getReviewById: (id) => api.get(`/admin/reviews/${id}`),
+  getReviewById: adminApiCall((id) => api.get(`/admin/reviews/${id}`)),
   
-  replyToReview: (id, responseData) => {
+  replyToReview: adminApiCall((id, responseData) => {
     return api.put(`/admin/reviews/${id}/reply`, responseData);
-  },
+  }),
   
-  deleteReview: (id) => api.delete(`/admin/reviews/${id}`),
+  deleteReview: adminApiCall((id) => api.delete(`/admin/reviews/${id}`)),
   
   // Báo cáo và thống kê
-  getRevenueReport: (params = {}) => {
+  getRevenueReport: adminApiCall((params = {}) => {
     return api.get('/admin/reports/revenue', { params });
-  },
+  }),
   
-  getSalesReport: (params = {}) => {
+  getSalesReport: adminApiCall((params = {}) => {
     return api.get('/admin/reports/sales', { params });
-  },
+  }),
   
-  getCustomerReport: (params = {}) => {
+  getCustomerReport: adminApiCall((params = {}) => {
     return api.get('/admin/reports/customers', { params });
-  },
+  }),
   
-  getInventoryReport: (params = {}) => {
+  getInventoryReport: adminApiCall((params = {}) => {
     return api.get('/admin/reports/inventory', { params });
-  },
+  }),
   
   // Quản lý thông báo
-  getNotifications: (params = {}) => {
+  getNotifications: adminApiCall((params = {}) => {
     return api.get('/admin/notifications', { params });
-  },
+  }),
   
-  createNotification: (notificationData) => api.post('/admin/notifications', notificationData),
+  createNotification: adminApiCall((notificationData) => api.post('/admin/notifications', notificationData)),
   
-  updateNotification: (id, notificationData) => api.put(`/admin/notifications/${id}`, notificationData),
+  updateNotification: adminApiCall((id, notificationData) => api.put(`/admin/notifications/${id}`, notificationData)),
   
-  deleteNotification: (id) => api.delete(`/admin/notifications/${id}`),
+  deleteNotification: adminApiCall((id) => api.delete(`/admin/notifications/${id}`)),
   
-  sendNotification: (id) => api.post(`/admin/notifications/${id}/send`),
+  sendNotification: adminApiCall((id) => api.post(`/admin/notifications/${id}/send`)),
   
-  markNotificationAsRead: (id) => api.put(`/admin/notifications/${id}/read`),
+  markNotificationAsRead: adminApiCall((id) => api.put(`/admin/notifications/${id}/read`)),
 };
 
 // Helper functions for easier use

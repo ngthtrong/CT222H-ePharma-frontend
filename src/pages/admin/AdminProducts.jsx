@@ -36,6 +36,7 @@ import {
 import { adminAPI } from '../../api/adminApi';
 import { getCategories } from '../../api/categoryApi';
 import { formatCurrency } from '../../utils/formatters';
+import { canAccessAdmin, redirectToLogin } from '../../utils/adminAuth';
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -79,6 +80,11 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     try {
+      if (!canAccessAdmin()) {
+        redirectToLogin('admin_auth_required');
+        return;
+      }
+
       setLoading(true);
       setError('');
       
@@ -99,6 +105,16 @@ const AdminProducts = () => {
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+      
+      // Xử lý lỗi authentication đặc biệt
+      if (error.response?.status === 401) {
+        redirectToLogin('admin_auth_required');
+        return;
+      } else if (error.response?.status === 403) {
+        redirectToLogin('admin_access_denied');
+        return;
+      }
+      
       setError('Lỗi khi tải danh sách sản phẩm');
     } finally {
       setLoading(false);

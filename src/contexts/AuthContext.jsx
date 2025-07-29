@@ -3,7 +3,8 @@ import { authAPI, cartAPI } from '../api';
 import { logout as logoutAPI } from '../api/authApi';
 import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage, clearAuthData, getSessionId, clearSessionId } from '../utils/localStorage';
 
-const AuthContext = createContext();
+// Export AuthContext để có thể import trực tiếp
+export const AuthContext = createContext();
 
 const initialState = {
   user: null,

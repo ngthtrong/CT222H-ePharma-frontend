@@ -29,6 +29,10 @@ api.interceptors.request.use(
     const publicEndpoints = ['/categories', '/products'];
     const isPublicEndpoint = publicEndpoints.some(endpoint => config.url.includes(endpoint));
 
+    // Các endpoint admin luôn cần token
+    const adminEndpoints = ['/admin/'];
+    const isAdminEndpoint = adminEndpoints.some(endpoint => config.url.includes(endpoint));
+
     // Các endpoint auth không nên có X-Cart-Session-ID
     const authEndpoints = ['/auth/login', '/auth/register', '/auth/logout', '/auth/refresh'];
     const isAuthEndpoint = authEndpoints.some(endpoint => config.url.includes(endpoint));
@@ -39,15 +43,31 @@ api.interceptors.request.use(
 
     const token = localStorage.getItem('accessToken');
 
+    // Debug logging
+    if (isAdminEndpoint) {
+      console.log('Admin endpoint request:', {
+        url: config.url,
+        hasToken: !!token,
+        tokenLength: token ? token.length : 0
+      });
+    }
+
     // Đảm bảo config.headers tồn tại
     if (!config.headers) {
       config.headers = {};
     }
 
+    // Kiểm tra đặc biệt: Admin endpoints PHẢI có token (kiểm tra trước khi thêm header)
+    if (isAdminEndpoint && !token) {
+      console.error('Admin endpoint called without token:', config.url);
+      throw new Error('Admin endpoint requires authentication token');
+    }
+
     // Thêm Authorization token nếu:
-    // 1. Không phải public endpoint và có token, HOẶC
-    // 2. Là auth endpoint cần token (logout, refresh)
-    if (token && (!isPublicEndpoint || isAuthEndpointNeedToken)) {
+    // 1. Là admin endpoint và có token, HOẶC
+    // 2. Không phải public endpoint và có token, HOẶC
+    // 3. Là auth endpoint cần token (logout, refresh)
+    if (token && (isAdminEndpoint || !isPublicEndpoint || isAuthEndpointNeedToken)) {
       // Clean token - loại bỏ dấu ngoặc kép thừa nếu có
       const cleanToken = token.replace(/^["']|["']$/g, '');
       config.headers = appendHeader(config.headers, 'Authorization', `Bearer ${cleanToken}`);
@@ -116,10 +136,34 @@ api.interceptors.response.use(
 
     // Chỉ redirect khi gặp 401 và KHÔNG phải logout API
     if (error.response?.status === 401) {
-      // Token hết hạn hoặc không hợp lệ
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Kiểm tra nếu là admin endpoint
+      const isAdminEndpoint = error.config?.url?.includes('/admin/');
+      
+      console.warn('401 Unauthorized error:', {
+        url: error.config?.url,
+        isAdminEndpoint,
+        hasToken: !!localStorage.getItem('accessToken')
+      });
+      
+      if (isAdminEndpoint) {
+        console.error('Admin endpoint authentication failed:', error.config?.url);
+        // Không redirect tự động cho admin endpoints để tránh loop
+        return Promise.reject(error);
+      } else {
+        // Token hết hạn hoặc không hợp lệ cho endpoint thường
+        setTimeout(() => {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }, 100);
+      }
+    }
+
+    // Xử lý lỗi 403 (Forbidden) cho admin endpoints
+    if (error.response?.status === 403 && error.config?.url?.includes('/admin/')) {
+      console.error('Admin endpoint access denied:', error.config?.url);
+      // Người dùng không có quyền admin
+      window.location.href = '/login?error=admin_access_denied';
     }
     
     return Promise.reject(error);

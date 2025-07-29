@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 import PrivateRoute from '../components/PrivateRoute';
+import AdminRoute from '../components/AdminRoute';
 
 // Import pages
 import HomePage from '../pages/HomePage';
@@ -77,9 +78,9 @@ const AppRoutes = () => {
         <Route 
           path="/admin/*" 
           element={
-            <PrivateRoute requiredRole="admin">
+            <AdminRoute>
               <AdminPage />
-            </PrivateRoute>
+            </AdminRoute>
           } 
         />
       </Route>

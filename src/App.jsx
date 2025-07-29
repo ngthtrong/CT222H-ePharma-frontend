@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import PrivateRoute from './components/PrivateRoute';
+import AdminRoute from './components/AdminRoute';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -35,9 +36,9 @@ function App() {
         <Route 
           path="/admin/*" 
           element={
-            <PrivateRoute requiredRole="admin">
+            <AdminRoute>
               <AdminPage />
-            </PrivateRoute>
+            </AdminRoute>
           } 
         />
       </Routes>
