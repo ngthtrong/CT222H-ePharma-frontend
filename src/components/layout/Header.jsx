@@ -26,10 +26,12 @@ import {
   Search as SearchIcon,
   Person as PersonIcon,
   NavigateNext as NavigateNextIcon,
+  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { getParentCategories } from '../../api/categoryApi';
+import { isAdmin } from '../../utils/adminUtils';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -62,12 +64,26 @@ const Header = () => {
       breadcrumbs.push({ label: 'Giỏ hàng', path: '/cart', isActive: true });
     } else if (path === '/profile') {
       breadcrumbs.push({ label: 'Thông tin tài khoản', path: '/profile', isActive: true });
+    } else if (path === '/orders') {
+      breadcrumbs.push({ label: 'Đơn hàng của tôi', path: '/orders', isActive: true });
     } else if (path === '/login') {
       breadcrumbs.push({ label: 'Đăng nhập', path: '/login', isActive: true });
     } else if (path === '/register') {
       breadcrumbs.push({ label: 'Đăng ký', path: '/register', isActive: true });
-    } else if (path === '/admin') {
-      breadcrumbs.push({ label: 'Trang quản trị', path: '/admin', isActive: true });
+    } else if (path.startsWith('/admin')) {
+      breadcrumbs.push({ label: 'Quản trị', path: '/admin' });
+      
+      if (path === '/admin' || path === '/admin/dashboard') {
+        breadcrumbs.push({ label: 'Dashboard', path: '/admin/dashboard', isActive: true });
+      } else if (path === '/admin/products') {
+        breadcrumbs.push({ label: 'Quản lý Sản phẩm', path: '/admin/products', isActive: true });
+      } else if (path === '/admin/orders') {
+        breadcrumbs.push({ label: 'Quản lý Đơn hàng', path: '/admin/orders', isActive: true });
+      } else if (path === '/admin/categories') {
+        breadcrumbs.push({ label: 'Quản lý Danh mục', path: '/admin/categories', isActive: true });
+      } else if (path === '/admin/users') {
+        breadcrumbs.push({ label: 'Quản lý Người dùng', path: '/admin/users', isActive: true });
+      }
     }
 
     return breadcrumbs;
@@ -80,9 +96,7 @@ const Header = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        console.log('Fetching parent categories...');
         const categoriesData = await getParentCategories();
-        console.log('Categories data received in Header:', categoriesData);
         setCategories(categoriesData);
       } catch (error) {
         console.error('Error fetching parent categories:', error);
@@ -370,9 +384,16 @@ const Header = () => {
                     <MenuItem component={RouterLink} to="/profile" onClick={handleMenuClose}>
                       Thông tin tài khoản
                     </MenuItem>
-                    {user?.roles?.includes('admin') && (
-                      <MenuItem component={RouterLink} to="/admin" onClick={handleMenuClose}>
-                        Trang Admin
+                    {isAdmin() && <Divider />}
+                    {isAdmin() && (
+                      <MenuItem 
+                        component={RouterLink} 
+                        to="/admin" 
+                        onClick={handleMenuClose}
+                        sx={{ color: 'error.main', fontWeight: 'bold' }}
+                      >
+                        <AdminIcon sx={{ mr: 1, fontSize: 20 }} />
+                        Trang Quản Trị
                       </MenuItem>
                     )}
                     <Divider />
@@ -424,10 +445,10 @@ const Header = () => {
                   scrollbarWidth: 'none'
                 }}>
                   {Array.isArray(categories) && categories.map((category) => (
-                    <Box key={category.id} sx={{ flexShrink: 0 }}>
+                    <Box key={category._id || category.id} sx={{ flexShrink: 0 }}>
                       <Typography
                         component={RouterLink}
-                        to={`/products?category=${category.slug}`}
+                        to={`/products?category=${category._id || category.id}`}
                         sx={{
                           display: 'flex', alignItems: 'center', fontSize: '16px', fontWeight: 500,
                           color: 'white', textDecoration: 'none', whiteSpace: 'nowrap', '&:hover': {

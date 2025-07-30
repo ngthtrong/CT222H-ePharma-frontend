@@ -66,15 +66,13 @@ const ProductsPage = () => {
     const fetchInitialData = async () => {
       try {
         const categoriesResponse = await getCategories();
-        const cats = categoriesResponse.data;
-        if (cats && cats.data) {
-          setCategories(cats.data || []);
-        } else if (Array.isArray(cats)) {
-          setCategories(cats);
+        if (Array.isArray(categoriesResponse)) {
+          setCategories(categoriesResponse);
         } else {
           setCategories([]);
         }
       } catch (err) {
+        console.error('Error fetching categories in ProductsPage:', err);
         setCategories([]);
       }
     };
@@ -132,7 +130,7 @@ const ProductsPage = () => {
               <Select
                 labelId="category-select-label"
                 name="category"
-                value={selectedCategory}
+                value={selectedCategory || ''}
                 label="Category"
                 onChange={handleFilterChange(setSelectedCategory)}
               >
@@ -170,7 +168,7 @@ const ProductsPage = () => {
               <Select
                 labelId="sort-by-label"
                 name="sortBy"
-                value={sortBy}
+                value={sortBy || ''}
                 label="Sort By"
                 onChange={handleFilterChange(setSortBy)}
               >
@@ -201,7 +199,9 @@ const ProductsPage = () => {
                     </Grid>
                   ))
                 ) : (
-                  <Typography sx={{p: 3}}>No products found matching your criteria.</Typography>
+                  <Grid key="no-products" size={{ xs: 12 }}>
+                    <Typography sx={{p: 3}}>No products found matching your criteria.</Typography>
+                  </Grid>
                 )}
               </Grid>
               {pagination.totalPages > 1 && (

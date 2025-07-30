@@ -6,6 +6,7 @@ export { cartAPI, createGuestSession, clearGuestSession } from './cartApi';
 export { userAPI } from './userApi';
 export { orderAPI } from './orderApi';
 export { addressAPI } from './addressApi';
+export { adminAPI } from './adminApi';
 export { default as api } from './config';
 
 // Export các hàm tiện ích

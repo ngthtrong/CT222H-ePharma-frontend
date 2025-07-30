@@ -36,8 +36,6 @@ export const getParentCategories = async () => {
     const response = await categoryAPI.getCategories();
     const allCategories = response.data.data; // Truy cập vào data.data
     
-    console.log('All categories from API:', allCategories);
-    
     // Kiểm tra nếu dữ liệu là array
     if (!Array.isArray(allCategories)) {
       console.error('Categories data is not an array:', allCategories);
@@ -49,11 +47,10 @@ export const getParentCategories = async () => {
       return category.parentCategoryId === null;
     });
     
-    console.log('Filtered parent categories:', parentCategories);
     return parentCategories;
     
   } catch (error) {
-    console.error('Error in getParentCategories:', error.toJSON());
+    console.error('Error in getParentCategories:', error);
     return [];
   }
 };

@@ -3,7 +3,8 @@ import { authAPI, cartAPI } from '../api';
 import { logout as logoutAPI } from '../api/authApi';
 import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage, clearAuthData, getSessionId, clearSessionId } from '../utils/localStorage';
 
-const AuthContext = createContext();
+// Export AuthContext để có thể import trực tiếp
+export const AuthContext = createContext();
 
 const initialState = {
   user: null,
@@ -163,6 +164,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       dispatch({ type: 'LOGIN_START' });
+      
+      // Xóa tất cả thông tin user và token cũ trước khi đăng nhập mới
+      clearAuthData();
+      clearSessionId();
+      dispatch({ type: 'LOGOUT' });
       
       const response = await authAPI.login(credentials);
       

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -18,11 +18,12 @@ import {
   Visibility,
   VisibilityOff,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, loading, error } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -33,6 +34,21 @@ const LoginPage = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+
+  // Kiểm tra thông báo lỗi từ admin routes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const errorType = urlParams.get('error');
+    const state = location.state;
+
+    if (errorType === 'admin_auth_required') {
+      setLocalError('Vui lòng đăng nhập với tài khoản admin để truy cập khu vực quản trị');
+    } else if (errorType === 'admin_access_denied') {
+      setLocalError('Bạn không có quyền truy cập vào khu vực quản trị');
+    } else if (state?.error === 'admin_auth_required' || state?.error === 'admin_access_denied') {
+      setLocalError(state.message || 'Vui lòng đăng nhập để tiếp tục');
+    }
+  }, [location]);
 
   const handleChange = (e) => {
     setFormData({
@@ -61,9 +77,16 @@ const LoginPage = () => {
     const result = await login(formData);
     if (result.success) {
       showSnackbar('Đăng nhập thành công! Đang chuyển hướng...', 'success');
+      
       // Delay nhỏ để người dùng thấy thông báo trước khi chuyển trang
       setTimeout(() => {
-        navigate('/');
+        // Kiểm tra nếu đang cố truy cập admin area thì redirect về đó
+        const from = location.state?.from?.pathname;
+        if (from && from.startsWith('/admin')) {
+          navigate(from, { replace: true });
+        } else {
+          navigate('/');
+        }
       }, 1000);
     } else {
       setLocalError(result.error);

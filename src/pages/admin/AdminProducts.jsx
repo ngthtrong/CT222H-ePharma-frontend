@@ -1,0 +1,1005 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Switch,
+  FormControlLabel,
+  CircularProgress,
+  TablePagination,
+  Grid,
+  Card,
+  CardContent,
+  Divider,
+  InputAdornment,
+  Avatar,
+  Stack,
+  ButtonGroup,
+  Snackbar,
+  Alert,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  Clear as ClearIcon,
+  SortByAlpha as SortIcon,
+  AttachMoney as PriceIcon,
+  Image as ImageIcon,
+} from '@mui/icons-material';
+import { adminAPI } from '../../api/adminApi';
+import { categoryAPI } from '../../api/categoryApi';
+import { useSnackbar } from '../../hooks/useSnackbar';
+import { formatCurrency } from '../../utils/formatters';
+import { validateProductForm, createSlug } from '../../utils/adminUtils';
+
+const AdminProducts = () => {
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [priceFilter, setPriceFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Snackbar hook
+  const { snackbar, hideSnackbar, showSuccess, showError, showWarning } = useSnackbar();
+
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    shortDescription: '',
+    price: '',
+    comparePrice: '',
+    costPrice: '',
+    sku: '',
+    barcode: '',
+    stockQuantity: 0,
+    lowStockThreshold: 5,
+    categoryId: '',
+    brand: '',
+    weight: '',
+    dimensions: '',
+    tags: '',
+    metaTitle: '',
+    metaDescription: '',
+    published: true,
+    isFeatured: false,
+    images: [],
+  });
+
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      
+      const response = await adminAPI.getAdminProducts();
+      
+      if (response.data.success) {
+        setProducts(response.data.data || []);
+      } else {
+        showError(response.data.message || 'Không thể tải danh sách sản phẩm');
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      showError('Lỗi khi tải danh sách sản phẩm');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryAPI.getCategories();
+      
+      if (response.data.success) {
+        setCategories(response.data.data || []);
+      } else {
+        console.error('Error fetching categories:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleOpenDialog = (product = null) => {
+    if (product) {
+      setEditingProduct(product);
+      setFormData({
+        name: product.name || '',
+        slug: product.slug || '',
+        description: product.description || '',
+        shortDescription: product.shortDescription || '',
+        price: product.price || '',
+        comparePrice: product.comparePrice || '',
+        costPrice: product.costPrice || '',
+        sku: product.sku || '',
+        barcode: product.barcode || '',
+        stockQuantity: product.stockQuantity || 0,
+        lowStockThreshold: product.lowStockThreshold || 5,
+        categoryId: product.categoryId || '',
+        brand: product.brand || '',
+        weight: product.weight || '',
+        dimensions: product.dimensions || '',
+        tags: Array.isArray(product.tags) ? product.tags.join(', ') : (product.tags || ''),
+        metaTitle: product.metaTitle || '',
+        metaDescription: product.metaDescription || '',
+        published: product.published !== undefined ? product.published : true,
+        isFeatured: product.isFeatured !== undefined ? product.isFeatured : false,
+        images: product.images || [],
+      });
+    } else {
+      setEditingProduct(null);
+      setFormData({
+        name: '',
+        slug: '',
+        description: '',
+        shortDescription: '',
+        price: '',
+        comparePrice: '',
+        costPrice: '',
+        sku: '',
+        barcode: '',
+        stockQuantity: 0,
+        lowStockThreshold: 5,
+        categoryId: '',
+        brand: '',
+        weight: '',
+        dimensions: '',
+        tags: '',
+        metaTitle: '',
+        metaDescription: '',
+        published: true,
+        isFeatured: false,
+        images: [],
+      });
+    }
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setEditingProduct(null);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+
+    // Auto-generate slug from name
+    if (name === 'name') {
+      setFormData(prev => ({
+        ...prev,
+        slug: createSlug(value),
+        metaTitle: value ? `${value} - WellVerse` : '',
+      }));
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      // Validate form
+      const errors = validateProductForm(formData);
+      if (errors.length > 0) {
+        showError(errors.join(', '));
+        return;
+      }
+
+      setLoading(true);
+      
+      const productData = {
+        ...formData,
+        price: parseFloat(formData.price) || 0,
+        comparePrice: parseFloat(formData.comparePrice) || 0,
+        costPrice: parseFloat(formData.costPrice) || 0,
+        stockQuantity: parseInt(formData.stockQuantity) || 0,
+        lowStockThreshold: parseInt(formData.lowStockThreshold) || 5,
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
+        categoryId: formData.categoryId || null,
+      };
+      
+      let response;
+      if (editingProduct) {
+        response = await adminAPI.updateProduct(editingProduct.id, productData);
+      } else {
+        response = await adminAPI.createProduct(productData);
+      }
+      
+      if (response.data.success) {
+        showSuccess(editingProduct ? 'Cập nhật sản phẩm thành công' : 'Tạo sản phẩm thành công');
+        handleCloseDialog();
+        fetchProducts();
+      } else {
+        showError(response.data.message || 'Không thể lưu sản phẩm');
+      }
+    } catch (error) {
+      console.error('Error saving product:', error);
+      showError('Lỗi khi lưu sản phẩm');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (productId) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
+      try {
+        setLoading(true);
+        
+        const response = await adminAPI.deleteProduct(productId);
+        
+        if (response.data.success) {
+          showSuccess('Xóa sản phẩm thành công');
+          fetchProducts();
+        } else {
+          showError(response.data.message || 'Không thể xóa sản phẩm');
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        showError('Lỗi khi xóa sản phẩm');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Filter and sort products
+  const filteredAndSortedProducts = (() => {
+    let filtered = products.filter(product => {
+      const matchesSearch = !searchQuery || 
+        product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.brand?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
+      
+      const matchesPrice = !priceFilter || (() => {
+        const price = parseFloat(product.price) || 0;
+        switch (priceFilter) {
+          case 'under50k': return price < 50000;
+          case '50k-200k': return price >= 50000 && price <= 200000;
+          case '200k-500k': return price >= 200000 && price <= 500000;
+          case 'over500k': return price > 500000;
+          default: return true;
+        }
+      })();
+      
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
+
+    // Sort products
+    if (sortOrder) {
+      filtered.sort((a, b) => {
+        switch (sortOrder) {
+          case 'name-asc':
+            return (a.name || '').localeCompare(b.name || '');
+          case 'name-desc':
+            return (b.name || '').localeCompare(a.name || '');
+          case 'price-asc':
+            return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+          case 'price-desc':
+            return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    return filtered;
+  })();
+
+  // Pagination
+  const paginatedProducts = filteredAndSortedProducts.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('');
+    setPriceFilter('');
+    setSortOrder('');
+    setPage(0);
+  };
+
+  const getCategoryName = (categoryId) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.name : 'Chưa phân loại';
+  };
+
+  const getStockStatus = (product) => {
+    if (!product.published) return { label: 'Ngừng bán', color: 'error' };
+    
+    if (product.stockQuantity <= 0) return { label: 'Hết hàng', color: 'error' };
+    if (product.stockQuantity <= product.lowStockThreshold) return { label: 'Sắp hết', color: 'warning' };
+    return { label: 'Còn hàng', color: 'success' };
+  };
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5">Quản lý sản phẩm</Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog()}
+        >
+          Thêm sản phẩm
+        </Button>
+      </Box>
+
+      {/* Filters */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6} md={4} lg={3}>
+              <TextField
+                fullWidth
+                placeholder="Tìm kiếm sản phẩm..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <FormControl fullWidth>
+                <InputLabel>Danh mục</InputLabel>
+                <Select
+                  value={selectedCategory}
+                  label="Danh mục"
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  sx={{ minWidth: 140 }}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2} lg={2}>
+              <FormControl fullWidth>
+                <InputLabel>Giá</InputLabel>
+                <Select
+                  value={priceFilter}
+                  label="Giá"
+                  onChange={(e) => setPriceFilter(e.target.value)}
+                  sx={{ minWidth: 120 }}
+                  startAdornment={<PriceIcon sx={{ mr: 1, color: 'action.active' }} />}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="under50k">Dưới 50K</MenuItem>
+                  <MenuItem value="50k-200k">50K - 200K</MenuItem>
+                  <MenuItem value="200k-500k">200K - 500K</MenuItem>
+                  <MenuItem value="over500k">Trên 500K</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3} lg={3}>
+              <FormControl fullWidth>
+                <InputLabel>Sắp xếp</InputLabel>
+                <Select
+                  value={sortOrder}
+                  label="Sắp xếp"
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  sx={{ minWidth: 200 }}
+                  startAdornment={<SortIcon sx={{ mr: 1, color: 'action.active' }} />}
+                >
+                  <MenuItem value="">Mặc định</MenuItem>
+                  <MenuItem value="name-asc">Tên A-Z</MenuItem>
+                  <MenuItem value="name-desc">Tên Z-A</MenuItem>
+                  <MenuItem value="price-asc">Giá thấp đến cao</MenuItem>
+                  <MenuItem value="price-desc">Giá cao đến thấp</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={12} lg={2}>
+              <Stack 
+                direction={{ xs: 'column', sm: 'row', lg: 'column' }} 
+                spacing={1} 
+                alignItems={{ xs: 'stretch', sm: 'center', lg: 'stretch' }}
+                sx={{ width: '100%' }}
+              >
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<ClearIcon />}
+                  onClick={handleClearFilters}
+                  disabled={!searchQuery && !selectedCategory && !priceFilter && !sortOrder}
+                  fullWidth
+                  sx={{ minWidth: { xs: 'auto', sm: '120px', lg: 'auto' } }}
+                >
+                  Xóa lọc
+                </Button>
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary"
+                  sx={{ 
+                    textAlign: { xs: 'center', sm: 'left', lg: 'center' },
+                    mt: { xs: 0.5, sm: 0, lg: 0.5 }
+                  }}
+                >
+                  {filteredAndSortedProducts.length} sản phẩm
+                </Typography>
+              </Stack>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Products Table */}
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Hình ảnh</TableCell>
+              <TableCell>Sản phẩm</TableCell>
+              <TableCell>SKU</TableCell>
+              <TableCell>Danh mục</TableCell>
+              <TableCell>Giá</TableCell>
+              <TableCell>Kho</TableCell>
+              <TableCell>Trạng thái</TableCell>
+              <TableCell>Thao tác</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={8} align="center">
+                  <CircularProgress />
+                </TableCell>
+              </TableRow>
+            ) : paginatedProducts.length > 0 ? (
+              paginatedProducts.map((product) => {
+                const stockStatus = getStockStatus(product);
+                return (
+                  <TableRow key={product.id}>
+                    <TableCell>
+                      <Avatar
+                        src={product.images && product.images[0] ? product.images[0] : undefined}
+                        sx={{ width: 48, height: 48, bgcolor: 'grey.200' }}
+                      >
+                        <ImageIcon />
+                      </Avatar>
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          {product.name}
+                        </Typography>
+                        {product.brand && (
+                          <Typography variant="caption" color="text.secondary">
+                            {product.brand}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                        {product.sku || 'N/A'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={getCategoryName(product.categoryId)}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" fontWeight="bold">
+                          {formatCurrency(product.price)}
+                        </Typography>
+                        {product.comparePrice && product.comparePrice > product.price && (
+                          <Typography 
+                            variant="caption" 
+                            color="text.secondary"
+                            sx={{ textDecoration: 'line-through' }}
+                          >
+                            {formatCurrency(product.comparePrice)}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2">
+                          {product.stockQuantity}
+                        </Typography>
+                        <Chip 
+                          label={stockStatus.label}
+                          size="small"
+                          color={stockStatus.color}
+                        />
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Chip 
+                          label={product.published ? 'Hoạt động' : 'Ẩn'}
+                          size="small"
+                          color={product.published ? 'success' : 'default'}
+                        />
+                        {product.isFeatured && (
+                          <Chip 
+                            label="Nổi bật"
+                            size="small"
+                            color="primary"
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <IconButton
+                        onClick={() => handleOpenDialog(product)}
+                        color="primary"
+                        size="small"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => handleDelete(product.id)}
+                        color="error"
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} align="center">
+                  Không tìm thấy sản phẩm nào
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          component="div"
+          count={filteredAndSortedProducts.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Số dòng mỗi trang:"
+          labelDisplayedRows={({ from, to, count }) => 
+            `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`
+          }
+        />
+      </TableContainer>
+
+      {/* Product Dialog */}
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="lg" 
+        fullWidth
+        PaperProps={{
+          sx: { minHeight: '80vh', maxHeight: '90vh' }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          {editingProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
+        </DialogTitle>
+        <Divider />
+        <DialogContent sx={{ p: 0 }}>
+          <Box sx={{ p: 2 }}>
+            <Grid container spacing={3}>
+              {/* Left Column - Main Content */}
+              <Grid item xs={12} lg={8}>
+                <Stack spacing={3}>
+                  {/* Basic Information */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        Thông tin cơ bản
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <TextField
+                            name="name"
+                            label="Tên sản phẩm"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            required
+                            fullWidth
+                            placeholder="VD: Thuốc giảm đau Paracetamol 500mg"
+                          />
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            name="slug"
+                            label="Slug (URL)"
+                            value={formData.slug}
+                            onChange={handleInputChange}
+                            required
+                            fullWidth
+                            placeholder="VD: thuoc-giam-dau-paracetamol-500mg"
+                            helperText="Slug sẽ được tự động tạo từ tên sản phẩm"
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                          <FormControl fullWidth required>
+                            <InputLabel>Danh mục</InputLabel>
+                            <Select
+                              name="categoryId"
+                              value={formData.categoryId}
+                              label="Danh mục"
+                              onChange={handleInputChange}
+                              sx={{ minWidth: 200 }}
+                            >
+                              <MenuItem value="">
+                                <em>Chọn danh mục</em>
+                              </MenuItem>
+                              {categories.map((category) => (
+                                <MenuItem key={category.id} value={category.id}>
+                                  {category.name}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <TextField
+                            name="shortDescription"
+                            label="Mô tả ngắn"
+                            value={formData.shortDescription}
+                            onChange={handleInputChange}
+                            multiline
+                            rows={2}
+                            fullWidth
+                            placeholder="Mô tả ngắn gọn về sản phẩm..."
+                          />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <TextField
+                            name="description"
+                            label="Mô tả chi tiết"
+                            value={formData.description}
+                            onChange={handleInputChange}
+                            multiline
+                            rows={4}
+                            fullWidth
+                            placeholder="Mô tả chi tiết về sản phẩm, công dụng, cách sử dụng..."
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+
+                  {/* Pricing */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        Giá cả
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            name="price"
+                            label="Giá bán"
+                            type="number"
+                            value={formData.price}
+                            onChange={handleInputChange}
+                            required
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            name="comparePrice"
+                            label="Giá so sánh"
+                            type="number"
+                            value={formData.comparePrice}
+                            onChange={handleInputChange}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                            helperText="Giá gốc để hiển thị khuyến mãi"
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            name="costPrice"
+                            label="Giá vốn"
+                            type="number"
+                            value={formData.costPrice}
+                            onChange={handleInputChange}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                            helperText="Giá nhập hàng"
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+
+                  {/* SEO */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        SEO
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <TextField
+                            name="metaTitle"
+                            label="Meta Title"
+                            value={formData.metaTitle}
+                            onChange={handleInputChange}
+                            fullWidth
+                            placeholder="Thuốc giảm đau Paracetamol 500mg - WellVerse"
+                            helperText="Tiêu đề SEO (tối đa 60 ký tự)"
+                          />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <TextField
+                            name="metaDescription"
+                            label="Meta Description"
+                            value={formData.metaDescription}
+                            onChange={handleInputChange}
+                            multiline
+                            rows={2}
+                            fullWidth
+                            placeholder="Thuốc giảm đau, hạ sốt hiệu quả với thành phần Paracetamol 500mg..."
+                            helperText="Mô tả SEO (tối đa 160 ký tự)"
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Stack>
+              </Grid>
+
+              {/* Right Column - Sidebar Info */}
+              <Grid item xs={12} lg={4}>
+                <Grid container spacing={2}>
+                  {/* Row 1: Inventory & Status */}
+                  <Grid item xs={12} xl={6}>
+                    <Card variant="outlined" sx={{ height: 'fit-content' }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom color="primary">
+                          Quản lý kho
+                        </Typography>
+                        <Stack spacing={2}>
+                          <TextField
+                            name="sku"
+                            label="SKU"
+                            value={formData.sku}
+                            onChange={handleInputChange}
+                            fullWidth
+                            placeholder="VD: PAR-500-01"
+                          />
+
+                          <TextField
+                            name="barcode"
+                            label="Mã vạch"
+                            value={formData.barcode}
+                            onChange={handleInputChange}
+                            fullWidth
+                          />
+
+                          <TextField
+                            name="stockQuantity"
+                            label="Số lượng hiện tại"
+                            type="number"
+                            value={formData.stockQuantity}
+                            onChange={handleInputChange}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0 } }}
+                          />
+
+                          <TextField
+                            name="lowStockThreshold"
+                            label="Ngưỡng cảnh báo"
+                            type="number"
+                            value={formData.lowStockThreshold}
+                            onChange={handleInputChange}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0 } }}
+                            helperText="Cảnh báo khi số lượng dưới ngưỡng này"
+                          />
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12} xl={6}>
+                    <Card variant="outlined" sx={{ height: 'fit-content' }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom color="primary">
+                          Trạng thái
+                        </Typography>
+                        <Stack spacing={2}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                name="published"
+                                checked={formData.published}
+                                onChange={handleInputChange}
+                              />
+                            }
+                            label="Kích hoạt sản phẩm"
+                          />
+
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                name="isFeatured"
+                                checked={formData.isFeatured}
+                                onChange={handleInputChange}
+                              />
+                            }
+                            label="Sản phẩm nổi bật"
+                          />
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* Row 2: Additional Info */}
+                  <Grid item xs={12}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom color="primary">
+                          Thông tin bổ sung
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              name="brand"
+                              label="Thương hiệu"
+                              value={formData.brand}
+                              onChange={handleInputChange}
+                              fullWidth
+                              placeholder="VD: Traphaco"
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              name="weight"
+                              label="Trọng lượng"
+                              value={formData.weight}
+                              onChange={handleInputChange}
+                              fullWidth
+                              placeholder="VD: 50g"
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <TextField
+                              name="dimensions"
+                              label="Kích thước"
+                              value={formData.dimensions}
+                              onChange={handleInputChange}
+                              fullWidth
+                              placeholder="VD: 10cm x 5cm x 2cm"
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <TextField
+                              name="tags"
+                              label="Tags"
+                              value={formData.tags}
+                              onChange={handleInputChange}
+                              fullWidth
+                              placeholder="VD: thuốc giảm đau, paracetamol, sốt"
+                              helperText="Phân tách bằng dấu phẩy"
+                            />
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseDialog} size="large">
+            Hủy
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            size="large"
+            disabled={loading || !formData.name || !formData.slug || !formData.categoryId}
+          >
+            {loading ? <CircularProgress size={20} /> : (editingProduct ? 'Cập nhật' : 'Thêm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={snackbar.autoHideDuration}
+        onClose={hideSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={hideSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+          elevation={6}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+};
+
+export default AdminProducts;
