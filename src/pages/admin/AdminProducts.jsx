@@ -31,6 +31,10 @@ import {
   CardContent,
   Divider,
   InputAdornment,
+  Avatar,
+  Stack,
+  ButtonGroup,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -38,6 +42,10 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
+  Clear as ClearIcon,
+  SortByAlpha as SortIcon,
+  AttachMoney as PriceIcon,
+  Image as ImageIcon,
 } from '@mui/icons-material';
 import { adminAPI } from '../../api/adminApi';
 import { categoryAPI } from '../../api/categoryApi';
@@ -54,6 +62,8 @@ const AdminProducts = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [priceFilter, setPriceFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -67,8 +77,7 @@ const AdminProducts = () => {
     costPrice: '',
     sku: '',
     barcode: '',
-    trackQuantity: true,
-    quantity: 0,
+    stockQuantity: 0,
     lowStockThreshold: 5,
     categoryId: '',
     brand: '',
@@ -77,7 +86,7 @@ const AdminProducts = () => {
     tags: '',
     metaTitle: '',
     metaDescription: '',
-    isActive: true,
+    published: true,
     isFeatured: false,
     images: [],
   });
@@ -134,8 +143,7 @@ const AdminProducts = () => {
         costPrice: product.costPrice || '',
         sku: product.sku || '',
         barcode: product.barcode || '',
-        trackQuantity: product.trackQuantity !== undefined ? product.trackQuantity : true,
-        quantity: product.quantity || 0,
+        stockQuantity: product.stockQuantity || 0,
         lowStockThreshold: product.lowStockThreshold || 5,
         categoryId: product.categoryId || '',
         brand: product.brand || '',
@@ -144,7 +152,7 @@ const AdminProducts = () => {
         tags: Array.isArray(product.tags) ? product.tags.join(', ') : (product.tags || ''),
         metaTitle: product.metaTitle || '',
         metaDescription: product.metaDescription || '',
-        isActive: product.isActive !== undefined ? product.isActive : true,
+        published: product.published !== undefined ? product.published : true,
         isFeatured: product.isFeatured !== undefined ? product.isFeatured : false,
         images: product.images || [],
       });
@@ -160,8 +168,7 @@ const AdminProducts = () => {
         costPrice: '',
         sku: '',
         barcode: '',
-        trackQuantity: true,
-        quantity: 0,
+        stockQuantity: 0,
         lowStockThreshold: 5,
         categoryId: '',
         brand: '',
@@ -170,7 +177,7 @@ const AdminProducts = () => {
         tags: '',
         metaTitle: '',
         metaDescription: '',
-        isActive: true,
+        published: true,
         isFeatured: false,
         images: [],
       });
@@ -222,7 +229,7 @@ const AdminProducts = () => {
         price: parseFloat(formData.price) || 0,
         comparePrice: parseFloat(formData.comparePrice) || 0,
         costPrice: parseFloat(formData.costPrice) || 0,
-        quantity: parseInt(formData.quantity) || 0,
+        stockQuantity: parseInt(formData.stockQuantity) || 0,
         lowStockThreshold: parseInt(formData.lowStockThreshold) || 5,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
         categoryId: formData.categoryId || null,
@@ -274,20 +281,57 @@ const AdminProducts = () => {
     }
   };
 
-  // Filter products based on search and category
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = !searchQuery || 
-      product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.brand?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  // Filter and sort products
+  const filteredAndSortedProducts = (() => {
+    let filtered = products.filter(product => {
+      const matchesSearch = !searchQuery || 
+        product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.brand?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
+      
+      const matchesPrice = !priceFilter || (() => {
+        const price = parseFloat(product.price) || 0;
+        switch (priceFilter) {
+          case 'under50k': return price < 50000;
+          case '50k-200k': return price >= 50000 && price <= 200000;
+          case '200k-500k': return price >= 200000 && price <= 500000;
+          case 'over500k': return price > 500000;
+          default: return true;
+        }
+      })();
+      
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
+
+    // Sort products
+    if (sortOrder) {
+      filtered.sort((a, b) => {
+        switch (sortOrder) {
+          case 'name-asc':
+            return (a.name || '').localeCompare(b.name || '');
+          case 'name-desc':
+            return (b.name || '').localeCompare(a.name || '');
+          case 'price-asc':
+            return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+          case 'price-desc':
+            return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+          case 'newest':
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+          case 'oldest':
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    return filtered;
+  })();
 
   // Pagination
-  const paginatedProducts = filteredProducts.slice(
+  const paginatedProducts = filteredAndSortedProducts.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
@@ -301,16 +345,24 @@ const AdminProducts = () => {
     setPage(0);
   };
 
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('');
+    setPriceFilter('');
+    setSortOrder('');
+    setPage(0);
+  };
+
   const getCategoryName = (categoryId) => {
     const category = categories.find(cat => cat.id === categoryId);
     return category ? category.name : 'Chưa phân loại';
   };
 
   const getStockStatus = (product) => {
-    if (!product.trackQuantity) return { label: 'Không theo dõi', color: 'default' };
+    if (!product.published) return { label: 'Ngừng bán', color: 'error' };
     
-    if (product.quantity <= 0) return { label: 'Hết hàng', color: 'error' };
-    if (product.quantity <= product.lowStockThreshold) return { label: 'Sắp hết', color: 'warning' };
+    if (product.stockQuantity <= 0) return { label: 'Hết hàng', color: 'error' };
+    if (product.stockQuantity <= product.lowStockThreshold) return { label: 'Sắp hết', color: 'warning' };
     return { label: 'Còn hàng', color: 'success' };
   };
 
@@ -345,7 +397,7 @@ const AdminProducts = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 placeholder="Tìm kiếm sản phẩm..."
@@ -360,16 +412,16 @@ const AdminProducts = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            
+            <Grid item xs={12} md={2}>
               <FormControl fullWidth>
-                <InputLabel>Lọc theo danh mục</InputLabel>
+                <InputLabel>Danh mục</InputLabel>
                 <Select
                   value={selectedCategory}
-                  label="Lọc theo danh mục"
+                  label="Danh mục"
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  startAdornment={<FilterIcon sx={{ mr: 1, color: 'action.active' }} />}
                 >
-                  <MenuItem value="">Tất cả danh mục</MenuItem>
+                  <MenuItem value="">Tất cả</MenuItem>
                   {categories.map((category) => (
                     <MenuItem key={category.id} value={category.id}>
                       {category.name}
@@ -378,10 +430,62 @@ const AdminProducts = () => {
                 </Select>
               </FormControl>
             </Grid>
+
             <Grid item xs={12} md={2}>
-              <Typography variant="body2" color="text.secondary">
-                {filteredProducts.length} sản phẩm
-              </Typography>
+              <FormControl fullWidth>
+                <InputLabel>Giá</InputLabel>
+                <Select
+                  value={priceFilter}
+                  label="Giá"
+                  onChange={(e) => setPriceFilter(e.target.value)}
+                  startAdornment={<PriceIcon sx={{ mr: 1, color: 'action.active' }} />}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="under50k">Dưới 50K</MenuItem>
+                  <MenuItem value="50k-200k">50K - 200K</MenuItem>
+                  <MenuItem value="200k-500k">200K - 500K</MenuItem>
+                  <MenuItem value="over500k">Trên 500K</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={2}>
+              <FormControl fullWidth>
+                <InputLabel>Sắp xếp</InputLabel>
+                <Select
+                  value={sortOrder}
+                  label="Sắp xếp"
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  startAdornment={<SortIcon sx={{ mr: 1, color: 'action.active' }} />}
+                >
+                  <MenuItem value="">Mặc định</MenuItem>
+                  <MenuItem value="name-asc">Tên A-Z</MenuItem>
+                  <MenuItem value="name-desc">Tên Z-A</MenuItem>
+                  <MenuItem value="price-asc">Giá thấp đến cao</MenuItem>
+                  <MenuItem value="price-desc">Giá cao đến thấp</MenuItem>
+                  <MenuItem value="newest">Mới nhất</MenuItem>
+                  <MenuItem value="oldest">Cũ nhất</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={2}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Tooltip title="Xóa bộ lọc">
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    startIcon={<ClearIcon />}
+                    onClick={handleClearFilters}
+                    disabled={!searchQuery && !selectedCategory && !priceFilter && !sortOrder}
+                  >
+                    Xóa lọc
+                  </Button>
+                </Tooltip>
+                <Typography variant="caption" color="text.secondary">
+                  {filteredAndSortedProducts.length} sản phẩm
+                </Typography>
+              </Stack>
             </Grid>
           </Grid>
         </CardContent>
@@ -392,6 +496,7 @@ const AdminProducts = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Hình ảnh</TableCell>
               <TableCell>Sản phẩm</TableCell>
               <TableCell>SKU</TableCell>
               <TableCell>Danh mục</TableCell>
@@ -404,7 +509,7 @@ const AdminProducts = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={8} align="center">
                   <CircularProgress />
                 </TableCell>
               </TableRow>
@@ -413,6 +518,14 @@ const AdminProducts = () => {
                 const stockStatus = getStockStatus(product);
                 return (
                   <TableRow key={product.id}>
+                    <TableCell>
+                      <Avatar
+                        src={product.images && product.images[0] ? product.images[0] : undefined}
+                        sx={{ width: 48, height: 48, bgcolor: 'grey.200' }}
+                      >
+                        <ImageIcon />
+                      </Avatar>
+                    </TableCell>
                     <TableCell>
                       <Box>
                         <Typography variant="subtitle2" fontWeight="bold">
@@ -454,31 +567,23 @@ const AdminProducts = () => {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      {product.trackQuantity ? (
-                        <Box>
-                          <Typography variant="body2">
-                            {product.quantity}
-                          </Typography>
-                          <Chip 
-                            label={stockStatus.label}
-                            size="small"
-                            color={stockStatus.color}
-                          />
-                        </Box>
-                      ) : (
+                      <Box>
+                        <Typography variant="body2">
+                          {product.stockQuantity}
+                        </Typography>
                         <Chip 
-                          label="Không theo dõi"
+                          label={stockStatus.label}
                           size="small"
-                          color="default"
+                          color={stockStatus.color}
                         />
-                      )}
+                      </Box>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Chip 
-                          label={product.isActive ? 'Hoạt động' : 'Ẩn'}
+                          label={product.published ? 'Hoạt động' : 'Ẩn'}
                           size="small"
-                          color={product.isActive ? 'success' : 'default'}
+                          color={product.published ? 'success' : 'default'}
                         />
                         {product.isFeatured && (
                           <Chip 
@@ -510,7 +615,7 @@ const AdminProducts = () => {
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={8} align="center">
                   Không tìm thấy sản phẩm nào
                 </TableCell>
               </TableRow>
@@ -521,7 +626,7 @@ const AdminProducts = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={filteredProducts.length}
+          count={filteredAndSortedProducts.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
@@ -537,203 +642,234 @@ const AdminProducts = () => {
       <Dialog 
         open={openDialog} 
         onClose={handleCloseDialog} 
-        maxWidth="md" 
+        maxWidth="lg" 
         fullWidth
-        disableEnforceFocus
-        disableAutoFocus
+        PaperProps={{
+          sx: { minHeight: '80vh', maxHeight: '90vh' }
+        }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>
           {editingProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
         </DialogTitle>
-        <DialogContent>
+        <Divider />
+        <DialogContent sx={{ p: 0 }}>
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ m: 2, mb: 0 }}>
               {error}
             </Alert>
           )}
           
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-            {/* Basic Information */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Thông tin cơ bản</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField
-                      name="name"
-                      label="Tên sản phẩm"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required
-                      fullWidth
-                      placeholder="VD: Thuốc giảm đau Paracetamol 500mg"
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      name="slug"
-                      label="Slug (URL)"
-                      value={formData.slug}
-                      onChange={handleInputChange}
-                      required
-                      fullWidth
-                      placeholder="VD: thuoc-giam-dau-paracetamol-500mg"
-                      helperText="Slug sẽ được tự động tạo từ tên sản phẩm"
-                    />
-                  </Grid>
+          <Box sx={{ p: 2 }}>
+            <Grid container spacing={3}>
+              {/* Left Column */}
+              <Grid item xs={12} md={8}>
+                <Stack spacing={3}>
+                  {/* Basic Information */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        Thông tin cơ bản
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <TextField
+                            name="name"
+                            label="Tên sản phẩm"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            required
+                            fullWidth
+                            placeholder="VD: Thuốc giảm đau Paracetamol 500mg"
+                          />
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            name="slug"
+                            label="Slug (URL)"
+                            value={formData.slug}
+                            onChange={handleInputChange}
+                            required
+                            fullWidth
+                            placeholder="VD: thuoc-giam-dau-paracetamol-500mg"
+                            helperText="Slug sẽ được tự động tạo từ tên sản phẩm"
+                          />
+                        </Grid>
 
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Danh mục</InputLabel>
-                      <Select
-                        name="categoryId"
-                        value={formData.categoryId}
-                        label="Danh mục"
-                        onChange={handleInputChange}
-                      >
-                        <MenuItem value="">
-                          <em>Chọn danh mục</em>
-                        </MenuItem>
-                        {categories.map((category) => (
-                          <MenuItem key={category.id} value={category.id}>
-                            {category.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <FormControl fullWidth required>
+                            <InputLabel>Danh mục</InputLabel>
+                            <Select
+                              name="categoryId"
+                              value={formData.categoryId}
+                              label="Danh mục"
+                              onChange={handleInputChange}
+                            >
+                              <MenuItem value="">
+                                <em>Chọn danh mục</em>
+                              </MenuItem>
+                              {categories.map((category) => (
+                                <MenuItem key={category.id} value={category.id}>
+                                  {category.name}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
 
-                  <Grid item xs={12}>
-                    <TextField
-                      name="shortDescription"
-                      label="Mô tả ngắn"
-                      value={formData.shortDescription}
-                      onChange={handleInputChange}
-                      multiline
-                      rows={2}
-                      fullWidth
-                      placeholder="Mô tả ngắn gọn về sản phẩm..."
-                    />
-                  </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            name="shortDescription"
+                            label="Mô tả ngắn"
+                            value={formData.shortDescription}
+                            onChange={handleInputChange}
+                            multiline
+                            rows={2}
+                            fullWidth
+                            placeholder="Mô tả ngắn gọn về sản phẩm..."
+                          />
+                        </Grid>
 
-                  <Grid item xs={12}>
-                    <TextField
-                      name="description"
-                      label="Mô tả chi tiết"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      multiline
-                      rows={4}
-                      fullWidth
-                      placeholder="Mô tả chi tiết về sản phẩm, công dụng, cách sử dụng..."
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
+                        <Grid item xs={12}>
+                          <TextField
+                            name="description"
+                            label="Mô tả chi tiết"
+                            value={formData.description}
+                            onChange={handleInputChange}
+                            multiline
+                            rows={4}
+                            fullWidth
+                            placeholder="Mô tả chi tiết về sản phẩm, công dụng, cách sử dụng..."
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
 
-            {/* Pricing */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Giá cả</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      name="price"
-                      label="Giá bán"
-                      type="number"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      required
-                      fullWidth
-                      InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-                    />
-                  </Grid>
+                  {/* Pricing */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        Giá cả
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            name="price"
+                            label="Giá bán"
+                            type="number"
+                            value={formData.price}
+                            onChange={handleInputChange}
+                            required
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                          />
+                        </Grid>
 
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      name="comparePrice"
-                      label="Giá so sánh"
-                      type="number"
-                      value={formData.comparePrice}
-                      onChange={handleInputChange}
-                      fullWidth
-                      InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-                      helperText="Giá gốc để hiển thị khuyến mãi"
-                    />
-                  </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            name="comparePrice"
+                            label="Giá so sánh"
+                            type="number"
+                            value={formData.comparePrice}
+                            onChange={handleInputChange}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                            helperText="Giá gốc để hiển thị khuyến mãi"
+                          />
+                        </Grid>
 
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      name="costPrice"
-                      label="Giá vốn"
-                      type="number"
-                      value={formData.costPrice}
-                      onChange={handleInputChange}
-                      fullWidth
-                      InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-                      helperText="Giá nhập hàng"
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            name="costPrice"
+                            label="Giá vốn"
+                            type="number"
+                            value={formData.costPrice}
+                            onChange={handleInputChange}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                            helperText="Giá nhập hàng"
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
 
-            {/* Inventory */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Quản lý kho</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      name="sku"
-                      label="SKU"
-                      value={formData.sku}
-                      onChange={handleInputChange}
-                      fullWidth
-                      placeholder="VD: PAR-500-01"
-                    />
-                  </Grid>
+                  {/* SEO */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        SEO
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <TextField
+                            name="metaTitle"
+                            label="Meta Title"
+                            value={formData.metaTitle}
+                            onChange={handleInputChange}
+                            fullWidth
+                            placeholder="Thuốc giảm đau Paracetamol 500mg - WellVerse"
+                            helperText="Tiêu đề SEO (tối đa 60 ký tự)"
+                          />
+                        </Grid>
 
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      name="barcode"
-                      label="Mã vạch"
-                      value={formData.barcode}
-                      onChange={handleInputChange}
-                      fullWidth
-                    />
-                  </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            name="metaDescription"
+                            label="Meta Description"
+                            value={formData.metaDescription}
+                            onChange={handleInputChange}
+                            multiline
+                            rows={2}
+                            fullWidth
+                            placeholder="Thuốc giảm đau, hạ sốt hiệu quả với thành phần Paracetamol 500mg..."
+                            helperText="Mô tả SEO (tối đa 160 ký tự)"
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Stack>
+              </Grid>
 
-                  <Grid item xs={12}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          name="trackQuantity"
-                          checked={formData.trackQuantity}
-                          onChange={handleInputChange}
-                        />
-                      }
-                      label="Theo dõi số lượng tồn kho"
-                    />
-                  </Grid>
-
-                  {formData.trackQuantity && (
-                    <>
-                      <Grid item xs={12} md={6}>
+              {/* Right Column */}
+              <Grid item xs={12} md={4}>
+                <Stack spacing={3}>
+                  {/* Inventory */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        Quản lý kho
+                      </Typography>
+                      <Stack spacing={2}>
                         <TextField
-                          name="quantity"
+                          name="sku"
+                          label="SKU"
+                          value={formData.sku}
+                          onChange={handleInputChange}
+                          fullWidth
+                          placeholder="VD: PAR-500-01"
+                        />
+
+                        <TextField
+                          name="barcode"
+                          label="Mã vạch"
+                          value={formData.barcode}
+                          onChange={handleInputChange}
+                          fullWidth
+                        />
+
+                        <TextField
+                          name="stockQuantity"
                           label="Số lượng hiện tại"
                           type="number"
-                          value={formData.quantity}
+                          value={formData.stockQuantity}
                           onChange={handleInputChange}
                           fullWidth
                           InputProps={{ inputProps: { min: 0 } }}
                         />
-                      </Grid>
 
-                      <Grid item xs={12} md={6}>
                         <TextField
                           name="lowStockThreshold"
                           label="Ngưỡng cảnh báo"
@@ -744,132 +880,102 @@ const AdminProducts = () => {
                           InputProps={{ inputProps: { min: 0 } }}
                           helperText="Cảnh báo khi số lượng dưới ngưỡng này"
                         />
-                      </Grid>
-                    </>
-                  )}
-                </Grid>
-              </CardContent>
-            </Card>
+                      </Stack>
+                    </CardContent>
+                  </Card>
 
-            {/* Additional Info */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Thông tin bổ sung</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      name="brand"
-                      label="Thương hiệu"
-                      value={formData.brand}
-                      onChange={handleInputChange}
-                      fullWidth
-                      placeholder="VD: Traphaco"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      name="weight"
-                      label="Trọng lượng"
-                      value={formData.weight}
-                      onChange={handleInputChange}
-                      fullWidth
-                      placeholder="VD: 50g"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      name="dimensions"
-                      label="Kích thước"
-                      value={formData.dimensions}
-                      onChange={handleInputChange}
-                      fullWidth
-                      placeholder="VD: 10cm x 5cm x 2cm"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      name="tags"
-                      label="Tags"
-                      value={formData.tags}
-                      onChange={handleInputChange}
-                      fullWidth
-                      placeholder="VD: thuốc giảm đau, paracetamol, sốt"
-                      helperText="Phân tách bằng dấu phẩy"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          name="isActive"
-                          checked={formData.isActive}
+                  {/* Additional Info */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        Thông tin bổ sung
+                      </Typography>
+                      <Stack spacing={2}>
+                        <TextField
+                          name="brand"
+                          label="Thương hiệu"
+                          value={formData.brand}
                           onChange={handleInputChange}
+                          fullWidth
+                          placeholder="VD: Traphaco"
                         />
-                      }
-                      label="Kích hoạt sản phẩm"
-                    />
-                  </Grid>
 
-                  <Grid item xs={12} md={6}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          name="isFeatured"
-                          checked={formData.isFeatured}
+                        <TextField
+                          name="weight"
+                          label="Trọng lượng"
+                          value={formData.weight}
                           onChange={handleInputChange}
+                          fullWidth
+                          placeholder="VD: 50g"
                         />
-                      }
-                      label="Sản phẩm nổi bật"
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
 
-            {/* SEO */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>SEO</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField
-                      name="metaTitle"
-                      label="Meta Title"
-                      value={formData.metaTitle}
-                      onChange={handleInputChange}
-                      fullWidth
-                      placeholder="Thuốc giảm đau Paracetamol 500mg - WellVerse"
-                      helperText="Tiêu đề SEO (tối đa 60 ký tự)"
-                    />
-                  </Grid>
+                        <TextField
+                          name="dimensions"
+                          label="Kích thước"
+                          value={formData.dimensions}
+                          onChange={handleInputChange}
+                          fullWidth
+                          placeholder="VD: 10cm x 5cm x 2cm"
+                        />
 
-                  <Grid item xs={12}>
-                    <TextField
-                      name="metaDescription"
-                      label="Meta Description"
-                      value={formData.metaDescription}
-                      onChange={handleInputChange}
-                      multiline
-                      rows={2}
-                      fullWidth
-                      placeholder="Thuốc giảm đau, hạ sốt hiệu quả với thành phần Paracetamol 500mg..."
-                      helperText="Mô tả SEO (tối đa 160 ký tự)"
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
+                        <TextField
+                          name="tags"
+                          label="Tags"
+                          value={formData.tags}
+                          onChange={handleInputChange}
+                          fullWidth
+                          placeholder="VD: thuốc giảm đau, paracetamol, sốt"
+                          helperText="Phân tách bằng dấu phẩy"
+                        />
+                      </Stack>
+                    </CardContent>
+                  </Card>
+
+                  {/* Status */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        Trạng thái
+                      </Typography>
+                      <Stack spacing={2}>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              name="published"
+                              checked={formData.published}
+                              onChange={handleInputChange}
+                            />
+                          }
+                          label="Kích hoạt sản phẩm"
+                        />
+
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              name="isFeatured"
+                              checked={formData.isFeatured}
+                              onChange={handleInputChange}
+                            />
+                          }
+                          label="Sản phẩm nổi bật"
+                        />
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Stack>
+              </Grid>
+            </Grid>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Hủy</Button>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseDialog} size="large">
+            Hủy
+          </Button>
           <Button
             onClick={handleSubmit}
             variant="contained"
+            size="large"
             disabled={loading || !formData.name || !formData.slug || !formData.categoryId}
           >
             {loading ? <CircularProgress size={20} /> : (editingProduct ? 'Cập nhật' : 'Thêm')}
