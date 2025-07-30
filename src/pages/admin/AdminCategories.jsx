@@ -32,6 +32,7 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { adminAPI } from '../../api/adminApi';
+import { categoryAPI } from '../../api/categoryApi';
 import { validateCategoryForm, createSlug } from '../../utils/adminUtils';
 
 const AdminCategories = () => {
@@ -62,7 +63,7 @@ const AdminCategories = () => {
       setLoading(true);
       setError('');
       
-      const response = await adminAPI.getAdminCategories();
+      const response = await categoryAPI.getCategories();
       
       if (response.data.success) {
         setCategories(response.data.data || []);
@@ -204,7 +205,7 @@ const AdminCategories = () => {
       .map(category => ({
         ...category,
         level,
-        children: buildCategoryTree(categories, category._id, level + 1)
+        children: buildCategoryTree(categories, category.id, level + 1)
       }));
   };
 
@@ -264,7 +265,6 @@ const AdminCategories = () => {
               <TableCell>Slug</TableCell>
               <TableCell>Mô tả</TableCell>
               <TableCell>Danh mục cha</TableCell>
-              <TableCell>Trạng thái</TableCell>
               <TableCell>Thứ tự</TableCell>
               <TableCell>Thao tác</TableCell>
             </TableRow>
@@ -272,7 +272,7 @@ const AdminCategories = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={6} align="center">
                   <CircularProgress />
                 </TableCell>
               </TableRow>
@@ -308,13 +308,6 @@ const AdminCategories = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Chip 
-                      label={category.isActive ? 'Kích hoạt' : 'Vô hiệu hóa'} 
-                      color={category.isActive ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
                     <Typography variant="body2">
                       {category.sortOrder || 1}
                     </Typography>
@@ -339,7 +332,7 @@ const AdminCategories = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={6} align="center">
                   Chưa có danh mục nào
                 </TableCell>
               </TableRow>
@@ -349,7 +342,14 @@ const AdminCategories = () => {
       </TableContainer>
 
       {/* Category Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="sm" 
+        fullWidth
+        disableEnforceFocus
+        disableAutoFocus
+      >
         <DialogTitle>
           {editingCategory ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
         </DialogTitle>
@@ -397,7 +397,7 @@ const AdminCategories = () => {
               <InputLabel>Danh mục cha</InputLabel>
               <Select
                 name="parentCategoryId"
-                value={formData.parentCategoryId}
+                value={formData.parentCategoryId || ''}
                 label="Danh mục cha"
                 onChange={handleInputChange}
               >

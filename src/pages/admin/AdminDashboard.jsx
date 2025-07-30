@@ -115,7 +115,7 @@ const AdminDashboard = () => {
       
       {/* Thống kê tổng quan */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} key="total-revenue">
           <StatCard
             title="Tổng doanh thu"
             value={formatCurrency(stats?.totalRevenue || 0)}
@@ -123,7 +123,7 @@ const AdminDashboard = () => {
             color="success"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} key="today-orders">
           <StatCard
             title="Đơn hàng hôm nay"
             value={stats?.todayOrders || 0}
@@ -131,7 +131,7 @@ const AdminDashboard = () => {
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} key="new-customers">
           <StatCard
             title="Khách hàng mới"
             value={stats?.newCustomers || 0}
@@ -139,7 +139,7 @@ const AdminDashboard = () => {
             color="info"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} key="total-products">
           <StatCard
             title="Sản phẩm"
             value={stats?.totalProducts || 0}
@@ -151,7 +151,7 @@ const AdminDashboard = () => {
 
       <Grid container spacing={3}>
         {/* Đơn hàng gần đây */}
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} md={8} key="recent-orders">
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Đơn hàng gần đây
@@ -198,7 +198,7 @@ const AdminDashboard = () => {
         </Grid>
 
         {/* Sản phẩm bán chạy */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={4} key="top-products">
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Sản phẩm bán chạy

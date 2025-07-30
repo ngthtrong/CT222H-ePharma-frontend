@@ -241,9 +241,9 @@ const AdminOrders = () => {
             <FormControl size="small" fullWidth>
               <InputLabel>Trạng thái</InputLabel>
               <Select
-                value={statusFilter}
+                value={statusFilter || ''}
                 label="Trạng thái"
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => setStatusFilter(e.target.value || '')}
               >
                 <MenuItem value="">Tất cả</MenuItem>
                 {orderStatuses.map((status) => (
@@ -398,7 +398,14 @@ const AdminOrders = () => {
       </TableContainer>
 
       {/* Order Detail Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="md" 
+        fullWidth
+        disableEnforceFocus
+        disableAutoFocus
+      >
         <DialogTitle>
           Chi tiết đơn hàng #{selectedOrder?.orderCode}
         </DialogTitle>
@@ -548,9 +555,9 @@ const AdminOrders = () => {
                     <FormControl fullWidth>
                       <InputLabel>Trạng thái đơn hàng</InputLabel>
                       <Select
-                        value={newStatus}
+                        value={newStatus || ''}
                         label="Trạng thái đơn hàng"
-                        onChange={(e) => setNewStatus(e.target.value)}
+                        onChange={(e) => setNewStatus(e.target.value || '')}
                       >
                         {orderStatuses.map((status) => (
                           <MenuItem key={status.value} value={status.value}>

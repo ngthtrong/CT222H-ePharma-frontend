@@ -200,9 +200,9 @@ const AdminUsers = () => {
             <FormControl size="small" fullWidth>
               <InputLabel>Vai trò</InputLabel>
               <Select
-                value={roleFilter}
+                value={roleFilter || ''}
                 label="Vai trò"
-                onChange={(e) => setRoleFilter(e.target.value)}
+                onChange={(e) => setRoleFilter(e.target.value || '')}
               >
                 <MenuItem value="">Tất cả</MenuItem>
                 {roles.map((role) => (
@@ -326,7 +326,14 @@ const AdminUsers = () => {
       </TableContainer>
 
       {/* User Detail Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="md" 
+        fullWidth
+        disableEnforceFocus
+        disableAutoFocus
+      >
         <DialogTitle>
           Chi tiết người dùng
         </DialogTitle>

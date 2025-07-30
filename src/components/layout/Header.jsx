@@ -96,9 +96,7 @@ const Header = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        console.log('Fetching parent categories...');
         const categoriesData = await getParentCategories();
-        console.log('Categories data received in Header:', categoriesData);
         setCategories(categoriesData);
       } catch (error) {
         console.error('Error fetching parent categories:', error);
@@ -447,10 +445,10 @@ const Header = () => {
                   scrollbarWidth: 'none'
                 }}>
                   {Array.isArray(categories) && categories.map((category) => (
-                    <Box key={category.id} sx={{ flexShrink: 0 }}>
+                    <Box key={category._id || category.id} sx={{ flexShrink: 0 }}>
                       <Typography
                         component={RouterLink}
-                        to={`/products?category=${category.slug}`}
+                        to={`/products?category=${category._id || category.id}`}
                         sx={{
                           display: 'flex', alignItems: 'center', fontSize: '16px', fontWeight: 500,
                           color: 'white', textDecoration: 'none', whiteSpace: 'nowrap', '&:hover': {
