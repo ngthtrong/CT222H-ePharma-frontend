@@ -23,7 +23,6 @@ import {
   MenuItem,
   Switch,
   FormControlLabel,
-  Alert,
   CircularProgress,
   TablePagination,
   Grid,
@@ -34,6 +33,8 @@ import {
   Avatar,
   Stack,
   ButtonGroup,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -48,6 +49,7 @@ import {
 } from '@mui/icons-material';
 import { adminAPI } from '../../api/adminApi';
 import { categoryAPI } from '../../api/categoryApi';
+import { useSnackbar } from '../../hooks/useSnackbar';
 import { formatCurrency } from '../../utils/formatters';
 import { validateProductForm, createSlug } from '../../utils/adminUtils';
 
@@ -55,8 +57,6 @@ const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +65,9 @@ const AdminProducts = () => {
   const [sortOrder, setSortOrder] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Snackbar hook
+  const { snackbar, hideSnackbar, showSuccess, showError, showWarning } = useSnackbar();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -98,18 +101,17 @@ const AdminProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      setError('');
       
       const response = await adminAPI.getAdminProducts();
       
       if (response.data.success) {
         setProducts(response.data.data || []);
       } else {
-        setError(response.data.message || 'Không thể tải danh sách sản phẩm');
+        showError(response.data.message || 'Không thể tải danh sách sản phẩm');
       }
     } catch (error) {
       console.error('Error fetching products:', error);
-      setError('Lỗi khi tải danh sách sản phẩm');
+      showError('Lỗi khi tải danh sách sản phẩm');
     } finally {
       setLoading(false);
     }
@@ -187,8 +189,6 @@ const AdminProducts = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingProduct(null);
-    setError('');
-    setSuccess('');
   };
 
   const handleInputChange = (e) => {
@@ -211,13 +211,10 @@ const AdminProducts = () => {
 
   const handleSubmit = async () => {
     try {
-      setError('');
-      setSuccess('');
-      
       // Validate form
       const errors = validateProductForm(formData);
       if (errors.length > 0) {
-        setError(errors.join(', '));
+        showError(errors.join(', '));
         return;
       }
 
@@ -242,15 +239,15 @@ const AdminProducts = () => {
       }
       
       if (response.data.success) {
-        setSuccess(editingProduct ? 'Cập nhật sản phẩm thành công' : 'Tạo sản phẩm thành công');
+        showSuccess(editingProduct ? 'Cập nhật sản phẩm thành công' : 'Tạo sản phẩm thành công');
         handleCloseDialog();
         fetchProducts();
       } else {
-        setError(response.data.message || 'Không thể lưu sản phẩm');
+        showError(response.data.message || 'Không thể lưu sản phẩm');
       }
     } catch (error) {
       console.error('Error saving product:', error);
-      setError('Lỗi khi lưu sản phẩm');
+      showError('Lỗi khi lưu sản phẩm');
     } finally {
       setLoading(false);
     }
@@ -260,20 +257,18 @@ const AdminProducts = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
       try {
         setLoading(true);
-        setError('');
-        setSuccess('');
         
         const response = await adminAPI.deleteProduct(productId);
         
         if (response.data.success) {
-          setSuccess('Xóa sản phẩm thành công');
+          showSuccess('Xóa sản phẩm thành công');
           fetchProducts();
         } else {
-          setError(response.data.message || 'Không thể xóa sản phẩm');
+          showError(response.data.message || 'Không thể xóa sản phẩm');
         }
       } catch (error) {
         console.error('Error deleting product:', error);
-        setError('Lỗi khi xóa sản phẩm');
+        showError('Lỗi khi xóa sản phẩm');
       } finally {
         setLoading(false);
       }
@@ -374,19 +369,6 @@ const AdminProducts = () => {
           Thêm sản phẩm
         </Button>
       </Box>
-
-      {/* Alerts */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
 
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
@@ -661,12 +643,6 @@ const AdminProducts = () => {
         </DialogTitle>
         <Divider />
         <DialogContent sx={{ p: 0 }}>
-          {error && (
-            <Alert severity="error" sx={{ m: 2, mb: 0 }}>
-              {error}
-            </Alert>
-          )}
-          
           <Box sx={{ p: 2 }}>
             <Grid container spacing={3}>
               {/* Left Column - Main Content */}
@@ -1004,6 +980,24 @@ const AdminProducts = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={snackbar.autoHideDuration}
+        onClose={hideSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={hideSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+          elevation={6}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

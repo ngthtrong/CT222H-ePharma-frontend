@@ -20,7 +20,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Alert,
   CircularProgress,
   Chip,
   FormControlLabel,
@@ -30,6 +29,8 @@ import {
   Grid,
   InputAdornment,
   Stack,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -42,12 +43,11 @@ import {
 import { adminAPI } from '../../api/adminApi';
 import { categoryAPI } from '../../api/categoryApi';
 import { validateCategoryForm, createSlug } from '../../utils/adminUtils';
+import { useSnackbar } from '../../hooks/useSnackbar';
 
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
 
@@ -55,6 +55,9 @@ const AdminCategories = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [sortOrder, setSortOrder] = useState('');
+
+  // Snackbar hook
+  const { snackbar, hideSnackbar, showSuccess, showError, showWarning } = useSnackbar();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -73,18 +76,17 @@ const AdminCategories = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      setError('');
       
       const response = await categoryAPI.getCategories();
       
       if (response.data.success) {
         setCategories(response.data.data || []);
       } else {
-        setError(response.data.message || 'Không thể tải danh sách danh mục');
+        showError(response.data.message || 'Không thể tải danh sách danh mục');
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
-      setError('Lỗi khi tải danh sách danh mục');
+      showError('Lỗi khi tải danh sách danh mục');
     } finally {
       setLoading(false);
     }
@@ -121,8 +123,6 @@ const AdminCategories = () => {
     setOpenDialog(false);
     setEditingCategory(null);
     setFormData({});
-    setError('');
-    setSuccess('');
   };
 
   const handleInputChange = (e) => {
@@ -145,13 +145,10 @@ const AdminCategories = () => {
 
   const handleSubmit = async () => {
     try {
-      setError('');
-      setSuccess('');
-      
       // Validate form
       const errors = validateCategoryForm(formData);
       if (errors.length > 0) {
-        setError(errors.join(', '));
+        showError(errors.join(', '));
         return;
       }
 
@@ -170,15 +167,15 @@ const AdminCategories = () => {
       }
       
       if (response.data.success) {
-        setSuccess(editingCategory ? 'Cập nhật danh mục thành công' : 'Tạo danh mục thành công');
+        showSuccess(editingCategory ? 'Cập nhật danh mục thành công' : 'Tạo danh mục thành công');
         handleCloseDialog();
         fetchCategories();
       } else {
-        setError(response.data.message || 'Không thể lưu danh mục');
+        showError(response.data.message || 'Không thể lưu danh mục');
       }
     } catch (error) {
       console.error('Error saving category:', error);
-      setError('Lỗi khi lưu danh mục');
+      showError('Lỗi khi lưu danh mục');
     } finally {
       setLoading(false);
     }
@@ -188,20 +185,18 @@ const AdminCategories = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa danh mục này?')) {
       try {
         setLoading(true);
-        setError('');
-        setSuccess('');
         
         const response = await adminAPI.deleteCategory(categoryId);
         
         if (response.data.success) {
-          setSuccess('Xóa danh mục thành công');
+          showSuccess('Xóa danh mục thành công');
           fetchCategories();
         } else {
-          setError(response.data.message || 'Không thể xóa danh mục');
+          showError(response.data.message || 'Không thể xóa danh mục');
         }
       } catch (error) {
         console.error('Error deleting category:', error);
-        setError('Lỗi khi xóa danh mục');
+        showError('Lỗi khi xóa danh mục');
       } finally {
         setLoading(false);
       }
@@ -292,18 +287,6 @@ const AdminCategories = () => {
           Thêm danh mục
         </Button>
       </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
 
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
@@ -492,12 +475,6 @@ const AdminCategories = () => {
           {editingCategory ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
         </DialogTitle>
         <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             <TextField
               name="name"
@@ -598,6 +575,24 @@ const AdminCategories = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={snackbar.autoHideDuration}
+        onClose={hideSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={hideSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+          elevation={6}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

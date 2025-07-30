@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Alert,
   CircularProgress,
   TablePagination,
   IconButton,
@@ -30,6 +29,8 @@ import {
   MenuItem,
   InputAdornment,
   Stack,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -40,12 +41,11 @@ import {
 } from '@mui/icons-material';
 import { adminAPI } from '../../api/adminApi';
 import { formatDate } from '../../utils/adminUtils';
+import { useSnackbar } from '../../hooks/useSnackbar';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [page, setPage] = useState(0);
@@ -57,6 +57,9 @@ const AdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [sortOrder, setSortOrder] = useState('');
+
+  // Snackbar hook
+  const { snackbar, hideSnackbar, showSuccess, showError, showWarning } = useSnackbar();
 
   const roles = [
     { value: 'USER', label: 'Người dùng', color: 'primary' },
@@ -99,7 +102,6 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      setError('');
       
       // Prepare API parameters
       const params = {
@@ -162,11 +164,11 @@ const AdminUsers = () => {
         setUsers(userData);
         setTotalUsers(response.data.total || 0);
       } else {
-        setError(response.data.message || 'Không thể tải danh sách người dùng');
+        showError(response.data.message || 'Không thể tải danh sách người dùng');
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      setError('Lỗi khi tải danh sách người dùng');
+      showError('Lỗi khi tải danh sách người dùng');
     } finally {
       setLoading(false);
     }
@@ -217,20 +219,18 @@ const AdminUsers = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
       try {
         setLoading(true);
-        setError('');
-        setSuccess('');
         
         const response = await adminAPI.deleteUser(userId);
         
         if (response.data.success) {
-          setSuccess('Xóa người dùng thành công');
+          showSuccess('Xóa người dùng thành công');
           fetchUsers();
         } else {
-          setError(response.data.message || 'Không thể xóa người dùng');
+          showError(response.data.message || 'Không thể xóa người dùng');
         }
       } catch (error) {
         console.error('Error deleting user:', error);
-        setError('Lỗi khi xóa người dùng');
+        showError('Lỗi khi xóa người dùng');
       } finally {
         setLoading(false);
       }
@@ -267,19 +267,6 @@ const AdminUsers = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5">Quản lý người dùng</Typography>
       </Box>
-
-      {/* Alerts */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
 
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
@@ -707,6 +694,24 @@ const AdminUsers = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={snackbar.autoHideDuration}
+        onClose={hideSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={hideSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+          elevation={6}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
