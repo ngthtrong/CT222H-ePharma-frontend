@@ -34,7 +34,6 @@ import {
   Avatar,
   Stack,
   ButtonGroup,
-  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -317,10 +316,6 @@ const AdminProducts = () => {
             return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
           case 'price-desc':
             return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
-          case 'newest':
-            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-          case 'oldest':
-            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
           default:
             return 0;
         }
@@ -397,7 +392,7 @@ const AdminProducts = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={4} lg={3}>
               <TextField
                 fullWidth
                 placeholder="Tìm kiếm sản phẩm..."
@@ -413,13 +408,14 @@ const AdminProducts = () => {
               />
             </Grid>
             
-            <Grid item xs={12} md={2}>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
               <FormControl fullWidth>
                 <InputLabel>Danh mục</InputLabel>
                 <Select
                   value={selectedCategory}
                   label="Danh mục"
                   onChange={(e) => setSelectedCategory(e.target.value)}
+                  sx={{ minWidth: 140 }}
                 >
                   <MenuItem value="">Tất cả</MenuItem>
                   {categories.map((category) => (
@@ -431,13 +427,14 @@ const AdminProducts = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={2}>
+            <Grid item xs={12} sm={6} md={2} lg={2}>
               <FormControl fullWidth>
                 <InputLabel>Giá</InputLabel>
                 <Select
                   value={priceFilter}
                   label="Giá"
                   onChange={(e) => setPriceFilter(e.target.value)}
+                  sx={{ minWidth: 120 }}
                   startAdornment={<PriceIcon sx={{ mr: 1, color: 'action.active' }} />}
                 >
                   <MenuItem value="">Tất cả</MenuItem>
@@ -449,13 +446,14 @@ const AdminProducts = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={2}>
+            <Grid item xs={12} sm={6} md={3} lg={3}>
               <FormControl fullWidth>
                 <InputLabel>Sắp xếp</InputLabel>
                 <Select
                   value={sortOrder}
                   label="Sắp xếp"
                   onChange={(e) => setSortOrder(e.target.value)}
+                  sx={{ minWidth: 200 }}
                   startAdornment={<SortIcon sx={{ mr: 1, color: 'action.active' }} />}
                 >
                   <MenuItem value="">Mặc định</MenuItem>
@@ -463,26 +461,36 @@ const AdminProducts = () => {
                   <MenuItem value="name-desc">Tên Z-A</MenuItem>
                   <MenuItem value="price-asc">Giá thấp đến cao</MenuItem>
                   <MenuItem value="price-desc">Giá cao đến thấp</MenuItem>
-                  <MenuItem value="newest">Mới nhất</MenuItem>
-                  <MenuItem value="oldest">Cũ nhất</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={2}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Tooltip title="Xóa bộ lọc">
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    startIcon={<ClearIcon />}
-                    onClick={handleClearFilters}
-                    disabled={!searchQuery && !selectedCategory && !priceFilter && !sortOrder}
-                  >
-                    Xóa lọc
-                  </Button>
-                </Tooltip>
-                <Typography variant="caption" color="text.secondary">
+            <Grid item xs={12} md={12} lg={2}>
+              <Stack 
+                direction={{ xs: 'column', sm: 'row', lg: 'column' }} 
+                spacing={1} 
+                alignItems={{ xs: 'stretch', sm: 'center', lg: 'stretch' }}
+                sx={{ width: '100%' }}
+              >
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<ClearIcon />}
+                  onClick={handleClearFilters}
+                  disabled={!searchQuery && !selectedCategory && !priceFilter && !sortOrder}
+                  fullWidth
+                  sx={{ minWidth: { xs: 'auto', sm: '120px', lg: 'auto' } }}
+                >
+                  Xóa lọc
+                </Button>
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary"
+                  sx={{ 
+                    textAlign: { xs: 'center', sm: 'left', lg: 'center' },
+                    mt: { xs: 0.5, sm: 0, lg: 0.5 }
+                  }}
+                >
                   {filteredAndSortedProducts.length} sản phẩm
                 </Typography>
               </Stack>
@@ -661,8 +669,8 @@ const AdminProducts = () => {
           
           <Box sx={{ p: 2 }}>
             <Grid container spacing={3}>
-              {/* Left Column */}
-              <Grid item xs={12} md={8}>
+              {/* Left Column - Main Content */}
+              <Grid item xs={12} lg={8}>
                 <Stack spacing={3}>
                   {/* Basic Information */}
                   <Card variant="outlined">
@@ -704,6 +712,7 @@ const AdminProducts = () => {
                               value={formData.categoryId}
                               label="Danh mục"
                               onChange={handleInputChange}
+                              sx={{ minWidth: 200 }}
                             >
                               <MenuItem value="">
                                 <em>Chọn danh mục</em>
@@ -833,136 +842,149 @@ const AdminProducts = () => {
                 </Stack>
               </Grid>
 
-              {/* Right Column */}
-              <Grid item xs={12} md={4}>
-                <Stack spacing={3}>
-                  {/* Inventory */}
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom color="primary">
-                        Quản lý kho
-                      </Typography>
-                      <Stack spacing={2}>
-                        <TextField
-                          name="sku"
-                          label="SKU"
-                          value={formData.sku}
-                          onChange={handleInputChange}
-                          fullWidth
-                          placeholder="VD: PAR-500-01"
-                        />
+              {/* Right Column - Sidebar Info */}
+              <Grid item xs={12} lg={4}>
+                <Grid container spacing={2}>
+                  {/* Row 1: Inventory & Status */}
+                  <Grid item xs={12} xl={6}>
+                    <Card variant="outlined" sx={{ height: 'fit-content' }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom color="primary">
+                          Quản lý kho
+                        </Typography>
+                        <Stack spacing={2}>
+                          <TextField
+                            name="sku"
+                            label="SKU"
+                            value={formData.sku}
+                            onChange={handleInputChange}
+                            fullWidth
+                            placeholder="VD: PAR-500-01"
+                          />
 
-                        <TextField
-                          name="barcode"
-                          label="Mã vạch"
-                          value={formData.barcode}
-                          onChange={handleInputChange}
-                          fullWidth
-                        />
+                          <TextField
+                            name="barcode"
+                            label="Mã vạch"
+                            value={formData.barcode}
+                            onChange={handleInputChange}
+                            fullWidth
+                          />
 
-                        <TextField
-                          name="stockQuantity"
-                          label="Số lượng hiện tại"
-                          type="number"
-                          value={formData.stockQuantity}
-                          onChange={handleInputChange}
-                          fullWidth
-                          InputProps={{ inputProps: { min: 0 } }}
-                        />
+                          <TextField
+                            name="stockQuantity"
+                            label="Số lượng hiện tại"
+                            type="number"
+                            value={formData.stockQuantity}
+                            onChange={handleInputChange}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0 } }}
+                          />
 
-                        <TextField
-                          name="lowStockThreshold"
-                          label="Ngưỡng cảnh báo"
-                          type="number"
-                          value={formData.lowStockThreshold}
-                          onChange={handleInputChange}
-                          fullWidth
-                          InputProps={{ inputProps: { min: 0 } }}
-                          helperText="Cảnh báo khi số lượng dưới ngưỡng này"
-                        />
-                      </Stack>
-                    </CardContent>
-                  </Card>
+                          <TextField
+                            name="lowStockThreshold"
+                            label="Ngưỡng cảnh báo"
+                            type="number"
+                            value={formData.lowStockThreshold}
+                            onChange={handleInputChange}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0 } }}
+                            helperText="Cảnh báo khi số lượng dưới ngưỡng này"
+                          />
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
 
-                  {/* Additional Info */}
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom color="primary">
-                        Thông tin bổ sung
-                      </Typography>
-                      <Stack spacing={2}>
-                        <TextField
-                          name="brand"
-                          label="Thương hiệu"
-                          value={formData.brand}
-                          onChange={handleInputChange}
-                          fullWidth
-                          placeholder="VD: Traphaco"
-                        />
+                  <Grid item xs={12} xl={6}>
+                    <Card variant="outlined" sx={{ height: 'fit-content' }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom color="primary">
+                          Trạng thái
+                        </Typography>
+                        <Stack spacing={2}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                name="published"
+                                checked={formData.published}
+                                onChange={handleInputChange}
+                              />
+                            }
+                            label="Kích hoạt sản phẩm"
+                          />
 
-                        <TextField
-                          name="weight"
-                          label="Trọng lượng"
-                          value={formData.weight}
-                          onChange={handleInputChange}
-                          fullWidth
-                          placeholder="VD: 50g"
-                        />
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                name="isFeatured"
+                                checked={formData.isFeatured}
+                                onChange={handleInputChange}
+                              />
+                            }
+                            label="Sản phẩm nổi bật"
+                          />
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
 
-                        <TextField
-                          name="dimensions"
-                          label="Kích thước"
-                          value={formData.dimensions}
-                          onChange={handleInputChange}
-                          fullWidth
-                          placeholder="VD: 10cm x 5cm x 2cm"
-                        />
-
-                        <TextField
-                          name="tags"
-                          label="Tags"
-                          value={formData.tags}
-                          onChange={handleInputChange}
-                          fullWidth
-                          placeholder="VD: thuốc giảm đau, paracetamol, sốt"
-                          helperText="Phân tách bằng dấu phẩy"
-                        />
-                      </Stack>
-                    </CardContent>
-                  </Card>
-
-                  {/* Status */}
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom color="primary">
-                        Trạng thái
-                      </Typography>
-                      <Stack spacing={2}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              name="published"
-                              checked={formData.published}
+                  {/* Row 2: Additional Info */}
+                  <Grid item xs={12}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom color="primary">
+                          Thông tin bổ sung
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              name="brand"
+                              label="Thương hiệu"
+                              value={formData.brand}
                               onChange={handleInputChange}
+                              fullWidth
+                              placeholder="VD: Traphaco"
                             />
-                          }
-                          label="Kích hoạt sản phẩm"
-                        />
+                          </Grid>
 
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              name="isFeatured"
-                              checked={formData.isFeatured}
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              name="weight"
+                              label="Trọng lượng"
+                              value={formData.weight}
                               onChange={handleInputChange}
+                              fullWidth
+                              placeholder="VD: 50g"
                             />
-                          }
-                          label="Sản phẩm nổi bật"
-                        />
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Stack>
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <TextField
+                              name="dimensions"
+                              label="Kích thước"
+                              value={formData.dimensions}
+                              onChange={handleInputChange}
+                              fullWidth
+                              placeholder="VD: 10cm x 5cm x 2cm"
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <TextField
+                              name="tags"
+                              label="Tags"
+                              value={formData.tags}
+                              onChange={handleInputChange}
+                              fullWidth
+                              placeholder="VD: thuốc giảm đau, paracetamol, sốt"
+                              helperText="Phân tách bằng dấu phẩy"
+                            />
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
               </Grid>
             </Grid>
           </Box>

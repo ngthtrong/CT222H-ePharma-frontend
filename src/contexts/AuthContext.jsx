@@ -165,6 +165,11 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'LOGIN_START' });
       
+      // Xóa tất cả thông tin user và token cũ trước khi đăng nhập mới
+      clearAuthData();
+      clearSessionId();
+      dispatch({ type: 'LOGOUT' });
+      
       const response = await authAPI.login(credentials);
       
       // authAPI.login() trả về response.data, có cấu trúc:

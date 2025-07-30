@@ -50,6 +50,7 @@ const AdminUsers = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState('');
 
   const roles = [
     { value: 'USER', label: 'Người dùng', color: 'default' },
@@ -58,7 +59,17 @@ const AdminUsers = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [page, rowsPerPage, searchQuery, roleFilter]);
+  }, [page, rowsPerPage, searchQuery, roleFilter, sortOrder]);
+
+  // Debounce search to avoid too many API calls
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (page !== 0) {
+        setPage(0);
+      }
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   const fetchUsers = async () => {
     try {
@@ -70,6 +81,7 @@ const AdminUsers = () => {
         limit: rowsPerPage,
         search: searchQuery,
         role: roleFilter,
+        sort: sortOrder,
       };
       
       const response = await adminAPI.getAllUsers(params);
@@ -124,7 +136,6 @@ const AdminUsers = () => {
 
   const handleSearch = () => {
     setPage(0);
-    fetchUsers();
   };
 
   const handleChangePage = (event, newPage) => {
@@ -186,7 +197,7 @@ const AdminUsers = () => {
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               size="small"
               placeholder="Tìm theo tên hoặc email..."
@@ -196,13 +207,14 @@ const AdminUsers = () => {
               fullWidth
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl size="small" fullWidth>
               <InputLabel>Vai trò</InputLabel>
               <Select
                 value={roleFilter || ''}
                 label="Vai trò"
                 onChange={(e) => setRoleFilter(e.target.value || '')}
+                sx={{ minWidth: 90 }}
               >
                 <MenuItem value="">Tất cả</MenuItem>
                 {roles.map((role) => (
@@ -210,6 +222,25 @@ const AdminUsers = () => {
                     {role.label}
                   </MenuItem>
                 ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Sắp xếp</InputLabel>
+              <Select
+                value={sortOrder || ''}
+                label="Sắp xếp"
+                onChange={(e) => setSortOrder(e.target.value || '')}
+                sx={{ minWidth: 120 }}
+              >
+                <MenuItem value="">Mặc định</MenuItem>
+                <MenuItem value="name-asc">Tên A-Z</MenuItem>
+                <MenuItem value="name-desc">Tên Z-A</MenuItem>
+                <MenuItem value="orders-asc">Đơn hàng tăng dần</MenuItem>
+                <MenuItem value="orders-desc">Đơn hàng giảm dần</MenuItem>
+                <MenuItem value="date-asc">Ngày tham gia cũ nhất</MenuItem>
+                <MenuItem value="date-desc">Ngày tham gia mới nhất</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -236,6 +267,7 @@ const AdminUsers = () => {
               <TableCell>Email</TableCell>
               <TableCell>SĐT</TableCell>
               <TableCell>Vai trò</TableCell>
+              <TableCell>Đơn hàng</TableCell>
               <TableCell>Đăng ký qua</TableCell>
               <TableCell>Ngày tham gia</TableCell>
               <TableCell>Thao tác</TableCell>
@@ -244,7 +276,7 @@ const AdminUsers = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={9} align="center">
                   <CircularProgress />
                 </TableCell>
               </TableRow>
@@ -269,6 +301,16 @@ const AdminUsers = () => {
                       color={roles.find(r => r.value === user.role)?.color || 'default'}
                       size="small"
                     />
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {user.completedOrdersCount || 0}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        hoàn thành
+                      </Typography>
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <Chip 
@@ -303,7 +345,7 @@ const AdminUsers = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={9} align="center">
                   Không có người dùng nào
                 </TableCell>
               </TableRow>
@@ -419,6 +461,14 @@ const AdminUsers = () => {
                           </Typography>
                           <Typography variant="body1">
                             {formatDate(selectedUser.createdAt)}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2" color="text.secondary">
+                            Đơn hàng hoàn thành
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                            {selectedUser.completedOrdersCount || 0} đơn hàng
                           </Typography>
                         </Grid>
                       </Grid>

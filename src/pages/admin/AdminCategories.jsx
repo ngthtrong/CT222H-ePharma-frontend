@@ -25,11 +25,19 @@ import {
   Chip,
   FormControlLabel,
   Switch,
+  Card,
+  CardContent,
+  Grid,
+  InputAdornment,
+  Stack,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import { adminAPI } from '../../api/adminApi';
 import { categoryAPI } from '../../api/categoryApi';
@@ -43,12 +51,16 @@ const AdminCategories = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
 
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState('');
+
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
     description: '',
     parentCategoryId: '',
-    isActive: true,
     sortOrder: 1,
     seoTitle: '',
     seoDescription: '',
@@ -86,7 +98,6 @@ const AdminCategories = () => {
         slug: category.slug || '',
         description: category.description || '',
         parentCategoryId: category.parentCategoryId || '',
-        isActive: category.isActive !== undefined ? category.isActive : true,
         sortOrder: category.sortOrder || 1,
         seoTitle: category.seoTitle || '',
         seoDescription: category.seoDescription || '',
@@ -98,7 +109,6 @@ const AdminCategories = () => {
         slug: '',
         description: '',
         parentCategoryId: '',
-        isActive: true,
         sortOrder: 1,
         seoTitle: '',
         seoDescription: '',
@@ -221,6 +231,45 @@ const AdminCategories = () => {
     return result;
   };
 
+  // Filter and sort categories
+  const filteredAndSortedCategories = (() => {
+    let filtered = categories.filter(category => {
+      const matchesSearch = !searchQuery || 
+        category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        category.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (category.description && category.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesType = !typeFilter ||
+        (typeFilter === 'parent' && !category.parentCategoryId) ||
+        (typeFilter === 'child' && category.parentCategoryId);
+      
+      return matchesSearch && matchesType;
+    });
+
+    // Apply sorting
+    if (sortOrder) {
+      filtered.sort((a, b) => {
+        switch (sortOrder) {
+          case 'name-asc':
+            return a.name.localeCompare(b.name);
+          case 'name-desc':
+            return b.name.localeCompare(a.name);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    return filtered;
+  })();
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setTypeFilter('');
+    setSortOrder('');
+  };
+
   const categoryTree = buildCategoryTree(categories);
   const flatCategories = flattenCategoryTree(categoryTree);
 
@@ -256,6 +305,92 @@ const AdminCategories = () => {
         </Alert>
       )}
 
+      {/* Filters */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6} md={4} lg={4}>
+              <TextField
+                fullWidth
+                placeholder="Tìm kiếm danh mục..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={2} lg={2}>
+              <FormControl fullWidth>
+                <InputLabel>Loại</InputLabel>
+                <Select
+                  value={typeFilter}
+                  label="Loại"
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  sx={{ minWidth: 140 }}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="parent">Danh mục gốc</MenuItem>
+                  <MenuItem value="child">Danh mục con</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3} lg={3}>
+              <FormControl fullWidth>
+                <InputLabel>Sắp xếp</InputLabel>
+                <Select
+                  value={sortOrder}
+                  label="Sắp xếp"
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  sx={{ minWidth: 160 }}
+                >
+                  <MenuItem value="">Mặc định</MenuItem>
+                  <MenuItem value="name-asc">Tên A-Z</MenuItem>
+                  <MenuItem value="name-desc">Tên Z-A</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={12} lg={1}>
+              <Stack 
+                direction={{ xs: 'column', sm: 'row', lg: 'column' }} 
+                spacing={1} 
+                alignItems={{ xs: 'stretch', sm: 'center', lg: 'stretch' }}
+                sx={{ width: '100%' }}
+              >
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<ClearIcon />}
+                  onClick={handleClearFilters}
+                  disabled={!searchQuery && !typeFilter && !sortOrder}
+                  fullWidth
+                  sx={{ minWidth: { xs: 'auto', sm: '120px', lg: 'auto' } }}
+                >
+                  Xóa lọc
+                </Button>
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary"
+                  sx={{ 
+                    textAlign: { xs: 'center', sm: 'left', lg: 'center' },
+                    mt: { xs: 0.5, sm: 0, lg: 0.5 }
+                  }}
+                >
+                  {filteredAndSortedCategories.length} danh mục
+                </Typography>
+              </Stack>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
       {/* Categories Table */}
       <TableContainer component={Paper}>
         <Table>
@@ -276,8 +411,8 @@ const AdminCategories = () => {
                   <CircularProgress />
                 </TableCell>
               </TableRow>
-            ) : categories.length > 0 ? (
-              categories.map((category) => (
+            ) : filteredAndSortedCategories.length > 0 ? (
+              filteredAndSortedCategories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell>
                     <Typography variant="subtitle2">
@@ -333,7 +468,10 @@ const AdminCategories = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={6} align="center">
-                  Chưa có danh mục nào
+                  {searchQuery || typeFilter ? 
+                    'Không tìm thấy danh mục phù hợp' : 
+                    'Chưa có danh mục nào'
+                  }
                 </TableCell>
               </TableRow>
             )}
@@ -400,6 +538,7 @@ const AdminCategories = () => {
                 value={formData.parentCategoryId || ''}
                 label="Danh mục cha"
                 onChange={handleInputChange}
+                sx={{ minWidth: 200 }}
               >
                 <MenuItem value="">
                   <em>Không có (Danh mục gốc)</em>
@@ -415,28 +554,15 @@ const AdminCategories = () => {
               </Select>
             </FormControl>
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                name="sortOrder"
-                label="Thứ tự sắp xếp"
-                type="number"
-                value={formData.sortOrder}
-                onChange={handleInputChange}
-                fullWidth
-                inputProps={{ min: 1 }}
-              />
-              
-              <FormControlLabel
-                control={
-                  <Switch
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleInputChange}
-                  />
-                }
-                label="Kích hoạt"
-              />
-            </Box>
+            <TextField
+              name="sortOrder"
+              label="Thứ tự sắp xếp"
+              type="number"
+              value={formData.sortOrder}
+              onChange={handleInputChange}
+              fullWidth
+              inputProps={{ min: 1 }}
+            />
 
             <TextField
               name="seoTitle"
