@@ -28,6 +28,8 @@ const AppRoutes = () => {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/test" element={<div>Test Page</div>} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         
         {/* Protected routes */}
         <Route 
@@ -35,14 +37,6 @@ const AppRoutes = () => {
           element={
             <PrivateRoute>
               <ProfilePage />
-            </PrivateRoute>
-          } 
-        />
-        <Route 
-          path="/checkout" 
-          element={
-            <PrivateRoute>
-              <CheckoutPage />
             </PrivateRoute>
           } 
         />

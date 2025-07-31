@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Container } from '@mui/material';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Outlet } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 
-const MainLayout = ({ children }) => {
+const MainLayout = () => {
   const location = useLocation();
   const isAdminPage = location.pathname.startsWith('/admin');
 
@@ -27,10 +27,10 @@ const MainLayout = ({ children }) => {
         }}
       >
         {isAdminPage ? (
-          children
+          <Outlet />
         ) : (
           <Container maxWidth="lg">
-            {children}
+            <Outlet />
           </Container>
         )}
       </Box>

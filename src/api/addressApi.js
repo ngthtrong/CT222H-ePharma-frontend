@@ -3,7 +3,7 @@ import api from './config';
 // Address API functions
 export const addressAPI = {
   // Lấy danh sách địa chỉ của user hiện tại
-  getAddresses: async () => {
+  getUserAddresses: async () => {
     try {
       const response = await api.get('/users/me/addresses');
       return response.data;
@@ -11,6 +11,11 @@ export const addressAPI = {
       console.error('Error fetching addresses:', error);
       throw error;
     }
+  },
+
+  // Alias for backward compatibility
+  getAddresses: async () => {
+    return addressAPI.getUserAddresses();
   },
 
   // Thêm địa chỉ mới

@@ -11,7 +11,10 @@ import RegisterPage from './pages/RegisterPage';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
 import ProfilePage from './pages/ProfilePage';
+import OrderHistoryPage from './pages/OrderHistoryPage';
+import OrderDetailPage from './pages/OrderDetailPage';
 import AdminPage from './pages/AdminPage';
 
 function App() {
@@ -25,11 +28,28 @@ function App() {
         <Route path="/category/:slug" element={<ProductsPage />} />
         <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route 
           path="/profile" 
           element={
             <PrivateRoute>
               <ProfilePage />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/orders" 
+          element={
+            <PrivateRoute>
+              <OrderHistoryPage />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/orders/:orderCode" 
+          element={
+            <PrivateRoute>
+              <OrderDetailPage />
             </PrivateRoute>
           } 
         />
