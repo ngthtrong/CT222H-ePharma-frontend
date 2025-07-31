@@ -7,25 +7,31 @@ import {
   CircularProgress,
   Box,
   Pagination,
+  Chip,
+  Alert,
 } from '@mui/material';
 import { getProducts } from '../api/productApi';
 import { getCategories } from '../api/categoryApi';
 import ProductCard from '../components/ProductCard';
 import ProductFilters from '../components/ProductFilters';
+import { useSearchHistory } from '../hooks/useSearchHistory';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { saveSearch, updateProductClicks, loadSearchHistory } = useSearchHistory();
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]); // Store all products for client-side filtering
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentSearchHistoryId, setCurrentSearchHistoryId] = useState(null);
 
   // Filter states
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [priceRange, setPriceRange] = useState([0, 5000000]);
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'name_asc');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -51,6 +57,17 @@ const ProductsPage = () => {
   // Client-side filtering function
   const applyFilters = useCallback((productsToFilter = allProducts) => {
     let filtered = [...productsToFilter];
+
+    // Search query filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(product => 
+        (product.name || '').toLowerCase().includes(query) ||
+        (product.description || '').toLowerCase().includes(query) ||
+        (product.brand || '').toLowerCase().includes(query) ||
+        (product.tags || []).some(tag => tag.toLowerCase().includes(query))
+      );
+    }
 
     // Category filter
     if (selectedCategory) {
@@ -117,7 +134,7 @@ const ProductsPage = () => {
       totalItems: filtered.length,
       itemsPerPage
     });
-  }, [selectedCategory, priceRange, sortBy, searchParams, allProducts]);
+  }, [selectedCategory, priceRange, sortBy, searchQuery, searchParams, allProducts]);
 
   useEffect(() => {
     fetchProducts();
@@ -136,11 +153,31 @@ const ProductsPage = () => {
     const sort = searchParams.get('sortBy') || 'name_asc';
     const minPrice = parseInt(searchParams.get('minPrice')) || 0;
     const maxPrice = parseInt(searchParams.get('maxPrice')) || 5000000;
+    const search = searchParams.get('search') || '';
 
     setSelectedCategory(category);
     setSortBy(sort);
     setPriceRange([minPrice, maxPrice]);
+    setSearchQuery(search);
   }, [searchParams]);
+
+  // Save search to history when search query changes
+  useEffect(() => {
+    if (searchQuery && searchQuery.trim()) {
+      const filters = {};
+      if (selectedCategory) filters.category = selectedCategory;
+      if (priceRange[0] > 0) filters.minPrice = priceRange[0];
+      if (priceRange[1] < 5000000) filters.maxPrice = priceRange[1];
+      if (sortBy !== 'name_asc') filters.sortBy = sortBy;
+      
+      // Save search history and get the ID for product click tracking
+      saveSearch(searchQuery.trim(), filters).then(history => {
+        if (history) {
+          setCurrentSearchHistoryId(history.id);
+        }
+      });
+    }
+  }, [searchQuery, selectedCategory, priceRange, sortBy, saveSearch]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -165,6 +202,27 @@ const ProductsPage = () => {
       newSearchParams.set('page', value);
       return newSearchParams;
     });
+  };
+
+  // Handle product click for search history tracking
+  const handleProductClick = async (productId) => {
+    if (currentSearchHistoryId && productId) {
+      try {
+        // Get current clicked products from search history
+        const currentHistory = await loadSearchHistory();
+        const targetHistory = currentHistory.find(h => h.id === currentSearchHistoryId);
+        
+        if (targetHistory) {
+          const clickedProducts = targetHistory.clickedProducts || [];
+          if (!clickedProducts.includes(productId)) {
+            const updatedProducts = [...clickedProducts, productId];
+            await updateProductClicks(currentSearchHistoryId, updatedProducts);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating product clicks:', error);
+      }
+    }
   };
 
   const handleFilterChange = (setter) => (event) => {
@@ -215,9 +273,35 @@ const ProductsPage = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Sản phẩm của chúng tôi
-      </Typography>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          {searchQuery ? `Kết quả tìm kiếm cho "${searchQuery}"` : 'Sản phẩm của chúng tôi'}
+        </Typography>
+        {searchQuery && (
+          <Box sx={{ mb: 2 }}>
+            <Chip 
+              label={`"${searchQuery}"`}
+              onDelete={() => {
+                setSearchQuery('');
+                setSearchParams(prev => {
+                  const newParams = new URLSearchParams(prev);
+                  newParams.delete('search');
+                  return newParams;
+                });
+              }}
+              color="primary"
+              variant="outlined"
+              sx={{ mr: 1 }}
+            />
+            {pagination.totalItems !== undefined && (
+              <Typography variant="body2" color="text.secondary" component="span">
+                Tìm thấy {pagination.totalItems} sản phẩm
+              </Typography>
+            )}
+          </Box>
+        )}
+      </Box>
+      
       <Grid container spacing={4}>
         {/* Filters */}
         <Grid size={{ xs: 12, md: 3 }}>
@@ -250,7 +334,10 @@ const ProductsPage = () => {
                 {products.length > 0 ? (
                   products.map((product) => (
                     <Grid key={product.id || product._id} size={{ xs: 12, sm: 6, md: 4 }}>
-                      <ProductCard product={product} />
+                      <ProductCard 
+                        product={product} 
+                        onClick={() => handleProductClick(product.id || product._id)}
+                      />
                     </Grid>
                   ))
                 ) : (

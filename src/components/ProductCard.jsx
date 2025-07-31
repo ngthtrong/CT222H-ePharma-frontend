@@ -15,7 +15,7 @@ import { formatCurrency } from '../utils/formatters';
 import { getImageSrc, handleImageError } from '../utils/imageUtils';
 import AddToCartButton from './AddToCartButton';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onClick }) => {
   const hasDiscount = product.discountPercent > 0;
   const finalPrice = hasDiscount
     ? product.price * (1 - product.discountPercent / 100)
@@ -24,9 +24,19 @@ const ProductCard = ({ product }) => {
   const isOutOfStock = product.stockQuantity === 0;
   const isLowStock = product.stockQuantity > 0 && product.stockQuantity < 10;
 
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardActionArea component={RouterLink} to={`/product/${product.slug}`}>
+      <CardActionArea 
+        component={RouterLink} 
+        to={`/product/${product.slug}`}
+        onClick={handleCardClick}
+      >
         <Box sx={{ position: 'relative' }}>
           <CardMedia
             component="img"
@@ -125,6 +135,7 @@ ProductCard.propTypes = {
     stockQuantity: PropTypes.number.isRequired,
     condition: PropTypes.oneOf(['new', 'used', 'refurbished']),
   }).isRequired,
+  onClick: PropTypes.func,
 };
 
 export default ProductCard;

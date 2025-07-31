@@ -27,11 +27,13 @@ import {
   Person as PersonIcon,
   NavigateNext as NavigateNextIcon,
   AdminPanelSettings as AdminIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { getParentCategories } from '../../api/categoryApi';
 import { isAdmin } from '../../utils/adminUtils';
+import SearchBar from '../SearchBar';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -129,12 +131,6 @@ const Header = () => {
     navigate('/');
   };
 
-  const handleSearch = (event, value) => {
-    if (value) {
-      navigate(`/products?search=${encodeURIComponent(value)}`);
-    }
-  };
-
   const handleCategoryChange = (event, newValue) => {
     setSelectedCategory(newValue);
   };
@@ -178,55 +174,20 @@ const Header = () => {
                   width: '100%', px: { xs: 2, md: 0 },
                   dropShadow: { xs: '0 4px 6px -1px rgb(0 0 0 / 0.1)', md: 'none' }
                 }}>
-                  <Box sx={{ mx: 'auto', width: '100%' }}>
-                    <Box sx={{ position: 'relative', color: 'text.secondary' }}>
-                      <IconButton
-                        sx={{
-                          position: 'absolute', left: 0,
-                          top: 0,
-                          zIndex: 10,
-                          height: '40px', px: 1,
-                          py: '10px', color: 'text.primary'
-                        }}
-                      >
-                        <SearchIcon />
-                      </IconButton>
-
-                      <Autocomplete
-                        freeSolo
-                        options={[]}
-                        onInputChange={(event, newInputValue) => {
-                          // Handle input change for suggestions
-                        }}
-                        onChange={handleSearch}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Bạn đang tìm gì hôm nay..."
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                backgroundColor: 'white', borderRadius: '4px', border: 0,
-                                height: '40px', pl: '40px', pr: '14px', fontSize: '14px', fontWeight: 500,
-                                color: 'text.secondary', '&:hover .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: 'transparent',
-                                },
-                                '& .MuiOutlinedInput-notchedOutline': {
-                                  border: 0
-                                }
-                              },
-                              '& .MuiInputBase-input': {
-                                p: 0
-                              }
-                            }}
-                            InputProps={{
-                              ...params.InputProps,
-                              type: 'search',
-                            }}
-                          />
-                        )}
-                      />
-                    </Box>
-                  </Box>
+                  <SearchBar 
+                    placeholder="Bạn đang tìm gì hôm nay..."
+                    fullWidth
+                    size="small"
+                    sx={{
+                      '& .MuiTextField-root': {
+                        '& .MuiOutlinedInput-root': {
+                          height: '40px',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                        }
+                      }
+                    }}
+                  />
                 </Box>
 
                 {/* Popular Search Keywords */}
@@ -380,6 +341,10 @@ const Header = () => {
                   >
                     <MenuItem component={RouterLink} to="/orders" onClick={handleMenuClose}>
                       Đơn hàng
+                    </MenuItem>
+                    <MenuItem component={RouterLink} to="/search-history" onClick={handleMenuClose}>
+                      <HistoryIcon sx={{ mr: 1, fontSize: 20 }} />
+                      Lịch sử tìm kiếm
                     </MenuItem>
                     <MenuItem component={RouterLink} to="/profile" onClick={handleMenuClose}>
                       Thông tin tài khoản

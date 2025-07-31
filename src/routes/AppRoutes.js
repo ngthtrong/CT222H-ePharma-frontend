@@ -16,6 +16,7 @@ import AdminPage from '../pages/AdminPage';
 import OrderHistoryPage from '../pages/OrderHistoryPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import CheckoutPage from '../pages/CheckoutPage';
+import SearchHistoryPage from '../pages/SearchHistoryPage';
 
 const AppRoutes = () => {
   return (
@@ -53,6 +54,14 @@ const AppRoutes = () => {
           element={
             <PrivateRoute>
               <OrderDetailPage />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/search-history" 
+          element={
+            <PrivateRoute>
+              <SearchHistoryPage />
             </PrivateRoute>
           } 
         />
