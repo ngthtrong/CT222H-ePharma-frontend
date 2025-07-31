@@ -7,22 +7,16 @@ import {
   CircularProgress,
   Box,
   Pagination,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Slider,
-  TextField,
-  Paper,
 } from '@mui/material';
 import { getProducts } from '../api/productApi';
 import { getCategories } from '../api/categoryApi';
 import ProductCard from '../components/ProductCard';
-import { formatCurrency } from '../utils/formatters';
+import ProductFilters from '../components/ProductFilters';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // Store all products for client-side filtering
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,31 +30,117 @@ const ProductsPage = () => {
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {
-        page: searchParams.get('page') || 1,
-        limit: 12,
-        categoryId: searchParams.get('category'),
-        minPrice: searchParams.get('minPrice'),
-        maxPrice: searchParams.get('maxPrice'),
-        sortBy: searchParams.get('sortBy'),
-        search: searchParams.get('search'),
-      };
-      // Remove null/undefined params
-      Object.keys(params).forEach(key => params[key] == null && delete params[key]);
-
-      const response = await getProducts(params);
-      setProducts(response.data.data || response.data.products || response.data || []);
-      setPagination(response.pagination || {});
+      console.log('Fetching products...'); // Debug log
+      const response = await getProducts();
+      console.log('Products response:', response); // Debug log
+      
+      const productsData = response.data || response || [];
+      setAllProducts(productsData);
+      
+      // Apply client-side filtering
+      applyFilters(productsData);
+      
     } catch (err) {
+      console.error('Error fetching products:', err);
       setError('Failed to fetch products.');
     } finally {
       setLoading(false);
     }
-  }, [searchParams]);
+  }, []);
+
+  // Client-side filtering function
+  const applyFilters = useCallback((productsToFilter = allProducts) => {
+    let filtered = [...productsToFilter];
+
+    // Category filter
+    if (selectedCategory) {
+      filtered = filtered.filter(product => 
+        product.categoryId === selectedCategory || product.category === selectedCategory
+      );
+    }
+
+    // Price range filter
+    if (priceRange[0] > 0 || priceRange[1] < 5000000) {
+      filtered = filtered.filter(product => {
+        const price = parseFloat(product.price) || 0;
+        return price >= priceRange[0] && price <= priceRange[1];
+      });
+    }
+
+    // Discount status filter - removed as API doesn't support it
+    // if (discountStatus) {
+    //   if (discountStatus === 'on_sale') {
+    //     filtered = filtered.filter(product => (product.discountPercent || 0) > 0);
+    //   } else if (discountStatus === 'regular_price') {
+    //     filtered = filtered.filter(product => (product.discountPercent || 0) === 0);
+    //   }
+    // }
+
+    // Sort products
+    if (sortBy) {
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'name_asc':
+            return (a.name || '').localeCompare(b.name || '');
+          case 'name_desc':
+            return (b.name || '').localeCompare(a.name || '');
+          case 'price_asc':
+            return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+          case 'price_desc':
+            return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+          case 'discount_desc':
+            return (parseFloat(b.discountPercent) || 0) - (parseFloat(a.discountPercent) || 0);
+          case 'newest':
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+          case 'popular':
+            // Assuming we have a popularity score, otherwise fallback to name
+            return (a.name || '').localeCompare(b.name || '');
+          default:
+            return 0;
+        }
+      });
+    }
+
+    setProducts(filtered);
+    
+    // Update pagination
+    const itemsPerPage = 12;
+    const currentPage = parseInt(searchParams.get('page')) || 1;
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    setProducts(filtered.slice(startIndex, endIndex));
+    setPagination({
+      currentPage,
+      totalPages,
+      totalItems: filtered.length,
+      itemsPerPage
+    });
+  }, [selectedCategory, priceRange, sortBy, searchParams, allProducts]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // Apply filters when filter states change
+  useEffect(() => {
+    if (allProducts.length > 0) {
+      applyFilters();
+    }
+  }, [applyFilters]);
+
+  // Sync URL params with state when component mounts or URL changes
+  useEffect(() => {
+    const category = searchParams.get('category') || '';
+    const sort = searchParams.get('sortBy') || 'name_asc';
+    const minPrice = parseInt(searchParams.get('minPrice')) || 0;
+    const maxPrice = parseInt(searchParams.get('maxPrice')) || 5000000;
+
+    setSelectedCategory(category);
+    setSortBy(sort);
+    setPriceRange([minPrice, maxPrice]);
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -81,22 +161,27 @@ const ProductsPage = () => {
 
   const handlePageChange = (event, value) => {
     setSearchParams(prev => {
-      prev.set('page', value);
-      return prev;
+      const newSearchParams = new URLSearchParams(prev);
+      newSearchParams.set('page', value);
+      return newSearchParams;
     });
   };
 
   const handleFilterChange = (setter) => (event) => {
     const { name, value } = event.target;
+    console.log('Filter change:', name, value); // Debug log
     setter(value);
+    
     setSearchParams(prev => {
+      const newSearchParams = new URLSearchParams(prev);
       if (value) {
-        prev.set(name, value);
+        newSearchParams.set(name, value);
       } else {
-        prev.delete(name);
+        newSearchParams.delete(name);
       }
-      prev.set('page', '1'); // Reset to first page on filter change
-      return prev;
+      newSearchParams.set('page', '1'); // Reset to first page on filter change
+      console.log('New search params:', newSearchParams.toString()); // Debug log
+      return newSearchParams;
     });
   };
   
@@ -105,11 +190,25 @@ const ProductsPage = () => {
   };
 
   const handlePriceChangeCommitted = (event, newValue) => {
-     setSearchParams(prev => {
-      prev.set('minPrice', newValue[0]);
-      prev.set('maxPrice', newValue[1]);
-      prev.set('page', '1');
-      return prev;
+    console.log('Price change committed:', newValue); // Debug log
+    setSearchParams(prev => {
+      const newSearchParams = new URLSearchParams(prev);
+      newSearchParams.set('minPrice', newValue[0]);
+      newSearchParams.set('maxPrice', newValue[1]);
+      newSearchParams.set('page', '1');
+      return newSearchParams;
+    });
+  };
+
+  const handleClearFilters = () => {
+    setSelectedCategory('');
+    setPriceRange([0, 5000000]);
+    setSortBy('name_asc');
+    
+    setSearchParams(prev => {
+      const newSearchParams = new URLSearchParams();
+      newSearchParams.set('page', '1');
+      return newSearchParams;
     });
   };
 
@@ -117,68 +216,24 @@ const ProductsPage = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Our Products
+        Sản phẩm của chúng tôi
       </Typography>
       <Grid container spacing={4}>
         {/* Filters */}
         <Grid size={{ xs: 12, md: 3 }}>
-          <Paper elevation={1} sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Filters</Typography>
-            {/* Category Filter */}
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel id="category-select-label">Category</InputLabel>
-              <Select
-                labelId="category-select-label"
-                name="category"
-                value={selectedCategory || ''}
-                label="Category"
-                onChange={handleFilterChange(setSelectedCategory)}
-              >
-                <MenuItem value="">
-                  <em>All</em>
-                </MenuItem>
-                {categories.map((cat, index) => (
-                  <MenuItem key={cat._id || index} value={cat._id}>{cat.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Price Range Filter */}
-            <Typography gutterBottom>Price Range</Typography>
-             <Slider
-                value={priceRange}
-                onChange={handlePriceChange}
-                onChangeCommitted={handlePriceChangeCommitted}
-                valueLabelDisplay="auto"
-                min={0}
-                max={5000000}
-                step={50000}
-                getAriaValueText={(value) => `${formatCurrency(value)}`}
-                valueLabelFormat={(value) => `${formatCurrency(value)}`}
-            />
-             <Box display="flex" justifyContent="space-between">
-                <Typography variant="caption">{formatCurrency(priceRange[0])}</Typography>
-                <Typography variant="caption">{formatCurrency(priceRange[1])}</Typography>
-            </Box>
-
-
-            {/* Sort By */}
-             <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel id="sort-by-label">Sort By</InputLabel>
-              <Select
-                labelId="sort-by-label"
-                name="sortBy"
-                value={sortBy || ''}
-                label="Sort By"
-                onChange={handleFilterChange(setSortBy)}
-              >
-                <MenuItem value="name_asc">Name (A-Z)</MenuItem>
-                <MenuItem value="name_desc">Name (Z-A)</MenuItem>
-                <MenuItem value="price_asc">Price (Low to High)</MenuItem>
-                <MenuItem value="price_desc">Price (High to Low)</MenuItem>
-              </Select>
-            </FormControl>
-          </Paper>
+          <ProductFilters
+            categories={categories}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            onFilterChange={handleFilterChange}
+            onPriceChange={handlePriceChange}
+            onPriceChangeCommitted={handlePriceChangeCommitted}
+            onClearFilters={handleClearFilters}
+          />
         </Grid>
 
         {/* Products Grid */}
@@ -200,7 +255,7 @@ const ProductsPage = () => {
                   ))
                 ) : (
                   <Grid key="no-products" size={{ xs: 12 }}>
-                    <Typography sx={{p: 3}}>No products found matching your criteria.</Typography>
+                    <Typography sx={{p: 3}}>Không tìm thấy sản phẩm nào phù hợp với tiêu chí của bạn.</Typography>
                   </Grid>
                 )}
               </Grid>

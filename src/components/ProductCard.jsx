@@ -21,6 +21,9 @@ const ProductCard = ({ product }) => {
     ? product.price * (1 - product.discountPercent / 100)
     : product.price;
 
+  const isOutOfStock = product.stockQuantity === 0;
+  const isLowStock = product.stockQuantity > 0 && product.stockQuantity < 10;
+
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardActionArea component={RouterLink} to={`/product/${product.slug}`}>
@@ -36,6 +39,30 @@ const ProductCard = ({ product }) => {
             <Chip 
               label={`-${product.discountPercent}%`} 
               color="error"
+              size="small"
+              sx={{ position: 'absolute', top: 8, right: 8 }} 
+            />
+          )}
+          {isOutOfStock && (
+            <Chip 
+              label="Hết hàng" 
+              color="error"
+              size="small"
+              sx={{ position: 'absolute', top: hasDiscount ? 40 : 8, right: 8, backgroundColor: 'rgba(244, 67, 54, 0.9)', color: 'white' }} 
+            />
+          )}
+          {isLowStock && (
+            <Chip 
+              label="Sắp hết" 
+              color="warning"
+              size="small"
+              sx={{ position: 'absolute', top: hasDiscount ? 40 : 8, right: 8 }} 
+            />
+          )}
+          {product.condition === 'new' && !hasDiscount && !isOutOfStock && !isLowStock && (
+            <Chip 
+              label="Mới" 
+              color="success"
               size="small"
               sx={{ position: 'absolute', top: 8, right: 8 }} 
             />
@@ -63,13 +90,23 @@ const ProductCard = ({ product }) => {
               </Typography>
             )}
           </Box>
+          {/* Stock status indicator */}
+          <Box sx={{ mt: 1 }}>
+            <Typography 
+              variant="caption" 
+              color={isOutOfStock ? 'error.main' : isLowStock ? 'warning.main' : 'success.main'}
+              sx={{ fontWeight: 500 }}
+            >
+              {isOutOfStock ? 'Hết hàng' : isLowStock ? `Còn ${product.stockQuantity} sản phẩm` : 'Còn hàng'}
+            </Typography>
+          </Box>
         </CardContent>
       </CardActionArea>
       <CardActions sx={{ justifyContent: 'center', p: 2 }}>
         <AddToCartButton
           productId={product.id || product._id}
           quantity={1}
-          outOfStock={product.stockQuantity === 0}
+          outOfStock={isOutOfStock}
           fullWidth
         />
       </CardActions>
@@ -86,6 +123,7 @@ ProductCard.propTypes = {
     price: PropTypes.number.isRequired,
     discountPercent: PropTypes.number,
     stockQuantity: PropTypes.number.isRequired,
+    condition: PropTypes.oneOf(['new', 'used', 'refurbished']),
   }).isRequired,
 };
 
