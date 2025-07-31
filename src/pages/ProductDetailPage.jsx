@@ -78,9 +78,20 @@ const ProductDetailPage = () => {
   };
 
   const handleAddToCart = async () => {
-    if (!product) return;
+    if (!product) {
+      console.error('❌ No product data available');
+      return;
+    }
+
+    // Check for both id and _id to handle different API responses
+    const productId = product.id || product._id;
+    if (!productId) {
+      console.error('❌ Product ID missing:', product);
+      return;
+    }
+    
     try {
-      await addToCart(product._id, quantity);
+      await addToCart(productId, quantity);
       // Optionally, show a success notification
     } catch (err) {
       console.error("Failed to add to cart", err);
@@ -273,7 +284,7 @@ const ProductDetailPage = () => {
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
               <Typography variant="body2" component="span">
-                Mã SKU: <strong>{product.sku || product._id}</strong>
+                Mã SKU: <strong>{product.sku || product.id || product._id}</strong>
               </Typography>
               <Divider orientation="vertical" flexItem />
               <Typography variant="body2" component="span">

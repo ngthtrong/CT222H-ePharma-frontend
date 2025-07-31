@@ -13,7 +13,7 @@ export const setLocalStorage = (key, value) => {
     
     localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
-    console.error('Error saving to localStorage:', error);
+    // Error saving to localStorage
   }
 };
 
@@ -34,8 +34,7 @@ export const getLocalStorage = (key, defaultValue = null) => {
     
     return JSON.parse(item);
   } catch (error) {
-    console.error('Error getting from localStorage:', error);
-    // Nếu có lỗi parse, xóa key bị lỗi và trả về default value
+    // Error getting from localStorage, clean up and return default
     localStorage.removeItem(key);
     return defaultValue;
   }
@@ -49,7 +48,7 @@ export const removeLocalStorage = (key) => {
   try {
     localStorage.removeItem(key);
   } catch (error) {
-    console.error('Error removing from localStorage:', error);
+    // Error removing from localStorage
   }
 };
 
@@ -60,7 +59,7 @@ export const clearLocalStorage = () => {
   try {
     localStorage.clear();
   } catch (error) {
-    console.error('Error clearing localStorage:', error);
+    // Error clearing localStorage
   }
 };
 
@@ -77,9 +76,8 @@ export const cleanupLocalStorage = () => {
       }
     });
     
-    console.log('localStorage cleaned up successfully');
   } catch (error) {
-    console.error('Error cleaning localStorage:', error);
+    // Error cleaning localStorage
   }
 };
 
@@ -90,9 +88,8 @@ export const clearAuthData = () => {
   try {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
-    console.log('Authentication data cleared');
   } catch (error) {
-    console.error('Error clearing auth data:', error);
+    // Error clearing auth data
   }
 };
 
@@ -111,7 +108,7 @@ export const setSessionStorage = (key, value) => {
     
     sessionStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
-    console.error('Error saving to sessionStorage:', error);
+    // Error saving to sessionStorage
   }
 };
 
@@ -132,8 +129,7 @@ export const getSessionStorage = (key, defaultValue = null) => {
     
     return JSON.parse(item);
   } catch (error) {
-    console.error('Error getting from sessionStorage:', error);
-    // Nếu có lỗi parse, xóa key bị lỗi và trả về default value
+    // Error getting from sessionStorage, clean up and return default
     sessionStorage.removeItem(key);
     return defaultValue;
   }
@@ -147,7 +143,7 @@ export const removeSessionStorage = (key) => {
   try {
     sessionStorage.removeItem(key);
   } catch (error) {
-    console.error('Error removing from sessionStorage:', error);
+    // Error removing from sessionStorage
   }
 };
 
@@ -158,7 +154,7 @@ export const clearSessionStorage = () => {
   try {
     sessionStorage.clear();
   } catch (error) {
-    console.error('Error clearing sessionStorage:', error);
+    // Error clearing sessionStorage
   }
 };
 
@@ -171,13 +167,11 @@ export const getSessionId = () => {
 export const setSessionId = (sessionId) => {
   if (sessionId) {
     localStorage.setItem(SESSION_ID_KEY, sessionId);
-    console.log('Cart session ID saved to localStorage:', sessionId);
   }
 };
 
 export const clearSessionId = () => {
   localStorage.removeItem(SESSION_ID_KEY);
-  console.log('Cart session ID cleared from localStorage');
 };
 
 const ACCESS_TOKEN_KEY = 'accessToken';

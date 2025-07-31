@@ -7,26 +7,15 @@ import {
   CardContent,
   Typography,
   CardActions,
-  Button,
   Box,
   Chip,
 } from '@mui/material';
 import PropTypes from 'prop-types';
-import { useCart } from '../contexts/CartContext';
 import { formatCurrency } from '../utils/formatters';
-import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import { getImageSrc, handleImageError } from '../utils/imageUtils';
+import AddToCartButton from './AddToCartButton';
 
 const ProductCard = ({ product }) => {
-  const { addItem } = useCart();
-
-  const handleAddToCart = (e) => {
-    e.preventDefault(); // Prevent navigation when clicking the button
-    e.stopPropagation();
-    addItem(product._id, 1);
-    // Optionally, add some user feedback here, like a toast notification
-  };
-
   const hasDiscount = product.discountPercent > 0;
   const finalPrice = hasDiscount
     ? product.price * (1 - product.discountPercent / 100)
@@ -77,14 +66,12 @@ const ProductCard = ({ product }) => {
         </CardContent>
       </CardActionArea>
       <CardActions sx={{ justifyContent: 'center', p: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<AddShoppingCartIcon />}
-          onClick={handleAddToCart}
-          disabled={product.stockQuantity === 0}
-        >
-          {product.stockQuantity > 0 ? 'Add to Cart' : 'Out of Stock'}
-        </Button>
+        <AddToCartButton
+          productId={product.id || product._id}
+          quantity={1}
+          outOfStock={product.stockQuantity === 0}
+          fullWidth
+        />
       </CardActions>
     </Card>
   );

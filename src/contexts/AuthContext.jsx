@@ -15,16 +15,6 @@ const initialState = {
 };
 
 const authReducer = (state, action) => {
-  console.log('AuthReducer:', action.type, { 
-    currentState: { 
-      isAuthenticated: state.isAuthenticated, 
-      hasUser: !!state.user, 
-      hasToken: !!state.token 
-    },
-    action: action.type,
-    payload: action.payload 
-  });
-  
   switch (action.type) {
     case 'LOGIN_START':
       return { ...state, loading: true, error: null };
@@ -113,11 +103,10 @@ export const AuthProvider = ({ children }) => {
               await cartAPI.mergeCart();
               clearSessionId();
             } catch (error) {
-              console.error('Failed to merge guest cart:', error);
+              // Failed to merge guest cart, but continue silently
             }
           }
         } catch (error) {
-          console.error('Failed to fetch user profile:', error);
           // Token might be invalid, clean up
           removeLocalStorage('accessToken');
           removeLocalStorage('user');
@@ -146,7 +135,6 @@ export const AuthProvider = ({ children }) => {
           } 
         });
       } catch (error) {
-        console.log('Error setting initial state:', error);
         removeLocalStorage('accessToken');
         removeLocalStorage('user');
         dispatch({ type: 'STOP_LOADING' });
@@ -202,7 +190,6 @@ export const AuthProvider = ({ children }) => {
           await cartAPI.mergeCart();
           clearSessionId();
         } catch (error) {
-          console.error('Failed to merge guest cart after login:', error);
           clearSessionId();
         }
       }
@@ -273,13 +260,12 @@ export const AuthProvider = ({ children }) => {
           
           await logoutAPI();
         } catch (apiError) {
-          // Log lỗi nhưng không dừng quá trình logout
-          console.warn('Logout API failed, but continuing with cleanup:', apiError.message);
+          // Logout API failed, but continuing with cleanup
         }
       }
       
     } catch (error) {
-      console.error('Logout error:', error);
+      // Logout error handled silently
     } finally {
       // Xóa Token và thông tin người dùng
       clearAuthData();

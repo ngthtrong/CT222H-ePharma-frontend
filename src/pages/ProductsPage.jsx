@@ -194,7 +194,7 @@ const ProductsPage = () => {
               <Grid container spacing={2}>
                 {products.length > 0 ? (
                   products.map((product) => (
-                    <Grid key={product._id} size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Grid key={product.id || product._id} size={{ xs: 12, sm: 6, md: 4 }}>
                       <ProductCard product={product} />
                     </Grid>
                   ))
