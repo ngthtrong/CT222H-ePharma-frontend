@@ -610,35 +610,45 @@ const CheckoutPage = () => {
                 Sản phẩm đã đặt ({totalItems} sản phẩm)
               </Typography>
               <List>
-                {cartItems.map((item, index) => (
-                  <ListItem key={index} divider sx={{ px: 0 }}>
-                    <ListItemText
-                      primary={
+                {cartItems.map((item, index) => {
+                  // Use discountedPrice if available, otherwise use productPrice
+                  const effectivePrice = item.discountedPrice || item.productPrice;
+                  
+                  return (
+                    <ListItem key={index} divider sx={{ px: 0 }}>
+                      <ListItemText
+                        primary={
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                            {item.productName}
+                          </Typography>
+                        }
+                        secondary={
+                          <Box sx={{ mt: 0.5 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Đơn giá: {formatCurrency(effectivePrice)}
+                            </Typography>
+                            {item.discountedPrice && item.discountedPrice < item.productPrice && (
+                              <Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                                Giá gốc: {formatCurrency(item.productPrice)}
+                              </Typography>
+                            )}
+                            <Typography variant="body2" color="text.secondary">
+                              Số lượng: {item.quantity}
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                      <Box sx={{ textAlign: 'right' }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                          {item.productName}
+                          {formatCurrency(item.subtotal)}
                         </Typography>
-                      }
-                      secondary={
-                        <Box sx={{ mt: 0.5 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Đơn giá: {formatCurrency(item.price)}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Số lượng: {item.quantity}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                        {formatCurrency(item.quantity * item.price)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Thành tiền
-                      </Typography>
-                    </Box>
-                  </ListItem>
-                ))}
+                        <Typography variant="caption" color="text.secondary">
+                          Thành tiền
+                        </Typography>
+                      </Box>
+                    </ListItem>
+                  );
+                })}
                 
                 {/* Summary row */}
                 <ListItem sx={{ px: 0, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>

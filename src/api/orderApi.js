@@ -38,7 +38,13 @@ export const orderAPI = {
   
   // Cập nhật trạng thái đơn hàng
   updateOrderStatus: (orderId, status, notes = null) => {
-    return api.patch(`/admin/orders/${orderId}/status`, { status, notes });
+    const data = { status };
+    if (notes) {
+      data.notes = notes;
+    }
+    
+    // Sử dụng PATCH method - backend đã fix lỗi CORS
+    return api.patch(`/admin/orders/${orderId}/status`, data);
   },
   
   // Cập nhật trạng thái thanh toán
