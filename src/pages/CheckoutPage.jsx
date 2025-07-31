@@ -624,15 +624,15 @@ const CheckoutPage = () => {
                         }
                         secondary={
                           <Box sx={{ mt: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" component="span" display="block">
                               Đơn giá: {formatCurrency(effectivePrice)}
                             </Typography>
                             {item.discountedPrice && item.discountedPrice < item.productPrice && (
-                              <Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                              <Typography variant="body2" color="text.secondary" component="span" display="block" sx={{ textDecoration: 'line-through' }}>
                                 Giá gốc: {formatCurrency(item.productPrice)}
                               </Typography>
                             )}
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" component="span" display="block">
                               Số lượng: {item.quantity}
                             </Typography>
                           </Box>
