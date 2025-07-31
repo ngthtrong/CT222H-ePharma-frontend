@@ -24,6 +24,7 @@ const AddToCartButton = ({
   onSuccess,
   onError,
   showSnackbar = true,
+  successMessage,
   ...props 
 }) => {
   const { addToCart } = useCart();
@@ -114,16 +115,18 @@ const AddToCartButton = ({
       {showSnackbar && (
         <Snackbar
           open={showSuccess}
-          autoHideDuration={2000}
+          autoHideDuration={3000}
           onClose={handleCloseSuccess}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
           <Alert 
             onClose={handleCloseSuccess} 
             severity="success" 
             sx={{ width: '100%' }}
+            elevation={6}
+            variant="filled"
           >
-            Đã thêm sản phẩm vào giỏ hàng!
+            {successMessage || `Đã thêm ${quantity} sản phẩm vào giỏ hàng! 🛒`}
           </Alert>
         </Snackbar>
       )}
@@ -134,12 +137,14 @@ const AddToCartButton = ({
           open={!!error}
           autoHideDuration={4000}
           onClose={handleCloseError}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
           <Alert 
             onClose={handleCloseError} 
             severity="error" 
             sx={{ width: '100%' }}
+            elevation={6}
+            variant="filled"
           >
             {error}
           </Alert>
@@ -161,6 +166,7 @@ AddToCartButton.propTypes = {
   onSuccess: PropTypes.func,
   onError: PropTypes.func,
   showSnackbar: PropTypes.bool,
+  successMessage: PropTypes.string,
 };
 
 export default AddToCartButton;
