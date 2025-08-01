@@ -12,7 +12,7 @@ export default defineConfig({
     },
     proxy: {
       '/api/v1': {
-        target: 'https://project-back-end-1-iv0w.onrender.com', // Địa chỉ server backend của bạn
+        target: 'https://project-back-end-2swp.onrender.com', // Địa chỉ server backend của bạn
         changeOrigin: true,
         secure: true,
         // Đảm bảo forward headers đúng cách

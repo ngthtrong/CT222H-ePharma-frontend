@@ -2,8 +2,8 @@ import axios from 'axios';
 import { getSessionId, setSessionId } from '../utils/localStorage';
 
 // Base URL từ environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://project-back-end-2swp.onrender.com/api/v1';
 // const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api/v1';
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://project-back-end-1-iv0w.onrender.com/api/v1';
 
 // Tạo axios instance với base configuration
 const api = axios.create({
