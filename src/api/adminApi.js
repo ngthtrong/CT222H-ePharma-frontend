@@ -20,7 +20,15 @@ const checkAdminToken = () => {
 const adminApiCall = (apiCall) => {
   return (...args) => {
     try {
-      checkAdminToken(); // Kiểm tra token trước khi gọi API
+      const token = checkAdminToken(); // Kiểm tra token trước khi gọi API
+      
+      // Log để debug
+      console.log('Admin API call with token:', {
+        hasToken: !!token,
+        tokenLength: token?.length,
+        endpoint: args[0] || 'unknown'
+      });
+      
       return apiCall(...args);
     } catch (error) {
       console.error('Admin API call failed:', error.message);
@@ -154,6 +162,120 @@ export const adminAPI = {
   sendNotification: adminApiCall((id) => api.post(`/admin/notifications/${id}/send`)),
   
   markNotificationAsRead: adminApiCall((id) => api.put(`/admin/notifications/${id}/read`)),
+
+  // Advanced Analytics APIs (Based on Backend Guides)
+  getAdvancedDashboard: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/admin/analytics/dashboard?${params.toString()}`);
+  }),
+
+  getRealTimeMetrics: adminApiCall(() => api.get('/admin/analytics/realtime')),
+
+  // Alternative API endpoints from DASHBOARD-GUIDE.md
+  getAdvancedDashboardAlternative: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/api/reports/advanced-dashboard?${params.toString()}`);
+  }),
+
+  getRealTimeMetricsAlternative: adminApiCall(() => api.get('/api/reports/real-time-metrics')),
+
+  // Export APIs (Based on Backend Guides)
+  exportRevenueExcel: adminApiCall((startDate, endDate, reportType) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (reportType) params.append('reportType', reportType);
+    return api.get(`/admin/reports/revenue/export/excel?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
+
+  exportRevenuePdf: adminApiCall((startDate, endDate, reportType) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (reportType) params.append('reportType', reportType);
+    return api.get(`/admin/reports/revenue/export/pdf?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
+
+  exportProductsExcel: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/admin/reports/products/export/excel?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
+
+  exportProductsPdf: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/admin/reports/products/export/pdf?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
+
+  exportOrdersExcel: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/admin/reports/orders/export/excel?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
+
+  exportOrdersPdf: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/admin/reports/orders/export/pdf?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
+
+  exportUsersExcel: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/admin/reports/users/export/excel?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
+
+  exportUsersPdf: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/admin/reports/users/export/pdf?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
+
+  // Alternative Export APIs from DASHBOARD-GUIDE.md
+  exportRevenueExcelAlternative: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/api/reports/export/revenue-excel?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
+
+  exportProductPerformanceExcelAlternative: adminApiCall((startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/api/reports/export/product-performance-excel?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  }),
 };
 
 // Helper functions for easier use
@@ -213,6 +335,88 @@ export const getAllUsersAdmin = async (params = {}) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching admin users:', error);
+    throw error;
+  }
+};
+
+// Advanced Analytics Helper Functions
+export const getAdvancedDashboardData = async (startDate, endDate) => {
+  try {
+    console.log('Calling getAdvancedDashboard with params:', { startDate, endDate });
+    const response = await adminAPI.getAdvancedDashboard(startDate, endDate);
+    console.log('getAdvancedDashboard response:', response);
+    return response.data;
+  } catch (primaryError) {
+    console.warn('Primary getAdvancedDashboard failed, trying alternative:', primaryError.message);
+    try {
+      const response = await adminAPI.getAdvancedDashboardAlternative(startDate, endDate);
+      console.log('getAdvancedDashboardAlternative response:', response);
+      return response.data;
+    } catch (fallbackError) {
+      console.error('Both dashboard APIs failed:', {
+        primary: primaryError.message,
+        fallback: fallbackError.message
+      });
+      throw fallbackError;
+    }
+  }
+};
+
+export const getRealTimeMetricsData = async () => {
+  try {
+    console.log('Calling getRealTimeMetrics...');
+    const response = await adminAPI.getRealTimeMetrics();
+    console.log('getRealTimeMetrics response:', response);
+    return response.data;
+  } catch (primaryError) {
+    console.warn('Primary getRealTimeMetrics failed, trying alternative:', primaryError.message);
+    try {
+      const response = await adminAPI.getRealTimeMetricsAlternative();
+      console.log('getRealTimeMetricsAlternative response:', response);
+      return response.data;
+    } catch (fallbackError) {
+      console.error('Both real-time metrics APIs failed:', {
+        primary: primaryError.message,
+        fallback: fallbackError.message
+      });
+      throw fallbackError;
+    }
+  }
+};
+
+// Export Helper Functions
+export const exportReport = async (type, format, startDate, endDate, reportType = null) => {
+  try {
+    let response;
+    
+    switch (type) {
+      case 'revenue':
+        response = format === 'excel' 
+          ? await adminAPI.exportRevenueExcel(startDate, endDate, reportType)
+          : await adminAPI.exportRevenuePdf(startDate, endDate, reportType);
+        break;
+      case 'products':
+        response = format === 'excel' 
+          ? await adminAPI.exportProductsExcel(startDate, endDate)
+          : await adminAPI.exportProductsPdf(startDate, endDate);
+        break;
+      case 'orders':
+        response = format === 'excel' 
+          ? await adminAPI.exportOrdersExcel(startDate, endDate)
+          : await adminAPI.exportOrdersPdf(startDate, endDate);
+        break;
+      case 'users':
+        response = format === 'excel' 
+          ? await adminAPI.exportUsersExcel(startDate, endDate)
+          : await adminAPI.exportUsersPdf(startDate, endDate);
+        break;
+      default:
+        throw new Error('Invalid export type');
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error(`Error exporting ${type} report as ${format}:`, error);
     throw error;
   }
 };

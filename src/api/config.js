@@ -31,7 +31,7 @@ api.interceptors.request.use(
     const isPublicEndpoint = publicEndpoints.some(endpoint => config.url.includes(endpoint));
 
     // Các endpoint admin luôn cần token
-    const adminEndpoints = ['/admin/'];
+    const adminEndpoints = ['/admin/', '/api/v1/admin/', '/api/reports/', '/v1/admin/'];
     const isAdminEndpoint = adminEndpoints.some(endpoint => config.url.includes(endpoint));
 
     // Các endpoint auth không nên có X-Cart-Session-ID
