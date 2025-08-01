@@ -98,12 +98,23 @@ const Footer = () => {
                   gap: 1
                 }}
               >
-                <StoreIcon sx={{ fontSize: '32px' }} />
-                WellVerse
+                <Box
+                  component="img"
+                  src="https://www.pinclipart.com/picdir/big/155-1550273_medical-symbol-clipart.png"
+                  alt="ePharma Logo"
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    padding: '4px',
+                  }}
+                />
+                ePharma
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph sx={{ lineHeight: 1.6 }}>
-                Chuỗi cửa hàng uy tín, cung cấp sản phẩm chất lượng cao với dịch vụ tận tâm. 
-                Cam kết mang đến trải nghiệm mua sắm tốt nhất cho khách hàng.
+                Hệ thống nhà thuốc trực tuyến uy tín, cung cấp thuốc và dược phẩm chất lượng cao với dịch vụ tận tâm. 
+                Cam kết mang đến sức khỏe và trải nghiệm mua sắm tốt nhất cho khách hàng.
               </Typography>
             </Box>
             

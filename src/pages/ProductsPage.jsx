@@ -14,6 +14,7 @@ import { getProducts } from '../api/productApi';
 import { getCategories, getCategoriesWithChildren } from '../api/categoryApi';
 import ProductCard from '../components/ProductCard';
 import ProductFilters from '../components/ProductFilters';
+import BackToTopButton from '../components/BackToTopButton';
 import { useSearchHistory } from '../hooks/useSearchHistory';
 
 const ProductsPage = () => {
@@ -428,6 +429,9 @@ const ProductsPage = () => {
           )}
         </Grid>
       </Grid>
+      
+      {/* Back to Top Button */}
+      <BackToTopButton />
     </Container>
   );
 };

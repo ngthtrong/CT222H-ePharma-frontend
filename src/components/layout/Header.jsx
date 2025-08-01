@@ -237,20 +237,41 @@ const Header = () => {
                 order: { xs: 1, md: 1 },
                 flexShrink: 0 
               }}>
-                <Typography
-                  variant="h4"
+                <Box
                   component={RouterLink}
                   to="/"
                   sx={{
-                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
                     textDecoration: 'none',
-                    fontWeight: 'bold',
-                    fontSize: { xs: '1.5rem', md: '2rem' },
                     '&:hover': { opacity: 0.9 }
                   }}
                 >
-                  WellVerse
-                </Typography>
+                  <Box
+                    component="img"
+                    src="https://www.pinclipart.com/picdir/big/155-1550273_medical-symbol-clipart.png"
+                    alt="ePharma Logo"
+                    sx={{
+                      width: { xs: 32, md: 40 },
+                      height: { xs: 32, md: 40 },
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 8px rgba(255,255,255,0.2)',
+                      backgroundColor: 'white',
+                      padding: '4px',
+                    }}
+                  />
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: { xs: '1.5rem', md: '2rem' },
+                    }}
+                  >
+                    ePharma
+                  </Typography>
+                </Box>
               </Box>
 
               {/* Search Bar */}
