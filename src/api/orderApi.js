@@ -1,31 +1,61 @@
 import api from './config';
 
 export const orderAPI = {
+  // USER ENDPOINTS
+  
+  // Lấy danh sách đơn hàng của user
+  getUserOrders: () => api.get('/orders'),
+  
+  // Lấy chi tiết đơn hàng theo mã đơn hàng
+  getUserOrderByCode: (orderCode) => api.get(`/orders/${orderCode}`),
+  
   // Tạo đơn hàng mới
   createOrder: (orderData) => api.post('/orders', orderData),
   
-  // Lấy danh sách đơn hàng của user
-  getUserOrders: (params = {}) => {
-    return api.get('/orders', { params });
-  },
-  
-  // Lấy chi tiết đơn hàng
-  getOrderById: (orderId) => api.get(`/orders/${orderId}`),
-  
-  // Cập nhật trạng thái đơn hàng (Admin)
-  updateOrderStatus: (orderId, status) => {
-    return api.put(`/orders/${orderId}/status`, { status });
-  },
-  
   // Hủy đơn hàng
-  cancelOrder: (orderId, reason) => {
-    return api.put(`/orders/${orderId}/cancel`, { reason });
+  cancelOrder: (orderCode, reason) => {
+    return api.patch(`/orders/${orderCode}/cancel`, { reason });
+  },
+
+  // ADMIN ENDPOINTS
+  
+  // Lấy tất cả đơn hàng (có bộ lọc)
+  getAllOrders: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) {
+        params.append(key, filters[key]);
+      }
+    });
+    return api.get(`/admin/orders?${params}`);
   },
   
-  // Lấy tất cả đơn hàng (Admin)
-  getAllOrders: (params = {}) => {
-    return api.get('/admin/orders', { params });
+  // Lấy chi tiết đơn hàng theo ID (Admin)
+  getOrderById: (orderId) => api.get(`/admin/orders/${orderId}`),
+  
+  // Lấy chi tiết đơn hàng theo mã (Admin)
+  getOrderByCode: (orderCode) => api.get(`/admin/orders/code/${orderCode}`),
+  
+  // Cập nhật trạng thái đơn hàng
+  updateOrderStatus: (orderId, status, notes = null) => {
+    const data = { status };
+    if (notes) {
+      data.notes = notes;
+    }
+    
+    // Sử dụng PATCH method - backend đã fix lỗi CORS
+    return api.patch(`/admin/orders/${orderId}/status`, data);
   },
+  
+  // Cập nhật trạng thái thanh toán
+  updatePaymentStatus: (orderId, paymentStatus) => {
+    return api.put(`/admin/orders/${orderId}/payment-status?paymentStatus=${paymentStatus}`);
+  },
+  
+  // Xóa đơn hàng
+  deleteOrder: (orderId) => api.delete(`/admin/orders/${orderId}`),
+
+  // LEGACY ENDPOINTS (để tương thích)
   
   // Lấy thống kê đơn hàng (Admin)
   getOrderStats: (params = {}) => {

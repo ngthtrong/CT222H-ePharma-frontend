@@ -20,7 +20,6 @@ import {
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
-  AddShoppingCart as AddShoppingCartIcon,
   FavoriteBorder as FavoriteBorderIcon,
   NavigateNext as NavigateNextIcon,
   NavigateBefore as NavigateBeforeIcon,
@@ -28,13 +27,12 @@ import {
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
 import { productAPI } from '../api';
-import { useCart } from '../contexts/CartContext';
 import { getImageSrc, handleImageError } from '../utils/imageUtils';
+import AddToCartButton from '../components/AddToCartButton';
 
 const ProductDetailPage = () => {
   const { slug } = useParams();
   const theme = useTheme();
-  const { addToCart } = useCart();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState(0);
@@ -75,17 +73,6 @@ const ProductDetailPage = () => {
 
   const handleDecrement = () => {
     setQuantity((prev) => Math.max(1, prev - 1));
-  };
-
-  const handleAddToCart = async () => {
-    if (!product) return;
-    try {
-      await addToCart(product._id, quantity);
-      // Optionally, show a success notification
-    } catch (err) {
-      console.error("Failed to add to cart", err);
-      // Optionally, show an error notification
-    }
   };
 
   const handleTabChange = (event, newValue) => {
@@ -273,7 +260,7 @@ const ProductDetailPage = () => {
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
               <Typography variant="body2" component="span">
-                Mã SKU: <strong>{product.sku || product._id}</strong>
+                Mã SKU: <strong>{product.sku || product.id || product._id}</strong>
               </Typography>
               <Divider orientation="vertical" flexItem />
               <Typography variant="body2" component="span">
@@ -345,12 +332,12 @@ const ProductDetailPage = () => {
               </Box>
             </Box>
 
-            <Button
-              variant="contained"
+            <AddToCartButton
+              productId={product?.id || product?._id}
+              quantity={quantity}
+              outOfStock={stockQuantity === 0}
               size="large"
-              startIcon={<AddShoppingCartIcon />}
-              onClick={handleAddToCart}
-              disabled={stockQuantity === 0}
+              variant="contained"
               sx={{ 
                 mt: 2, 
                 mb: 3, 
@@ -361,7 +348,7 @@ const ProductDetailPage = () => {
               }}
             >
               Thêm vào giỏ hàng
-            </Button>
+            </AddToCartButton>
 
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 2, backgroundColor: 'grey.50' }}>
               <Typography sx={{ display: 'flex', alignItems: 'center', mb: 1, fontSize: '0.9rem' }}>

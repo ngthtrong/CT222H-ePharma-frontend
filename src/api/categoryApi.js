@@ -54,3 +54,34 @@ export const getParentCategories = async () => {
     return [];
   }
 };
+
+export const getCategoriesWithChildren = async () => {
+  try {
+    const response = await categoryAPI.getCategories();
+    const allCategories = response.data.data;
+    
+    if (!Array.isArray(allCategories)) {
+      console.error('Categories data is not an array:', allCategories);
+      return [];
+    }
+    
+    // Lọc ra các danh mục gốc
+    const parentCategories = allCategories.filter(category => 
+      category.parentCategoryId === null
+    );
+    
+    // Thêm danh mục con cho mỗi danh mục gốc
+    const categoriesWithChildren = parentCategories.map(parent => ({
+      ...parent,
+      children: allCategories.filter(category => 
+        category.parentCategoryId === parent._id || category.parentCategoryId === parent.id
+      )
+    }));
+    
+    return categoriesWithChildren;
+    
+  } catch (error) {
+    console.error('Error in getCategoriesWithChildren:', error);
+    return [];
+  }
+};

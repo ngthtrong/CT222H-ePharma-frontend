@@ -7,73 +7,251 @@ import {
   CircularProgress,
   Box,
   Pagination,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Slider,
-  TextField,
-  Paper,
+  Chip,
+  Alert,
 } from '@mui/material';
 import { getProducts } from '../api/productApi';
-import { getCategories } from '../api/categoryApi';
+import { getCategories, getCategoriesWithChildren } from '../api/categoryApi';
 import ProductCard from '../components/ProductCard';
-import { formatCurrency } from '../utils/formatters';
+import ProductFilters from '../components/ProductFilters';
+import { useSearchHistory } from '../hooks/useSearchHistory';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { saveSearch, updateProductClicks, loadSearchHistory } = useSearchHistory();
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // Store all products for client-side filtering
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentSearchHistoryId, setCurrentSearchHistoryId] = useState(null);
 
   // Filter states
   const [categories, setCategories] = useState([]);
+  const [categoriesWithChildren, setCategoriesWithChildren] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [priceRange, setPriceRange] = useState([0, 5000000]);
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'name_asc');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+
+  // Helper function to get all category IDs including children
+  const getAllCategoryIds = (categoryId) => {
+    if (!categoryId || !categoriesWithChildren.length) return [categoryId];
+    
+    console.log('Getting category IDs for:', categoryId);
+    console.log('Available categories with children:', categoriesWithChildren);
+    
+    // Find the category in the hierarchical structure
+    const findCategory = (categories, id) => {
+      for (const category of categories) {
+        if (category._id === id || category.id === id) {
+          // Return the category ID and all its children IDs
+          const childrenIds = category.children ? 
+            category.children.map(child => child._id || child.id) : [];
+          const allIds = [id, ...childrenIds];
+          console.log(`Found parent category ${category.name}, including children:`, allIds);
+          return allIds;
+        }
+      }
+      // Check if it's a child category
+      for (const category of categories) {
+        if (category.children) {
+          for (const child of category.children) {
+            if (child._id === id || child.id === id) {
+              console.log(`Found child category ${child.name}:`, [id]);
+              return [id];
+            }
+          }
+        }
+      }
+      console.log(`Category ${id} not found in hierarchy, returning as is`);
+      return [id]; // If not found, return as is
+    };
+    
+    return findCategory(categoriesWithChildren, categoryId);
+  };
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {
-        page: searchParams.get('page') || 1,
-        limit: 12,
-        categoryId: searchParams.get('category'),
-        minPrice: searchParams.get('minPrice'),
-        maxPrice: searchParams.get('maxPrice'),
-        sortBy: searchParams.get('sortBy'),
-        search: searchParams.get('search'),
-      };
-      // Remove null/undefined params
-      Object.keys(params).forEach(key => params[key] == null && delete params[key]);
-
-      const response = await getProducts(params);
-      setProducts(response.data.data || response.data.products || response.data || []);
-      setPagination(response.pagination || {});
+      console.log('Fetching products...'); // Debug log
+      const response = await getProducts();
+      console.log('Products response:', response); // Debug log
+      
+      const productsData = response.data || response || [];
+      setAllProducts(productsData);
+      
+      // Apply client-side filtering
+      applyFilters(productsData);
+      
     } catch (err) {
+      console.error('Error fetching products:', err);
       setError('Failed to fetch products.');
     } finally {
       setLoading(false);
     }
-  }, [searchParams]);
+  }, []);
+
+  // Client-side filtering function
+  const applyFilters = useCallback((productsToFilter = allProducts) => {
+    let filtered = [...productsToFilter];
+
+    // Search query filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(product => 
+        (product.name || '').toLowerCase().includes(query) ||
+        (product.description || '').toLowerCase().includes(query) ||
+        (product.brand || '').toLowerCase().includes(query) ||
+        (product.tags || []).some(tag => tag.toLowerCase().includes(query))
+      );
+    }
+
+    // Category filter - now includes children categories
+    if (selectedCategory) {
+      const allowedCategoryIds = getAllCategoryIds(selectedCategory);
+      console.log('Filtering by category IDs:', allowedCategoryIds);
+      
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(product => {
+        const productCategoryId = product.categoryId || product.category;
+        const isIncluded = allowedCategoryIds.includes(productCategoryId);
+        if (!isIncluded) {
+          console.log(`Product ${product.name} excluded - category ${productCategoryId} not in`, allowedCategoryIds);
+        }
+        return isIncluded;
+      });
+      
+      console.log(`Category filter: ${beforeCount} -> ${filtered.length} products`);
+    }
+
+    // Price range filter
+    if (priceRange[0] > 0 || priceRange[1] < 5000000) {
+      filtered = filtered.filter(product => {
+        const price = parseFloat(product.price) || 0;
+        return price >= priceRange[0] && price <= priceRange[1];
+      });
+    }
+
+    // Discount status filter - removed as API doesn't support it
+    // if (discountStatus) {
+    //   if (discountStatus === 'on_sale') {
+    //     filtered = filtered.filter(product => (product.discountPercent || 0) > 0);
+    //   } else if (discountStatus === 'regular_price') {
+    //     filtered = filtered.filter(product => (product.discountPercent || 0) === 0);
+    //   }
+    // }
+
+    // Sort products
+    if (sortBy) {
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'name_asc':
+            return (a.name || '').localeCompare(b.name || '');
+          case 'name_desc':
+            return (b.name || '').localeCompare(a.name || '');
+          case 'price_asc':
+            return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+          case 'price_desc':
+            return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+          case 'discount_desc':
+            return (parseFloat(b.discountPercent) || 0) - (parseFloat(a.discountPercent) || 0);
+          case 'newest':
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+          case 'popular':
+            // Assuming we have a popularity score, otherwise fallback to name
+            return (a.name || '').localeCompare(b.name || '');
+          default:
+            return 0;
+        }
+      });
+    }
+
+    setProducts(filtered);
+    
+    // Update pagination
+    const itemsPerPage = 12;
+    const currentPage = parseInt(searchParams.get('page')) || 1;
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    setProducts(filtered.slice(startIndex, endIndex));
+    setPagination({
+      currentPage,
+      totalPages,
+      totalItems: filtered.length,
+      itemsPerPage
+    });
+  }, [selectedCategory, priceRange, sortBy, searchQuery, searchParams, allProducts, categoriesWithChildren]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Apply filters when filter states change
+  useEffect(() => {
+    if (allProducts.length > 0) {
+      applyFilters();
+    }
+  }, [applyFilters]);
+
+  // Sync URL params with state when component mounts or URL changes
+  useEffect(() => {
+    const category = searchParams.get('category') || '';
+    const sort = searchParams.get('sortBy') || 'name_asc';
+    const minPrice = parseInt(searchParams.get('minPrice')) || 0;
+    const maxPrice = parseInt(searchParams.get('maxPrice')) || 5000000;
+    const search = searchParams.get('search') || '';
+
+    setSelectedCategory(category);
+    setSortBy(sort);
+    setPriceRange([minPrice, maxPrice]);
+    setSearchQuery(search);
+  }, [searchParams]);
+
+  // Save search to history when search query changes
+  useEffect(() => {
+    if (searchQuery && searchQuery.trim()) {
+      const filters = {};
+      if (selectedCategory) filters.category = selectedCategory;
+      if (priceRange[0] > 0) filters.minPrice = priceRange[0];
+      if (priceRange[1] < 5000000) filters.maxPrice = priceRange[1];
+      if (sortBy !== 'name_asc') filters.sortBy = sortBy;
+      
+      // Save search history and get the ID for product click tracking
+      saveSearch(searchQuery.trim(), filters).then(history => {
+        if (history) {
+          setCurrentSearchHistoryId(history.id);
+        }
+      });
+    }
+  }, [searchQuery, selectedCategory, priceRange, sortBy, saveSearch]);
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const categoriesResponse = await getCategories();
+        // Fetch both flat categories and hierarchical categories
+        const [categoriesResponse, categoriesWithChildrenResponse] = await Promise.all([
+          getCategories(),
+          getCategoriesWithChildren()
+        ]);
+        
         if (Array.isArray(categoriesResponse)) {
           setCategories(categoriesResponse);
         } else {
           setCategories([]);
         }
+        
+        if (Array.isArray(categoriesWithChildrenResponse)) {
+          setCategoriesWithChildren(categoriesWithChildrenResponse);
+        } else {
+          setCategoriesWithChildren([]);
+        }
       } catch (err) {
         console.error('Error fetching categories in ProductsPage:', err);
         setCategories([]);
+        setCategoriesWithChildren([]);
       }
     };
     fetchInitialData();
@@ -81,22 +259,48 @@ const ProductsPage = () => {
 
   const handlePageChange = (event, value) => {
     setSearchParams(prev => {
-      prev.set('page', value);
-      return prev;
+      const newSearchParams = new URLSearchParams(prev);
+      newSearchParams.set('page', value);
+      return newSearchParams;
     });
+  };
+
+  // Handle product click for search history tracking
+  const handleProductClick = async (productId) => {
+    if (currentSearchHistoryId && productId) {
+      try {
+        // Get current clicked products from search history
+        const currentHistory = await loadSearchHistory();
+        const targetHistory = currentHistory.find(h => h.id === currentSearchHistoryId);
+        
+        if (targetHistory) {
+          const clickedProducts = targetHistory.clickedProducts || [];
+          if (!clickedProducts.includes(productId)) {
+            const updatedProducts = [...clickedProducts, productId];
+            await updateProductClicks(currentSearchHistoryId, updatedProducts);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating product clicks:', error);
+      }
+    }
   };
 
   const handleFilterChange = (setter) => (event) => {
     const { name, value } = event.target;
+    console.log('Filter change:', name, value); // Debug log
     setter(value);
+    
     setSearchParams(prev => {
+      const newSearchParams = new URLSearchParams(prev);
       if (value) {
-        prev.set(name, value);
+        newSearchParams.set(name, value);
       } else {
-        prev.delete(name);
+        newSearchParams.delete(name);
       }
-      prev.set('page', '1'); // Reset to first page on filter change
-      return prev;
+      newSearchParams.set('page', '1'); // Reset to first page on filter change
+      console.log('New search params:', newSearchParams.toString()); // Debug log
+      return newSearchParams;
     });
   };
   
@@ -105,80 +309,76 @@ const ProductsPage = () => {
   };
 
   const handlePriceChangeCommitted = (event, newValue) => {
-     setSearchParams(prev => {
-      prev.set('minPrice', newValue[0]);
-      prev.set('maxPrice', newValue[1]);
-      prev.set('page', '1');
-      return prev;
+    console.log('Price change committed:', newValue); // Debug log
+    setSearchParams(prev => {
+      const newSearchParams = new URLSearchParams(prev);
+      newSearchParams.set('minPrice', newValue[0]);
+      newSearchParams.set('maxPrice', newValue[1]);
+      newSearchParams.set('page', '1');
+      return newSearchParams;
+    });
+  };
+
+  const handleClearFilters = () => {
+    setSelectedCategory('');
+    setPriceRange([0, 5000000]);
+    setSortBy('name_asc');
+    
+    setSearchParams(prev => {
+      const newSearchParams = new URLSearchParams();
+      newSearchParams.set('page', '1');
+      return newSearchParams;
     });
   };
 
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Our Products
-      </Typography>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          {searchQuery ? `Kết quả tìm kiếm cho "${searchQuery}"` : 'Sản phẩm của chúng tôi'}
+        </Typography>
+        {searchQuery && (
+          <Box sx={{ mb: 2 }}>
+            <Chip 
+              label={`"${searchQuery}"`}
+              onDelete={() => {
+                setSearchQuery('');
+                setSearchParams(prev => {
+                  const newParams = new URLSearchParams(prev);
+                  newParams.delete('search');
+                  return newParams;
+                });
+              }}
+              color="primary"
+              variant="outlined"
+              sx={{ mr: 1 }}
+            />
+            {pagination.totalItems !== undefined && (
+              <Typography variant="body2" color="text.secondary" component="span">
+                Tìm thấy {pagination.totalItems} sản phẩm
+              </Typography>
+            )}
+          </Box>
+        )}
+      </Box>
+      
       <Grid container spacing={4}>
         {/* Filters */}
         <Grid size={{ xs: 12, md: 3 }}>
-          <Paper elevation={1} sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Filters</Typography>
-            {/* Category Filter */}
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel id="category-select-label">Category</InputLabel>
-              <Select
-                labelId="category-select-label"
-                name="category"
-                value={selectedCategory || ''}
-                label="Category"
-                onChange={handleFilterChange(setSelectedCategory)}
-              >
-                <MenuItem value="">
-                  <em>All</em>
-                </MenuItem>
-                {categories.map((cat, index) => (
-                  <MenuItem key={cat._id || index} value={cat._id}>{cat.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Price Range Filter */}
-            <Typography gutterBottom>Price Range</Typography>
-             <Slider
-                value={priceRange}
-                onChange={handlePriceChange}
-                onChangeCommitted={handlePriceChangeCommitted}
-                valueLabelDisplay="auto"
-                min={0}
-                max={5000000}
-                step={50000}
-                getAriaValueText={(value) => `${formatCurrency(value)}`}
-                valueLabelFormat={(value) => `${formatCurrency(value)}`}
-            />
-             <Box display="flex" justifyContent="space-between">
-                <Typography variant="caption">{formatCurrency(priceRange[0])}</Typography>
-                <Typography variant="caption">{formatCurrency(priceRange[1])}</Typography>
-            </Box>
-
-
-            {/* Sort By */}
-             <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel id="sort-by-label">Sort By</InputLabel>
-              <Select
-                labelId="sort-by-label"
-                name="sortBy"
-                value={sortBy || ''}
-                label="Sort By"
-                onChange={handleFilterChange(setSortBy)}
-              >
-                <MenuItem value="name_asc">Name (A-Z)</MenuItem>
-                <MenuItem value="name_desc">Name (Z-A)</MenuItem>
-                <MenuItem value="price_asc">Price (Low to High)</MenuItem>
-                <MenuItem value="price_desc">Price (High to Low)</MenuItem>
-              </Select>
-            </FormControl>
-          </Paper>
+          <ProductFilters
+            categories={categories}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            onFilterChange={handleFilterChange}
+            onPriceChange={handlePriceChange}
+            onPriceChangeCommitted={handlePriceChangeCommitted}
+            onClearFilters={handleClearFilters}
+          />
         </Grid>
 
         {/* Products Grid */}
@@ -194,13 +394,16 @@ const ProductsPage = () => {
               <Grid container spacing={2}>
                 {products.length > 0 ? (
                   products.map((product) => (
-                    <Grid key={product._id} size={{ xs: 12, sm: 6, md: 4 }}>
-                      <ProductCard product={product} />
+                    <Grid key={product.id || product._id} size={{ xs: 12, sm: 6, md: 4 }}>
+                      <ProductCard 
+                        product={product} 
+                        onClick={() => handleProductClick(product.id || product._id)}
+                      />
                     </Grid>
                   ))
                 ) : (
                   <Grid key="no-products" size={{ xs: 12 }}>
-                    <Typography sx={{p: 3}}>No products found matching your criteria.</Typography>
+                    <Typography sx={{p: 3}}>Không tìm thấy sản phẩm nào phù hợp với tiêu chí của bạn.</Typography>
                   </Grid>
                 )}
               </Grid>

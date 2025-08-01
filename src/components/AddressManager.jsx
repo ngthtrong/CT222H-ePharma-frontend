@@ -29,7 +29,7 @@ import {
   Home as HomeIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { addressAPI } from '../api';
+import { addressAPI } from '../api/addressApi';
 
 const AddressManager = () => {
   const [addresses, setAddresses] = useState([]);
@@ -76,7 +76,7 @@ const AddressManager = () => {
         return;
       }
 
-            const response = await addressAPI.getAddresses();
+            const response = await addressAPI.getUserAddresses();
       if (response && response.success && response.data) {
         setAddresses(response.data);
       } else {

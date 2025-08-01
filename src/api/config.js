@@ -8,7 +8,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://project-back-end-1
 // Tạo axios instance với base configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000, // Timeout bình thường 15s
+  withCredentials: false, // Đảm bảo không gửi credentials để tránh CORS issues
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -30,7 +31,7 @@ api.interceptors.request.use(
     const isPublicEndpoint = publicEndpoints.some(endpoint => config.url.includes(endpoint));
 
     // Các endpoint admin luôn cần token
-    const adminEndpoints = ['/admin/'];
+    const adminEndpoints = ['/admin/', '/api/v1/admin/', '/api/reports/', '/v1/admin/'];
     const isAdminEndpoint = adminEndpoints.some(endpoint => config.url.includes(endpoint));
 
     // Các endpoint auth không nên có X-Cart-Session-ID
@@ -47,8 +48,11 @@ api.interceptors.request.use(
     if (isAdminEndpoint) {
       console.log('Admin endpoint request:', {
         url: config.url,
+        method: config.method,
         hasToken: !!token,
-        tokenLength: token ? token.length : 0
+        tokenLength: token ? token.length : 0,
+        tokenPreview: token ? token.substring(0, 20) + '...' : null,
+        headers: config.headers
       });
     }
 
@@ -71,6 +75,18 @@ api.interceptors.request.use(
       // Clean token - loại bỏ dấu ngoặc kép thừa nếu có
       const cleanToken = token.replace(/^["']|["']$/g, '');
       config.headers = appendHeader(config.headers, 'Authorization', `Bearer ${cleanToken}`);
+      
+      // Debug logging cho admin endpoints
+      if (isAdminEndpoint) {
+        console.log('Adding Authorization header:', {
+          method: config.method?.toUpperCase(),
+          url: config.url,
+          originalToken: token.substring(0, 30) + '...',
+          cleanedToken: cleanToken.substring(0, 30) + '...',
+          authHeader: `Bearer ${cleanToken.substring(0, 30)}...`,
+          finalHeaders: config.headers
+        });
+      }
     }
 
     // Xử lý X-Cart-Session-ID cho các request liên quan đến cart (KHÔNG bao gồm auth endpoints)

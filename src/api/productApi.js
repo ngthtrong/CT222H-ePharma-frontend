@@ -3,21 +3,23 @@ import api from './config';
 export const productAPI = {
   // Lấy danh sách sản phẩm với filter
   getProducts: (params = {}) => {
-    // Xây dựng object params cho filtering
+    // Public API không hỗ trợ filter, chỉ lấy tất cả sản phẩm
+    return api.get('/products');
+  },
+
+  // Lấy sản phẩm với filter (sử dụng admin API cho filtering)
+  getProductsWithFilters: (params = {}) => {
+    // Xây dựng object params cho admin API filtering
     const queryParams = {};
     
-    if (params.categoryId) queryParams.categoryId = params.categoryId;
+    if (params.category) queryParams.category = params.category;
+    if (params.brand) queryParams.brand = params.brand;
     if (params.minPrice) queryParams.minPrice = params.minPrice;
     if (params.maxPrice) queryParams.maxPrice = params.maxPrice;
-    if (params.sortBy) queryParams.sortBy = params.sortBy;
-    if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
+    if (params.inStock !== undefined) queryParams.inStock = params.inStock;
     if (params.search) queryParams.search = params.search;
-    if (params.page) queryParams.page = params.page;
-    if (params.limit) queryParams.limit = params.limit;
-    if (params.inStock) queryParams.inStock = params.inStock;
-    if (params.brand) queryParams.brand = params.brand;
     
-    return api.get('/products', { params: queryParams });
+    return api.get('/admin/products', { params: queryParams });
   },
   
   // Lấy chi tiết sản phẩm theo slug
@@ -62,7 +64,20 @@ export const productAPI = {
 
 // Direct export functions for easier use
 export const getProducts = async (params = {}) => {
-  const response = await productAPI.getProducts(params);
+  // Nếu có filter params, sử dụng admin API, nếu không dùng public API
+  const hasFilters = params.category || params.minPrice || params.maxPrice || params.search;
+  
+  if (hasFilters) {
+    const response = await productAPI.getProductsWithFilters(params);
+    return response.data;
+  } else {
+    const response = await productAPI.getProducts();
+    return response.data;
+  }
+};
+
+export const getProductsWithFilters = async (params = {}) => {
+  const response = await productAPI.getProductsWithFilters(params);
   return response.data;
 };
 
