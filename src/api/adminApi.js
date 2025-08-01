@@ -94,6 +94,9 @@ export const adminAPI = {
   
   deleteCategory: adminApiCall((id) => api.delete(`/admin/categories/${id}`)),
   
+  // Lấy số lượng sản phẩm của tất cả danh mục (tối ưu hóa)
+  getCategoryProductCounts: adminApiCall(() => api.get('/admin/categories/product-counts')),
+  
   // Quản lý người dùng
   getAllUsers: adminApiCall((params = {}) => {
     return api.get('/admin/users', { params });
