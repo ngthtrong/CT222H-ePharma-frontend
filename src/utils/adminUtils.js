@@ -213,6 +213,24 @@ export const validateProductForm = (productData) => {
     errors.push('Số lượng tồn kho không được âm');
   }
 
+  // Validate images
+  if (!productData.images || !Array.isArray(productData.images) || productData.images.length === 0) {
+    errors.push('Phải có ít nhất một hình ảnh sản phẩm');
+  } else {
+    // Kiểm tra từng URL hình ảnh
+    productData.images.forEach((imageUrl, index) => {
+      if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.trim()) {
+        errors.push(`Hình ảnh thứ ${index + 1} không hợp lệ`);
+      } else {
+        try {
+          new URL(imageUrl);
+        } catch {
+          errors.push(`URL hình ảnh thứ ${index + 1} không hợp lệ`);
+        }
+      }
+    });
+  }
+
   return errors;
 };
 

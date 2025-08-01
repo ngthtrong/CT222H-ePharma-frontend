@@ -8,7 +8,6 @@ import {
   CardContent,
   CircularProgress,
   Button,
-  ButtonGroup,
   Chip,
   Avatar,
   Stack,
@@ -19,8 +18,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  IconButton,
-  Tooltip,
   Alert,
   Snackbar,
   Dialog,
@@ -32,6 +29,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Badge,
+  LinearProgress,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -42,14 +41,20 @@ import {
   Assessment,
   GetApp,
   Refresh,
-  DateRange,
   PictureAsPdf,
   TableChart,
-  Wifi,
-  WifiOff,
-  Circle,
+  ShowChart,
+  Group,
+  Category,
+  Schedule,
+  Analytics,
+  FileDownload,
+  Update,
+  Timeline,
+  LocalShipping,
+  Inventory,
 } from '@mui/icons-material';
-import { Line, Doughnut, Bar } from 'react-chartjs-2';
+import { Line, Doughnut, Bar, Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -62,8 +67,7 @@ import {
   ArcElement,
   BarElement,
 } from 'chart.js';
-import { getAdvancedDashboardData, getRealTimeMetricsData, exportReport } from '../../api/adminApi';
-import { useWebSocketAnalytics } from '../../hooks/useWebSocketAnalytics';
+import { adminAPI } from '../../api/adminApi';
 
 // Register Chart.js components
 ChartJS.register(
@@ -82,209 +86,337 @@ const AdminDashboard = () => {
   // State management
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
-  });
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  
+  // Export dialog state
   const [exportDialog, setExportDialog] = useState(false);
   const [exportType, setExportType] = useState('revenue');
   const [exportFormat, setExportFormat] = useState('excel');
+  const [exportLoading, setExportLoading] = useState(false);
   
-  // WebSocket hook for real-time data
-  const { connected, realTimeData, error: wsError } = useWebSocketAnalytics();
+  // Notification state
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  
+  // Auto-refresh interval
+  const intervalRef = useRef(null);
 
-  // Load dashboard data
+  // Utility functions
+  const showSnackbar = (message, severity = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const formatCurrency = (amount) => {
+    if (!amount) return '0 ₫';
+    // Làm tròn số đến hàng nghìn
+    const roundedAmount = Math.round(amount / 1000) * 1000;
+    return new Intl.NumberFormat('vi-VN').format(roundedAmount) + ' ₫';
+  };
+
+  const formatAverageOrderValue = (amount) => {
+    if (!amount) return '0 ₫';
+    // Làm tròn cho average order value đến hàng trăm
+    const roundedAmount = Math.round(amount / 100) * 100;
+    return new Intl.NumberFormat('vi-VN').format(roundedAmount) + ' ₫';
+  };
+
+  const formatNumber = (number) => {
+    if (!number) return '0';
+    return new Intl.NumberFormat('vi-VN').format(number);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('vi-VN');
+  };
+
+  // Load dashboard data from new REST endpoints
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       
-      const data = await getAdvancedDashboardData(dateRange.startDate, dateRange.endDate);
-      setDashboardData(data);
+      // Use the main dashboard stats endpoint from the guide
+      const response = await adminAPI.getDashboardStats();
+      
+      if (response.data && response.data.success) {
+        setDashboardData(response.data.data);
+        setLastUpdated(new Date(response.data.data.lastUpdated));
+      } else {
+        throw new Error('Invalid response format');
+      }
       
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      setSnackbar({
-        open: true,
-        message: 'Không thể tải dữ liệu dashboard: ' + error.message,
-        severity: 'error'
-      });
+      showSnackbar('Không thể tải dữ liệu dashboard: ' + error.message, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Load real-time metrics (fallback if WebSocket fails)
-  const loadRealTimeData = async () => {
+  // Manual refresh function
+  const handleRefresh = async () => {
     try {
-      await getRealTimeMetricsData();
+      setRefreshing(true);
+      
+      // Use the refresh endpoint from the guide via adminAPI
+      const response = await adminAPI.refreshDashboard();
+      
+      if (response.data && response.data.success) {
+        setDashboardData(response.data.data);
+        setLastUpdated(new Date(response.data.data.lastUpdated));
+        showSnackbar('Dashboard đã được cập nhật thành công', 'success');
+      } else {
+        throw new Error(response.data.message || 'Refresh failed');
+      }
+      
     } catch (error) {
-      console.error('Error loading real-time data:', error);
+      console.error('Refresh error:', error);
+      showSnackbar('Không thể làm mới dữ liệu: ' + error.message, 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
-  // Export reports
+  // Handle export
   const handleExport = async () => {
     try {
-      const blob = await exportReport(exportType, exportFormat, dateRange.startDate, dateRange.endDate);
+      setExportLoading(true);
       
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `${exportType}_report_${dateRange.startDate}_${dateRange.endDate}.${exportFormat === 'excel' ? 'xlsx' : 'pdf'}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
+      // Simple export functionality - can be enhanced later
+      const csvData = generateCSVReport();
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
       
-      setSnackbar({
-        open: true,
-        message: 'Báo cáo đã được tải xuống thành công!',
-        severity: 'success'
-      });
+      link.setAttribute('href', url);
+      link.setAttribute('download', `dashboard_report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showSnackbar('Báo cáo đã được xuất thành công!', 'success');
+      setExportDialog(false);
+      
     } catch (error) {
       console.error('Export error:', error);
-      setSnackbar({
-        open: true,
-        message: 'Không thể xuất báo cáo: ' + error.message,
-        severity: 'error'
-      });
+      showSnackbar('Không thể xuất báo cáo: ' + error.message, 'error');
     } finally {
-      setExportDialog(false);
+      setExportLoading(false);
     }
   };
 
-  // Refresh data
-  const handleRefresh = () => {
-    loadDashboardData();
-    loadRealTimeData();
+  // Generate simple CSV report
+  const generateCSVReport = () => {
+    if (!dashboardData) return '';
+    
+    const headers = ['Metric', 'Value'];
+    const rows = [
+      ['Total Revenue', dashboardData.totalRevenue || 0],
+      ['Total Orders', dashboardData.totalOrders || 0],
+      ['Average Order Value', dashboardData.averageOrderValue || 0],
+      ['Conversion Rate', (dashboardData.conversionRate || 0) + '%'],
+      ['High Value Customers', dashboardData.customerSegments?.highValueCustomers || 0],
+      ['Medium Value Customers', dashboardData.customerSegments?.mediumValueCustomers || 0],
+      ['Low Value Customers', dashboardData.customerSegments?.lowValueCustomers || 0],
+    ];
+    
+    let csv = headers.join(',') + '\n';
+    csv += rows.map(row => row.join(',')).join('\n');
+    
+    return csv;
   };
-
-  // Effect hooks
-  useEffect(() => {
-    loadDashboardData();
-  }, [dateRange]);
-
-  // Show WebSocket error if present
-  useEffect(() => {
-    if (wsError) {
-      setSnackbar({
-        open: true,
-        message: `WebSocket Error: ${wsError}`,
-        severity: 'warning'
-      });
-    }
-  }, [wsError]);
 
   // Chart configurations
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+    },
+  };
+
+  // Revenue trend chart data
   const revenueChartData = {
-    labels: dashboardData?.dailyRevenue?.map(item => new Date(item.date).toLocaleDateString()) || [],
+    labels: dashboardData?.revenueMetrics?.map(item => 
+      new Date(item.date).toLocaleDateString('vi-VN')
+    ) || [],
     datasets: [
       {
-        label: 'Doanh thu (VNĐ)',
-        data: dashboardData?.dailyRevenue?.map(item => item.revenue) || [],
+        label: 'Doanh thu (₫)',
+        data: dashboardData?.revenueMetrics?.map(item => item.revenue) || [],
         borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        backgroundColor: 'rgba(75, 192, 192, 0.1)',
         tension: 0.1,
+        fill: true,
       },
     ],
   };
 
+  // Category performance chart data
   const categoryChartData = {
-    labels: dashboardData?.topCategories?.map(cat => cat.categoryName) || [],
+    labels: dashboardData?.categoryPerformance?.map(cat => cat.categoryName) || [],
     datasets: [
       {
-        data: dashboardData?.topCategories?.map(cat => cat.revenue) || [],
+        data: dashboardData?.categoryPerformance?.map(cat => cat.revenue) || [],
         backgroundColor: [
           'rgba(255, 99, 132, 0.8)',
           'rgba(54, 162, 235, 0.8)',
           'rgba(255, 205, 86, 0.8)',
           'rgba(75, 192, 192, 0.8)',
           'rgba(153, 102, 255, 0.8)',
+          'rgba(255, 159, 64, 0.8)',
         ],
       },
     ],
   };
 
-  const hourlyOrdersData = {
-    labels: realTimeData?.hourlyOrders?.map(item => item.hour) || [],
+  // Customer segments pie chart data
+  const customerSegmentsData = {
+    labels: ['Khách hàng giá trị cao', 'Khách hàng trung bình', 'Khách hàng thấp'],
     datasets: [
       {
-        label: 'Đơn hàng theo giờ',
-        data: realTimeData?.hourlyOrders?.map(item => item.orderCount) || [],
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1,
+        data: [
+          dashboardData?.customerSegments?.highValueCustomers || 0,
+          dashboardData?.customerSegments?.mediumValueCustomers || 0,
+          dashboardData?.customerSegments?.lowValueCustomers || 0,
+        ],
+        backgroundColor: [
+          'rgba(75, 192, 192, 0.8)',
+          'rgba(54, 162, 235, 0.8)',
+          'rgba(255, 205, 86, 0.8)',
+        ],
       },
     ],
   };
 
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Analytics Dashboard',
-      },
-    },
-  };
+  // Effect hooks
+  useEffect(() => {
+    loadDashboardData();
+    
+    // Setup auto-refresh every 5 minutes (optional)
+    intervalRef.current = setInterval(() => {
+      if (!loading && !refreshing) {
+        loadDashboardData();
+      }
+    }, 5 * 60 * 1000);
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   if (loading && !dashboardData) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress size={60} />
+      <Box 
+        display="flex" 
+        flexDirection="column"
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="60vh"
+        sx={{ textAlign: 'center' }}
+      >
+        <CircularProgress size={60} sx={{ mb: 2 }} />
+        <Typography variant="h6" sx={{ mb: 1, color: 'primary.main' }}>
+          📊 Đang tải Dashboard...
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Vui lòng chờ trong giây lát
+        </Typography>
+        <LinearProgress 
+          sx={{ 
+            width: 200, 
+            mt: 2,
+            borderRadius: 2,
+            height: 6
+          }} 
+        />
+      </Box>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <Box sx={{ flexGrow: 1, p: 3 }}>
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={loadDashboardData}
+              disabled={loading}
+            >
+              Thử lại
+            </Button>
+          }
+        >
+          <Typography variant="h6" gutterBottom>
+            Không thể tải dữ liệu Dashboard
+          </Typography>
+          <Typography variant="body2">
+            Vui lòng kiểm tra kết nối mạng hoặc liên hệ quản trị viên hệ thống.
+          </Typography>
+        </Alert>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ flexGrow: 1, p: 3 }}>
+      {/* Refresh Loading Indicator */}
+      {refreshing && (
+        <LinearProgress 
+          sx={{ 
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1301,
+            height: 3
+          }} 
+        />
+      )}
+      
       {/* Header */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          📊 Advanced Dashboard
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+            📊 Dashboard Analytics
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            Tổng quan và phân tích dữ liệu kinh doanh theo thời gian thực
+          </Typography>
+        </Box>
         
-        <Stack direction="row" spacing={1} alignItems="center">
-          {/* Connection Status */}
-          <Chip
-            icon={connected ? <Wifi /> : <WifiOff />}
-            label={connected ? 'Real-time' : 'Offline'}
-            color={connected ? 'success' : 'default'}
-            size="small"
-          />
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Last Updated */}
+          {lastUpdated && (
+            <Chip
+              icon={<Schedule />}
+              label={`Cập nhật: ${formatDate(lastUpdated)}`}
+              variant="outlined"
+              size="small"
+              sx={{ display: { xs: 'none', sm: 'flex' } }}
+            />
+          )}
           
-          {/* Date Range Selectors */}
-          <TextField
-            type="date"
-            label="Từ ngày"
-            value={dateRange.startDate}
-            onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            type="date"
-            label="Đến ngày"
-            value={dateRange.endDate}
-            onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
-          
-          {/* Action Buttons */}
+          {/* Refresh Button */}
           <Button
             variant="outlined"
-            startIcon={<Refresh />}
+            startIcon={refreshing ? <CircularProgress size={16} /> : <Refresh />}
             onClick={handleRefresh}
-            disabled={loading}
+            disabled={refreshing}
           >
-            Làm mới
+            {refreshing ? 'Đang làm mới...' : 'Làm mới'}
           </Button>
+          
+          {/* Export Button */}
           <Button
             variant="contained"
             startIcon={<GetApp />}
@@ -292,39 +424,36 @@ const AdminDashboard = () => {
           >
             Xuất báo cáo
           </Button>
-        </Stack>
+        </Box>
       </Box>
 
       {/* Key Metrics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Total Revenue */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
+          <Card sx={{ height: '100%', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography color="text.secondary" gutterBottom variant="overline">
+                  <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                     Tổng Doanh Thu
                   </Typography>
-                  <Typography variant="h4" component="div" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-                    {dashboardData?.totalRevenue?.toLocaleString('vi-VN')} VNĐ
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {formatCurrency(dashboardData?.totalRevenue)}
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    {dashboardData?.revenueGrowthRate >= 0 ? (
-                      <TrendingUp sx={{ color: 'success.main', mr: 0.5 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    {(dashboardData?.revenueGrowthRate || 0) >= 0 ? (
+                      <TrendingUp sx={{ mr: 0.5, fontSize: 16 }} />
                     ) : (
-                      <TrendingDown sx={{ color: 'error.main', mr: 0.5 }} />
+                      <TrendingDown sx={{ mr: 0.5, fontSize: 16 }} />
                     )}
-                    <Typography variant="body2" sx={{ 
-                      color: dashboardData?.revenueGrowthRate >= 0 ? 'success.main' : 'error.main',
-                      fontWeight: 'bold'
-                    }}>
-                      {dashboardData?.revenueGrowthRate?.toFixed(1)}%
+                    <Typography variant="body2">
+                      {(dashboardData?.revenueGrowthRate || 0).toFixed(1)}%
                     </Typography>
                   </Box>
                 </Box>
-                <Avatar sx={{ bgcolor: 'primary.main', width: 60, height: 60 }}>
-                  <AttachMoney sx={{ fontSize: 30 }} />
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                  <AttachMoney sx={{ fontSize: 28 }} />
                 </Avatar>
               </Box>
             </CardContent>
@@ -333,22 +462,22 @@ const AdminDashboard = () => {
 
         {/* Total Orders */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
+          <Card sx={{ height: '100%', background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography color="text.secondary" gutterBottom variant="overline">
+                  <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                     Tổng Đơn Hàng
                   </Typography>
-                  <Typography variant="h4" component="div" sx={{ color: 'info.main', fontWeight: 'bold' }}>
-                    {dashboardData?.totalOrders?.toLocaleString()}
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {formatNumber(dashboardData?.totalOrders)}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Hôm nay: {realTimeData?.ordersLast24h || 0}
+                  <Typography variant="body2">
+                    30 ngày gần nhất
                   </Typography>
                 </Box>
-                <Avatar sx={{ bgcolor: 'info.main', width: 60, height: 60 }}>
-                  <ShoppingCart sx={{ fontSize: 30 }} />
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                  <ShoppingCart sx={{ fontSize: 28 }} />
                 </Avatar>
               </Box>
             </CardContent>
@@ -357,49 +486,46 @@ const AdminDashboard = () => {
 
         {/* Average Order Value */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
+          <Card sx={{ height: '100%', background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography color="text.secondary" gutterBottom variant="overline">
-                    Giá Trị Đơn Hàng TB
+                  <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                    Giá Trị TB/Đơn
                   </Typography>
-                  <Typography variant="h4" component="div" sx={{ color: 'warning.main', fontWeight: 'bold' }}>
-                    {dashboardData?.averageOrderValue?.toLocaleString('vi-VN')}
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {formatAverageOrderValue(dashboardData?.averageOrderValue)}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    VNĐ / đơn hàng
+                  <Typography variant="body2">
+                    Tỷ lệ chuyển đổi: {(dashboardData?.conversionRate || 0).toFixed(1)}%
                   </Typography>
                 </Box>
-                <Avatar sx={{ bgcolor: 'warning.main', width: 60, height: 60 }}>
-                  <Assessment sx={{ fontSize: 30 }} />
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                  <Assessment sx={{ fontSize: 28 }} />
                 </Avatar>
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Active Customers */}
+        {/* Conversion Rate */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
+          <Card sx={{ height: '100%', background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography color="text.secondary" gutterBottom variant="overline">
-                    Khách Hàng Hoạt Động
+                  <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                    Tỷ lệ chuyển đổi
                   </Typography>
-                  <Typography variant="h4" component="div" sx={{ color: 'success.main', fontWeight: 'bold' }}>
-                    {dashboardData?.activeCustomers || 0}
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {(dashboardData?.conversionRate || 0).toFixed(1)}%
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    <Circle sx={{ color: connected ? 'success.main' : 'grey.400', fontSize: 8, mr: 0.5 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Online: {realTimeData?.activeUsersOnline || 0}
-                    </Typography>
-                  </Box>
+                  <Typography variant="body2">
+                    Tổng phân khúc khách hàng
+                  </Typography>
                 </Box>
-                <Avatar sx={{ bgcolor: 'success.main', width: 60, height: 60 }}>
-                  <People sx={{ fontSize: 30 }} />
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                  <People sx={{ fontSize: 28 }} />
                 </Avatar>
               </Box>
             </CardContent>
@@ -412,52 +538,41 @@ const AdminDashboard = () => {
         {/* Revenue Trend Chart */}
         <Grid item xs={12} md={8}>
           <Paper sx={{ p: 3, height: 400 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-              📈 Xu Hướng Doanh Thu
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+              <ShowChart sx={{ mr: 1, color: 'primary.main' }} />
+              Xu Hướng Doanh Thu
             </Typography>
-            <Line data={revenueChartData} options={chartOptions} />
+            <Box sx={{ height: 300 }}>
+              <Line data={revenueChartData} options={chartOptions} />
+            </Box>
           </Paper>
         </Grid>
 
-        {/* Category Performance */}
+        {/* Category Performance Pie Chart */}
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, height: 400 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-              🏷️ Hiệu Suất Danh Mục
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+              <Category sx={{ mr: 1, color: 'primary.main' }} />
+              Hiệu Suất Danh Mục
             </Typography>
             <Box sx={{ height: 300, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Doughnut data={categoryChartData} options={{ ...chartOptions, maintainAspectRatio: false }} />
+              <Doughnut data={categoryChartData} options={chartOptions} />
             </Box>
           </Paper>
         </Grid>
       </Grid>
 
-      {/* Real-time Analytics & Customer Segments */}
+      {/* Customer Segments & Top Products */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Hourly Orders */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3, height: 350 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                ⏰ Đơn Hàng Theo Giờ (24h qua)
-              </Typography>
-              <Chip
-                label={`Giờ cao điểm: ${realTimeData?.peakHour || 'N/A'}`}
-                color="primary"
-                size="small"
-              />
-            </Box>
-            <Bar data={hourlyOrdersData} options={{ ...chartOptions, maintainAspectRatio: false }} />
-          </Paper>
-        </Grid>
-
         {/* Customer Segments */}
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, height: 350 }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
-              👥 Phân Khúc Khách Hàng
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+              <Group sx={{ mr: 1, color: 'primary.main' }} />
+              Phân Khúc Khách Hàng
             </Typography>
-            <Stack spacing={2}>
+            
+            <Stack spacing={2} sx={{ mb: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: 'primary.50', borderRadius: 1 }}>
                 <Typography variant="body1" sx={{ fontWeight: 'bold' }}>High Value</Typography>
                 <Chip label={dashboardData?.customerSegments?.highValueCustomers || 0} color="primary" />
@@ -470,70 +585,138 @@ const AdminDashboard = () => {
                 <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Low Value</Typography>
                 <Chip label={dashboardData?.customerSegments?.lowValueCustomers || 0} color="warning" />
               </Box>
-              
-              <Divider sx={{ my: 2 }} />
-              
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Tỷ lệ chuyển đổi
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                  {dashboardData?.conversionRate?.toFixed(1)}%
+            </Stack>
+            
+            <Divider sx={{ my: 2 }} />
+            
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Tỷ lệ chuyển đổi tổng thể
+              </Typography>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                {(dashboardData?.conversionRate || 0).toFixed(1)}%
+              </Typography>
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Top Products */}
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3, height: 350 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+              <Inventory sx={{ mr: 1, color: 'primary.main' }} />
+              Top Sản Phẩm Bán Chạy
+            </Typography>
+            <TableContainer sx={{ maxHeight: 250 }}>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Sản phẩm</strong></TableCell>
+                    <TableCell align="right"><strong>Số lượng bán</strong></TableCell>
+                    <TableCell align="right"><strong>Doanh thu</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {dashboardData?.topProducts?.map((product, index) => (
+                    <TableRow key={product.productId} hover>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Avatar sx={{ 
+                            mr: 2, 
+                            bgcolor: `hsl(${index * 60}, 70%, 50%)`,
+                            width: 32,
+                            height: 32,
+                            fontSize: '0.875rem'
+                          }}>
+                            {product.productName?.charAt(0) || '?'}
+                          </Avatar>
+                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                            {product.productName || 'Không xác định'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Chip 
+                          label={formatNumber(product.quantitySold)} 
+                          size="small" 
+                          color="primary" 
+                          variant="outlined" 
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                          {formatCurrency(product.revenue)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            
+            {(!dashboardData?.topProducts || dashboardData.topProducts.length === 0) && (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Không có dữ liệu sản phẩm bán chạy
                 </Typography>
               </Box>
-            </Stack>
+            )}
           </Paper>
         </Grid>
       </Grid>
 
-      {/* Top Categories Table */}
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-          🏆 Top Danh Mục Sản Phẩm
+      {/* Recent Orders */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+          <LocalShipping sx={{ mr: 1, color: 'primary.main' }} />
+          Đơn Hàng Gần Đây
         </Typography>
+        
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow>
-                <TableCell><strong>Danh Mục</strong></TableCell>
-                <TableCell align="right"><strong>Số Lượng Bán</strong></TableCell>
-                <TableCell align="right"><strong>Doanh Thu</strong></TableCell>
-                <TableCell align="right"><strong>Tỷ Lệ</strong></TableCell>
+              <TableRow sx={{ bgcolor: 'grey.50' }}>
+                <TableCell><strong>Mã đơn hàng</strong></TableCell>
+                <TableCell><strong>Khách hàng</strong></TableCell>
+                <TableCell align="right"><strong>Tổng tiền</strong></TableCell>
+                <TableCell align="center"><strong>Trạng thái</strong></TableCell>
+                <TableCell align="right"><strong>Ngày tạo</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {dashboardData?.topCategories?.map((category, index) => (
-                <TableRow key={index} hover>
+              {dashboardData?.recentOrders?.map((order) => (
+                <TableRow key={order.orderId} hover>
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar sx={{ 
-                        mr: 2, 
-                        bgcolor: `hsl(${index * 60}, 70%, 50%)`,
-                        width: 32,
-                        height: 32,
-                        fontSize: '0.875rem'
-                      }}>
-                        {category.categoryName.charAt(0)}
-                      </Avatar>
-                      {category.categoryName}
-                    </Box>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
+                      {order.orderCode}
+                    </Typography>
                   </TableCell>
-                  <TableCell align="right">
-                    <Chip 
-                      label={category.totalSold?.toLocaleString() || 0} 
-                      size="small" 
-                      color="primary" 
-                      variant="outlined" 
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                      {category.revenue?.toLocaleString('vi-VN')} VNĐ
+                  <TableCell>
+                    <Typography variant="body2">
+                      {order.customerName || 'Unknown Customer'}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2">
-                      {((category.revenue / dashboardData.totalRevenue) * 100).toFixed(1)}%
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                      {formatCurrency(order.totalAmount)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      label={order.status}
+                      color={
+                        order.status === 'COMPLETED' ? 'success' :
+                        order.status === 'PENDING' ? 'warning' :
+                        order.status === 'CANCELLED' ? 'error' :
+                        order.status === 'PROCESSING' ? 'info' :
+                        order.status === 'SHIPPED' ? 'primary' : 'default'
+                      }
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" color="text.secondary">
+                      {formatDate(order.createdAt)}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -541,11 +724,22 @@ const AdminDashboard = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        
+        {(!dashboardData?.recentOrders || dashboardData.recentOrders.length === 0) && (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="body2" color="text.secondary">
+              Không có dữ liệu đơn hàng gần đây
+            </Typography>
+          </Box>
+        )}
       </Paper>
 
       {/* Export Dialog */}
       <Dialog open={exportDialog} onClose={() => setExportDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Xuất Báo Cáo</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
+          <FileDownload sx={{ mr: 1 }} />
+          Xuất Báo Cáo Dashboard
+        </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -556,10 +750,30 @@ const AdminDashboard = () => {
                   onChange={(e) => setExportType(e.target.value)}
                   label="Loại báo cáo"
                 >
-                  <MenuItem value="revenue">Báo cáo Doanh thu</MenuItem>
-                  <MenuItem value="products">Hiệu suất Sản phẩm</MenuItem>
-                  <MenuItem value="orders">Thống kê Đơn hàng</MenuItem>
-                  <MenuItem value="users">Phân tích Người dùng</MenuItem>
+                  <MenuItem value="revenue">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <ShowChart sx={{ mr: 1, color: 'primary.main' }} />
+                      Báo cáo Doanh thu
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="orders">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <ShoppingCart sx={{ mr: 1, color: 'info.main' }} />
+                      Báo cáo Đơn hàng
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="products">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Inventory sx={{ mr: 1, color: 'success.main' }} />
+                      Báo cáo Sản phẩm
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="customers">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <People sx={{ mr: 1, color: 'warning.main' }} />
+                      Báo cáo Khách hàng
+                    </Box>
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -571,15 +785,21 @@ const AdminDashboard = () => {
                   onChange={(e) => setExportFormat(e.target.value)}
                   label="Định dạng"
                 >
+                  <MenuItem value="csv">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <TableChart sx={{ mr: 1, color: 'success.main' }} />
+                      CSV (.csv)
+                    </Box>
+                  </MenuItem>
                   <MenuItem value="excel">
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <TableChart sx={{ mr: 1 }} />
+                      <TableChart sx={{ mr: 1, color: 'info.main' }} />
                       Excel (.xlsx)
                     </Box>
                   </MenuItem>
                   <MenuItem value="pdf">
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <PictureAsPdf sx={{ mr: 1 }} />
+                      <PictureAsPdf sx={{ mr: 1, color: 'error.main' }} />
                       PDF (.pdf)
                     </Box>
                   </MenuItem>
@@ -590,7 +810,14 @@ const AdminDashboard = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setExportDialog(false)}>Hủy</Button>
-          <Button onClick={handleExport} variant="contained">Xuất báo cáo</Button>
+          <Button 
+            onClick={handleExport} 
+            variant="contained" 
+            disabled={exportLoading}
+            startIcon={exportLoading ? <CircularProgress size={16} /> : <GetApp />}
+          >
+            {exportLoading ? 'Đang xuất...' : 'Xuất báo cáo'}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -599,11 +826,14 @@ const AdminDashboard = () => {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Alert 
           onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
           severity={snackbar.severity}
           sx={{ width: '100%' }}
+          elevation={6}
+          variant="filled"
         >
           {snackbar.message}
         </Alert>

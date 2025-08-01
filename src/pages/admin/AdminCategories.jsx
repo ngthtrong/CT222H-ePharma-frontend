@@ -39,17 +39,22 @@ import {
   Search as SearchIcon,
   Clear as ClearIcon,
   FilterList as FilterIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { adminAPI } from '../../api/adminApi';
 import { categoryAPI } from '../../api/categoryApi';
+import { productAPI } from '../../api/productApi';
 import { validateCategoryForm, createSlug } from '../../utils/adminUtils';
 import { useSnackbar } from '../../hooks/useSnackbar';
+import { adminCache, CACHE_KEYS, CACHE_DURATIONS } from '../../utils/cacheUtils';
 
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingProductCounts, setLoadingProductCounts] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [productCounts, setProductCounts] = useState({});
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,14 +69,32 @@ const AdminCategories = () => {
     slug: '',
     description: '',
     parentCategoryId: '',
-    sortOrder: 1,
     seoTitle: '',
     seoDescription: '',
   });
 
   useEffect(() => {
     fetchCategories();
+    loadCachedProductCounts();
   }, []);
+
+  const loadCachedProductCounts = () => {
+    try {
+      const cachedResult = adminCache.get(CACHE_KEYS.CATEGORY_PRODUCT_COUNTS);
+      
+      if (!cachedResult.isExpired && cachedResult.data && Object.keys(cachedResult.data).length > 0) {
+        setProductCounts(cachedResult.data);
+        return;
+      }
+      
+      // Cache expired or not found, fetch fresh data when categories are loaded
+      if (categories.length > 0) {
+        fetchProductCounts(categories);
+      }
+    } catch (error) {
+      console.error('Error loading cached product counts:', error);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -80,7 +103,15 @@ const AdminCategories = () => {
       const response = await categoryAPI.getCategories();
       
       if (response.data.success) {
-        setCategories(response.data.data || []);
+        const categoriesData = response.data.data || [];
+        setCategories(categoriesData);
+        
+        // Only fetch product counts if cache is expired or empty
+        const cachedResult = adminCache.get(CACHE_KEYS.CATEGORY_PRODUCT_COUNTS);
+        
+        if (cachedResult.isExpired || !cachedResult.data || Object.keys(cachedResult.data).length === 0) {
+          await fetchProductCounts(categoriesData);
+        }
       } else {
         showError(response.data.message || 'Không thể tải danh sách danh mục');
       }
@@ -92,6 +123,92 @@ const AdminCategories = () => {
     }
   };
 
+  const fetchProductCounts = async (categoriesData, forceRefresh = false) => {
+    try {
+      setLoadingProductCounts(true);
+      
+      if (forceRefresh) {
+        showWarning('Đang cập nhật số lượng sản phẩm...');
+      }
+      
+      // Try to get counts from a single API call first (if available)
+      try {
+        const response = await adminAPI.getCategoryProductCounts();
+        if (response.data.success && response.data.data) {
+          // Convert array response to object format for compatibility
+          const counts = {};
+          response.data.data.forEach(item => {
+            counts[item.categoryId] = item.productCount;
+          });
+          
+          setProductCounts(counts);
+          adminCache.set(CACHE_KEYS.CATEGORY_PRODUCT_COUNTS, counts, CACHE_DURATIONS.MEDIUM);
+          
+          if (forceRefresh) {
+            showSuccess('Cập nhật số lượng sản phẩm thành công');
+          }
+          return;
+        }
+      } catch (error) {
+        // If batch API doesn't exist, fall back to individual calls
+      }
+      
+      // Fallback: individual API calls with batch processing  
+      const counts = {};
+      const batchSize = 5; // Process 5 categories at a time
+      
+      for (let i = 0; i < categoriesData.length; i += batchSize) {
+        const batch = categoriesData.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (category) => {
+          try {
+            const response = await productAPI.getProductsWithFilters({ category: category.id });
+            
+            if (response.data && response.data.success && response.data.data) {
+              return { categoryId: category.id, count: response.data.data.length };
+            } else {
+              return { categoryId: category.id, count: 0 };
+            }
+          } catch (error) {
+            console.error(`Error fetching products for category ${category.id}:`, error);
+            return { categoryId: category.id, count: 0 };
+          }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(result => {
+          counts[result.categoryId] = result.count;
+        });
+        
+        // Small delay between batches to avoid overwhelming the server
+        if (i + batchSize < categoriesData.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
+      setProductCounts(counts);
+      adminCache.set(CACHE_KEYS.CATEGORY_PRODUCT_COUNTS, counts, CACHE_DURATIONS.MEDIUM);
+      
+      if (forceRefresh) {
+        showSuccess('Cập nhật số lượng sản phẩm thành công (fallback method)');
+      }
+      console.log('✅ Completed individual API calls for', Object.keys(counts).length, 'categories');
+    } catch (error) {
+      console.error('Error fetching product counts:', error);
+      if (forceRefresh) {
+        showError('Lỗi khi cập nhật số lượng sản phẩm');
+      }
+    } finally {
+      setLoadingProductCounts(false);
+    }
+  };
+
+  const handleRefreshProductCounts = async () => {
+    if (categories.length > 0) {
+      await fetchProductCounts(categories, true);
+    }
+  };
+
   const handleOpenDialog = (category = null) => {
     if (category) {
       setEditingCategory(category);
@@ -100,7 +217,6 @@ const AdminCategories = () => {
         slug: category.slug || '',
         description: category.description || '',
         parentCategoryId: category.parentCategoryId || '',
-        sortOrder: category.sortOrder || 1,
         seoTitle: category.seoTitle || '',
         seoDescription: category.seoDescription || '',
       });
@@ -111,7 +227,6 @@ const AdminCategories = () => {
         slug: '',
         description: '',
         parentCategoryId: '',
-        sortOrder: 1,
         seoTitle: '',
         seoDescription: '',
       });
@@ -169,7 +284,9 @@ const AdminCategories = () => {
       if (response.data.success) {
         showSuccess(editingCategory ? 'Cập nhật danh mục thành công' : 'Tạo danh mục thành công');
         handleCloseDialog();
-        fetchCategories();
+        await fetchCategories(); // This will also refresh product counts if needed
+        // Invalidate cache after category changes
+        adminCache.remove(CACHE_KEYS.CATEGORY_PRODUCT_COUNTS);
       } else {
         showError(response.data.message || 'Không thể lưu danh mục');
       }
@@ -190,7 +307,9 @@ const AdminCategories = () => {
         
         if (response.data.success) {
           showSuccess('Xóa danh mục thành công');
-          fetchCategories();
+          await fetchCategories(); // This will also refresh product counts if needed
+          // Invalidate cache after category deletion
+          adminCache.remove(CACHE_KEYS.CATEGORY_PRODUCT_COUNTS);
         } else {
           showError(response.data.message || 'Không thể xóa danh mục');
         }
@@ -249,6 +368,10 @@ const AdminCategories = () => {
             return a.name.localeCompare(b.name);
           case 'name-desc':
             return b.name.localeCompare(a.name);
+          case 'products-asc':
+            return (productCounts[a.id] || 0) - (productCounts[b.id] || 0);
+          case 'products-desc':
+            return (productCounts[b.id] || 0) - (productCounts[a.id] || 0);
           default:
             return 0;
         }
@@ -275,18 +398,43 @@ const AdminCategories = () => {
     return '—'.repeat(category.level * 2) + (category.level > 0 ? ' ' : '');
   };
 
+  const formatLastUpdated = () => {
+    return adminCache.getTimeSinceUpdate(CACHE_KEYS.CATEGORY_PRODUCT_COUNTS);
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5">Quản lý danh mục</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Thêm danh mục
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={handleRefreshProductCounts}
+            disabled={loadingProductCounts || loading}
+            color="primary"
+          >
+            {loadingProductCounts ? <CircularProgress size={16} /> : 'Làm mới số lượng'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Thêm danh mục
+          </Button>
+        </Stack>
       </Box>
+
+      {/* Product counts info */}
+      {adminCache.isValid(CACHE_KEYS.CATEGORY_PRODUCT_COUNTS) && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="caption" color="text.secondary">
+            Số lượng sản phẩm được cập nhật {formatLastUpdated()}
+            {loadingProductCounts && ' - Đang cập nhật...'}
+          </Typography>
+        </Box>
+      )}
 
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
@@ -336,6 +484,8 @@ const AdminCategories = () => {
                   <MenuItem value="">Mặc định</MenuItem>
                   <MenuItem value="name-asc">Tên A-Z</MenuItem>
                   <MenuItem value="name-desc">Tên Z-A</MenuItem>
+                  <MenuItem value="products-desc">Nhiều sản phẩm nhất</MenuItem>
+                  <MenuItem value="products-asc">Ít sản phẩm nhất</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -383,7 +533,7 @@ const AdminCategories = () => {
               <TableCell>Slug</TableCell>
               <TableCell>Mô tả</TableCell>
               <TableCell>Danh mục cha</TableCell>
-              <TableCell>Thứ tự</TableCell>
+              <TableCell>Số lượng sản phẩm</TableCell>
               <TableCell>Thao tác</TableCell>
             </TableRow>
           </TableHead>
@@ -426,9 +576,17 @@ const AdminCategories = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">
-                      {category.sortOrder || 1}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip 
+                        label={productCounts[category.id] || 0}
+                        color={productCounts[category.id] > 0 ? "success" : "default"}
+                        size="small"
+                        variant="outlined"
+                      />
+                      {loadingProductCounts && (
+                        <CircularProgress size={16} />
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <IconButton
@@ -530,16 +688,6 @@ const AdminCategories = () => {
                 ))}
               </Select>
             </FormControl>
-
-            <TextField
-              name="sortOrder"
-              label="Thứ tự sắp xếp"
-              type="number"
-              value={formData.sortOrder}
-              onChange={handleInputChange}
-              fullWidth
-              inputProps={{ min: 1 }}
-            />
 
             <TextField
               name="seoTitle"

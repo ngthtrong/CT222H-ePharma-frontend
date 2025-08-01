@@ -76,9 +76,18 @@ const AddressManager = () => {
         return;
       }
 
-            const response = await addressAPI.getUserAddresses();
+      const response = await addressAPI.getUserAddresses();
       if (response && response.success && response.data) {
-        setAddresses(response.data);
+        const apiAddresses = response.data;
+        setAddresses(apiAddresses);
+        
+        // Đồng bộ với localStorage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          userData.addresses = apiAddresses;
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
       } else {
         setAddresses([]);
       }
@@ -160,15 +169,49 @@ const AddressManager = () => {
         showSnackbar('Thêm địa chỉ mới thành công', 'success');
       }
 
-      // Refresh addresses list
+      // Refresh addresses list và đồng bộ localStorage
       await fetchAddresses();
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving address:', error);
-      showSnackbar(
-        editingAddress ? 'Không thể cập nhật địa chỉ' : 'Không thể thêm địa chỉ mới', 
-        'error'
-      );
+      
+      // Nếu API fail, thử cập nhật localStorage trực tiếp
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          if (!userData.addresses) {
+            userData.addresses = [];
+          }
+          
+          if (editingAddress) {
+            // Update existing address in localStorage
+            const addressIndex = userData.addresses.findIndex(addr => addr.id === editingAddress.id);
+            if (addressIndex !== -1) {
+              userData.addresses[addressIndex] = { ...editingAddress, ...formData };
+            }
+            showSnackbar('Cập nhật địa chỉ thành công (offline)', 'success');
+          } else {
+            // Add new address to localStorage
+            const newAddress = {
+              id: `addr_local_${Date.now()}`,
+              ...formData
+            };
+            userData.addresses.push(newAddress);
+            showSnackbar('Thêm địa chỉ mới thành công (offline)', 'success');
+          }
+          
+          localStorage.setItem('user', JSON.stringify(userData));
+          setAddresses(userData.addresses);
+          handleCloseDialog();
+        }
+      } catch (localError) {
+        console.error('Error updating localStorage:', localError);
+        showSnackbar(
+          editingAddress ? 'Không thể cập nhật địa chỉ' : 'Không thể thêm địa chỉ mới', 
+          'error'
+        );
+      }
     } finally {
       setDialogLoading(false);
     }
@@ -185,7 +228,23 @@ const AddressManager = () => {
       await fetchAddresses();
     } catch (error) {
       console.error('Error deleting address:', error);
-      showSnackbar('Không thể xóa địa chỉ', 'error');
+      
+      // Nếu API fail, thử xóa từ localStorage
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          if (userData.addresses) {
+            userData.addresses = userData.addresses.filter(addr => addr.id !== addressId);
+            localStorage.setItem('user', JSON.stringify(userData));
+            setAddresses(userData.addresses);
+            showSnackbar('Xóa địa chỉ thành công (offline)', 'success');
+          }
+        }
+      } catch (localError) {
+        console.error('Error updating localStorage:', localError);
+        showSnackbar('Không thể xóa địa chỉ', 'error');
+      }
     }
   };
 
@@ -206,7 +265,33 @@ const AddressManager = () => {
       }
     } catch (error) {
       console.error('Error setting default address:', error);
-      showSnackbar('Không thể đặt địa chỉ mặc định', 'error');
+      
+      // Nếu API fail, thử cập nhật localStorage
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          if (userData.addresses) {
+            // Bỏ default của tất cả địa chỉ khác
+            userData.addresses.forEach(addr => {
+              addr.isDefault = false;
+            });
+            
+            // Đặt địa chỉ được chọn làm default
+            const targetAddress = userData.addresses.find(addr => addr.id === addressId);
+            if (targetAddress) {
+              targetAddress.isDefault = true;
+            }
+            
+            localStorage.setItem('user', JSON.stringify(userData));
+            setAddresses(userData.addresses);
+            showSnackbar('Đã đặt làm địa chỉ mặc định (offline)', 'success');
+          }
+        }
+      } catch (localError) {
+        console.error('Error updating localStorage:', localError);
+        showSnackbar('Không thể đặt địa chỉ mặc định', 'error');
+      }
     }
   };
 

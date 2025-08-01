@@ -86,10 +86,92 @@ export const cleanupLocalStorage = () => {
  */
 export const clearAuthData = () => {
   try {
+    // Xóa các localStorage keys cơ bản liên quan đến authentication
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
+    
+    // Xóa các localStorage keys liên quan đến OAuth2
+    localStorage.removeItem('oauth2_state');
+    localStorage.removeItem('oauth2_provider');
+    localStorage.removeItem('oauth2_redirect_url');
+    
+    // Xóa các localStorage keys liên quan đến admin session
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    localStorage.removeItem('adminRole');
+    localStorage.removeItem('adminSession');
+    
+    // Xóa các localStorage keys tạm thời khác
+    localStorage.removeItem('tempLoginData');
+    localStorage.removeItem('loginAttempts');
+    localStorage.removeItem('lastLoginTime');
+    
+    // Xóa các keys liên quan đến cache không cần thiết
+    localStorage.removeItem('apiCache');
+    localStorage.removeItem('userPreferences');
+    
+    console.log('🧹 Cleared authentication and unnecessary localStorage data');
   } catch (error) {
-    // Error clearing auth data
+    console.error('Error clearing auth data:', error);
+  }
+};
+
+/**
+ * Xóa toàn bộ localStorage khi đăng xuất hoàn toàn (nâng cao)
+ * Chỉ giữ lại những keys cần thiết như theme, language preferences
+ */
+export const clearAllUnnecessaryData = () => {
+  try {
+    // Danh sách các keys cần GIỮ LẠI
+    const keysToKeep = [
+      'theme',
+      'language', 
+      'i18nextLng',
+      'colorMode',
+      'layoutPreferences',
+      'cookieConsent',
+      'tourCompleted',
+      'welcomeShown'
+    ];
+    
+    // Lấy tất cả keys hiện có
+    const allKeys = Object.keys(localStorage);
+    
+    // Xóa các keys không cần thiết
+    allKeys.forEach(key => {
+      if (!keysToKeep.includes(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log('🧽 Performed comprehensive localStorage cleanup, kept essential preferences');
+  } catch (error) {
+    console.error('Error clearing unnecessary data:', error);
+  }
+};
+
+/**
+ * Debug function: Hiển thị tất cả localStorage keys hiện có
+ */
+export const debugLocalStorage = () => {
+  try {
+    const allKeys = Object.keys(localStorage);
+    console.group('🔍 Current localStorage keys:');
+    
+    if (allKeys.length === 0) {
+      console.log('No localStorage keys found');
+    } else {
+      allKeys.forEach(key => {
+        const value = localStorage.getItem(key);
+        console.log(`${key}:`, value?.length > 100 ? `${value.substring(0, 100)}...` : value);
+      });
+    }
+    
+    console.groupEnd();
+    return allKeys;
+  } catch (error) {
+    console.error('Error debugging localStorage:', error);
+    return [];
   }
 };
 

@@ -2,7 +2,9 @@
 
 
 
-# WellVerse Frontend - React Application
+# ePharma Frontend - React Application
+
+🏥 **ePharma** - Hệ thống nhà thuốc trực tuyến uy tín, cung cấp thuốc và dược phẩm chất lượng cao với dịch vụ tận tâm.
 
 ## 🐳 Docker Setup (Đã được đơn giản hóa)
 

@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Snackbar,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -48,7 +49,7 @@ const OrderDetailPage = () => {
   const [loading, setLoading] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
-  const { showError, showSuccess } = useSnackbar();
+  const { showError, showSuccess, snackbar, hideSnackbar } = useSnackbar();
 
   // Check if this is a newly created order
   const isNewOrder = location.state?.orderCreated;
@@ -104,7 +105,17 @@ const OrderDetailPage = () => {
     if (orderCode) {
       fetchOrderDetail();
     }
-  }, [orderCode]);
+    
+    // Hiển thị thông báo thành công nếu được chuyển hướng từ checkout
+    if (location.state?.showSuccessMessage && location.state?.orderCreated) {
+      const orderData = location.state?.orderData;
+      const successMessage = orderData 
+        ? `✅ Đặt hàng thành công! Đơn hàng #${orderData.orderCode} đã được tạo với tổng giá trị ${formatCurrency(orderData.totalAmount)}. Cảm ơn bạn đã mua sắm tại cửa hàng!`
+        : '✅ Đặt hàng thành công! Cảm ơn bạn đã mua sắm tại cửa hàng chúng tôi!';
+      
+      showSuccess(successMessage, 6000); // Show for 6 seconds
+    }
+  }, [orderCode, location.state]);
 
   const fetchOrderDetail = async () => {
     try {
@@ -188,13 +199,26 @@ const OrderDetailPage = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Success message for new orders */}
-      {isNewOrder && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          <Typography variant="h6" component="div">
-            Đặt hàng thành công! 🎉
+      {(isNewOrder || location.state?.orderCreated) && order && (
+        <Alert 
+          severity="success" 
+          sx={{ 
+            mb: 3,
+            '& .MuiAlert-message': {
+              width: '100%'
+            }
+          }}
+        >
+          <Typography variant="h6" component="div" sx={{ mb: 1 }}>
+            🎉 Đặt hàng thành công!
           </Typography>
-          <Typography variant="body2">
-            Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ xử lý đơn hàng của bạn trong thời gian sớm nhất.
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Cảm ơn bạn đã đặt hàng tại cửa hàng của chúng tôi. Đơn hàng #{order.orderCode} 
+            với tổng giá trị <strong>{formatCurrency(order.totalAmount)}</strong> đã được tạo thành công.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            📱 Chúng tôi đã gửi thông báo xác nhận đến tài khoản của bạn. 
+            Đơn hàng sẽ được xử lý trong vòng 1-2 giờ làm việc.
           </Typography>
         </Alert>
       )}
@@ -490,6 +514,28 @@ const OrderDetailPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={snackbar.autoHideDuration}
+        onClose={hideSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={hideSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ 
+            width: '100%',
+            fontSize: '1rem',
+            '& .MuiAlert-message': {
+              fontWeight: 500
+            }
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { authAPI, cartAPI } from '../api';
 import { logout as logoutAPI } from '../api/authApi';
-import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage, clearAuthData, getSessionId, clearSessionId } from '../utils/localStorage';
+import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage, clearAuthData, clearAllUnnecessaryData, getSessionId, clearSessionId } from '../utils/localStorage';
+import { oauth2Auth } from '../utils/oauth2Auth';
 
 // Export AuthContext để có thể import trực tiếp
 export const AuthContext = createContext();
@@ -280,11 +281,237 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Advanced logout function - xóa toàn bộ localStorage không cần thiết
+  const logoutAdvanced = async (clearAll = false) => {
+    // Tránh multiple concurrent logout calls
+    if (isLoggingOut) {
+      return;
+    }
+    
+    setIsLoggingOut(true);
+    
+    try {
+      // Lấy Token và gọi API Logout nếu có
+      const tokenFromStorage = getLocalStorage('accessToken');
+      const tokenFromState = state.token;
+      const tokenToUse = tokenFromStorage || tokenFromState;
+      
+      if (tokenToUse && state.isAuthenticated) {
+        try {
+          // Đảm bảo token có trong localStorage để API sử dụng
+          if (!tokenFromStorage && tokenFromState) {
+            setLocalStorage('accessToken', tokenFromState);
+          }
+          
+          await logoutAPI();
+        } catch (apiError) {
+          // Logout API failed, but continuing with cleanup
+          console.warn('API logout failed:', apiError);
+        }
+      }
+      
+    } catch (error) {
+      // Logout error handled silently
+      console.warn('Logout error:', error);
+    } finally {
+      // Xóa dữ liệu dựa trên tùy chọn
+      if (clearAll) {
+        // Xóa toàn bộ localStorage không cần thiết
+        clearAllUnnecessaryData();
+      } else {
+        // Xóa chỉ các dữ liệu authentication
+        clearAuthData();
+      }
+      
+      // Xóa cart session ID để tránh conflict
+      clearSessionId();
+      
+      // Reset State về trạng thái ban đầu
+      dispatch({ type: 'LOGOUT' });
+      
+      setIsLoggingOut(false);
+      
+      console.log(`🚪 Logout completed ${clearAll ? '(advanced cleanup)' : '(standard cleanup)'}`);
+    }
+  };
+
+  // OAuth2 Login function
+  const oauth2Login = async (provider) => {
+    try {
+      dispatch({ type: 'LOGIN_START' });
+      
+      // Clear existing auth data before OAuth2 login
+      clearAuthData();
+      clearSessionId();
+      dispatch({ type: 'LOGOUT' });
+      
+      // Initiate OAuth2 flow
+      await oauth2Auth.login(provider);
+      
+      // Note: After OAuth2 redirect, the callback will be handled by processOAuth2Callback
+      
+    } catch (error) {
+      console.error(`OAuth2 ${provider} login error:`, error);
+      const errorMessage = error.message || `Đăng nhập với ${provider} thất bại`;
+      dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  // Process OAuth2 callback after redirect
+  const processOAuth2Callback = async (provider, code, state) => {
+    try {
+      dispatch({ type: 'LOGIN_START' });
+      
+      // Process OAuth2 callback with backend
+      const response = await oauth2Auth.processCallback(provider, code, state);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'OAuth2 authentication failed');
+      }
+      
+      const { accessToken, user } = response.data;
+      
+      // Save token and user data to localStorage
+      setLocalStorage('accessToken', accessToken);
+      setLocalStorage('user', user);
+      
+      // Dispatch LOGIN_SUCCESS with user and token
+      dispatch({ 
+        type: 'LOGIN_SUCCESS', 
+        payload: { 
+          user: user, 
+          token: accessToken 
+        } 
+      });
+      
+      // Merge guest cart if available
+      const guestCartSessionId = getSessionId();
+      if (guestCartSessionId) {
+        try {
+          await cartAPI.mergeCart();
+        } catch (error) {
+          console.warn('Failed to merge cart after OAuth2 login:', error);
+        }
+      }
+      
+      oauth2Auth.showSuccess(`Đăng nhập với ${provider} thành công!`);
+      return { success: true };
+      
+    } catch (error) {
+      console.error(`OAuth2 ${provider} callback error:`, error);
+      
+      // Clear stored state on error
+      oauth2Auth.clearState();
+      
+      let errorMessage = `Đăng nhập với ${provider} thất bại`;
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
+      oauth2Auth.showError(errorMessage);
+      
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  // Check for OAuth2 callback on component mount
+  useEffect(() => {
+    const handleOAuth2Callback = async () => {
+      // First check for direct success (backend redirect with token)
+      const directSuccess = oauth2Auth.handleDirectSuccess();
+      
+      if (directSuccess && directSuccess.isDirectCallback) {
+        if (directSuccess.error) {
+          // Handle OAuth2 error from direct callback
+          const errorMessage = oauth2Auth.getErrorMessage(directSuccess.error, directSuccess.provider);
+          oauth2Auth.showError(errorMessage);
+          dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
+          
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (directSuccess.token && directSuccess.user) {
+          // Handle direct success with token and user data
+          try {
+            // Store authentication data
+            setLocalStorage('accessToken', directSuccess.token);
+            setLocalStorage('user', directSuccess.user);
+            
+            // Update auth state
+            dispatch({ 
+              type: 'LOGIN_SUCCESS', 
+              payload: { 
+                user: directSuccess.user, 
+                token: directSuccess.token 
+              } 
+            });
+            
+            // Merge guest cart if available
+            const guestCartSessionId = getSessionId();
+            if (guestCartSessionId) {
+              try {
+                await cartAPI.mergeCart();
+                clearSessionId();
+              } catch (error) {
+                console.warn('Failed to merge cart after OAuth2 login:', error);
+              }
+            }
+            
+            oauth2Auth.showSuccess(`Đăng nhập với ${directSuccess.provider} thành công!`);
+            
+            // Clean up URL and redirect
+            window.history.replaceState({}, document.title, '/');
+            
+          } catch (error) {
+            console.error('Error processing direct OAuth2 success:', error);
+            dispatch({ type: 'LOGIN_FAILURE', payload: error.message });
+          }
+        }
+        return;
+      }
+
+      // Then check for standard callback
+      const callbackData = oauth2Auth.checkForCallback();
+      
+      if (callbackData && callbackData.isCallback) {
+        if (callbackData.error) {
+          // Handle OAuth2 error from provider
+          const errorMessage = oauth2Auth.getErrorMessage(callbackData.error, callbackData.provider);
+          oauth2Auth.showError(errorMessage);
+          dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
+          
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (callbackData.code && callbackData.state) {
+          // Process successful OAuth2 callback
+          const result = await processOAuth2Callback(
+            callbackData.provider, 
+            callbackData.code, 
+            callbackData.state
+          );
+          
+          // Clean up URL and redirect to home on success
+          if (result.success) {
+            window.history.replaceState({}, document.title, '/');
+          } else {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }
+      }
+    };
+
+    handleOAuth2Callback();
+  }, []);
+
   const value = {
     ...state,
     login,
     register,
     logout,
+    logoutAdvanced,
+    oauth2Login,
+    processOAuth2Callback,
   };
 
   return (

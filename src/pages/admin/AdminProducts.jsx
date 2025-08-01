@@ -52,6 +52,7 @@ import { categoryAPI } from '../../api/categoryApi';
 import { useSnackbar } from '../../hooks/useSnackbar';
 import { formatCurrency } from '../../utils/formatters';
 import { validateProductForm, createSlug } from '../../utils/adminUtils';
+import ImageManager from '../../components/ImageManager';
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -209,6 +210,14 @@ const AdminProducts = () => {
     }
   };
 
+  // Xử lý thay đổi hình ảnh
+  const handleImagesChange = (newImages) => {
+    setFormData(prev => ({
+      ...prev,
+      images: newImages
+    }));
+  };
+
   const handleSubmit = async () => {
     try {
       // Validate form
@@ -357,21 +366,30 @@ const AdminProducts = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, backgroundColor: 'background.default', minHeight: '100vh' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5">Quản lý sản phẩm</Typography>
+        <Typography variant="h4" fontWeight="700" color="text.primary">
+          Quản lý sản phẩm
+        </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
+          size="large"
+          sx={{ 
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 3
+          }}
         >
           Thêm sản phẩm
         </Button>
       </Box>
 
       {/* Filters */}
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: theme => theme.shadows[2] }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={6} md={4} lg={3}>
@@ -380,10 +398,15 @@ const AdminProducts = () => {
                 placeholder="Tìm kiếm sản phẩm..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2
+                  }
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon />
+                      <SearchIcon color="primary" />
                     </InputAdornment>
                   ),
                 }}
@@ -397,7 +420,10 @@ const AdminProducts = () => {
                   value={selectedCategory}
                   label="Danh mục"
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  sx={{ minWidth: 140 }}
+                  sx={{ 
+                    minWidth: 140,
+                    borderRadius: 2
+                  }}
                 >
                   <MenuItem value="">Tất cả</MenuItem>
                   {categories.map((category) => (
@@ -416,7 +442,10 @@ const AdminProducts = () => {
                   value={priceFilter}
                   label="Giá"
                   onChange={(e) => setPriceFilter(e.target.value)}
-                  sx={{ minWidth: 120 }}
+                  sx={{ 
+                    minWidth: 120,
+                    borderRadius: 2
+                  }}
                   startAdornment={<PriceIcon sx={{ mr: 1, color: 'action.active' }} />}
                 >
                   <MenuItem value="">Tất cả</MenuItem>
@@ -482,18 +511,25 @@ const AdminProducts = () => {
       </Card>
 
       {/* Products Table */}
-      <TableContainer component={Paper}>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          borderRadius: 2, 
+          boxShadow: theme => theme.shadows[2],
+          overflow: 'hidden'
+        }}
+      >
         <Table>
-          <TableHead>
+          <TableHead sx={{ backgroundColor: 'grey.50' }}>
             <TableRow>
-              <TableCell>Hình ảnh</TableCell>
-              <TableCell>Sản phẩm</TableCell>
-              <TableCell>SKU</TableCell>
-              <TableCell>Danh mục</TableCell>
-              <TableCell>Giá</TableCell>
-              <TableCell>Kho</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell>Thao tác</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Hình ảnh</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Sản phẩm</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>SKU</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Danh mục</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Giá</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Kho</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Thao tác</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -509,12 +545,38 @@ const AdminProducts = () => {
                 return (
                   <TableRow key={product.id}>
                     <TableCell>
-                      <Avatar
-                        src={product.images && product.images[0] ? product.images[0] : undefined}
-                        sx={{ width: 48, height: 48, bgcolor: 'grey.200' }}
-                      >
-                        <ImageIcon />
-                      </Avatar>
+                      <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                        <Avatar
+                          src={product.images && product.images[0] ? product.images[0] : undefined}
+                          sx={{ 
+                            width: 56, 
+                            height: 56, 
+                            bgcolor: 'grey.200',
+                            border: '2px solid',
+                            borderColor: 'divider'
+                          }}
+                        >
+                          <ImageIcon />
+                        </Avatar>
+                        {product.images && product.images.length > 1 && (
+                          <Chip
+                            label={`+${product.images.length - 1}`}
+                            size="small"
+                            color="primary"
+                            sx={{
+                              position: 'absolute',
+                              top: -4,
+                              right: -4,
+                              minWidth: 20,
+                              height: 20,
+                              fontSize: '0.7rem',
+                              '& .MuiChip-label': {
+                                px: 0.5
+                              }
+                            }}
+                          />
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell>
                       <Box>
@@ -635,13 +697,19 @@ const AdminProducts = () => {
         maxWidth="lg" 
         fullWidth
         PaperProps={{
-          sx: { minHeight: '80vh', maxHeight: '90vh' }
+          sx: { 
+            minHeight: '80vh', 
+            maxHeight: '90vh',
+            borderRadius: 2,
+            boxShadow: theme => theme.shadows[10]
+          }
         }}
       >
-        <DialogTitle sx={{ pb: 1 }}>
-          {editingProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
+        <DialogTitle sx={{ pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h5" component="h2" color="primary.main" fontWeight="600">
+            {editingProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
+          </Typography>
         </DialogTitle>
-        <Divider />
         <DialogContent sx={{ p: 0 }}>
           <Box sx={{ p: 2 }}>
             <Grid container spacing={3}>
@@ -728,6 +796,17 @@ const AdminProducts = () => {
                           />
                         </Grid>
                       </Grid>
+                    </CardContent>
+                  </Card>
+
+                  {/* Image Management */}
+                  <Card variant="outlined">
+                    <CardContent>
+                      <ImageManager
+                        images={formData.images}
+                        onChange={handleImagesChange}
+                        maxImages={8}
+                      />
                     </CardContent>
                   </Card>
 
@@ -965,16 +1044,21 @@ const AdminProducts = () => {
             </Grid>
           </Box>
         </DialogContent>
-        <Divider />
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleCloseDialog} size="large">
+        <DialogActions sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', gap: 1 }}>
+          <Button 
+            onClick={handleCloseDialog} 
+            size="large"
+            variant="outlined"
+            color="inherit"
+          >
             Hủy
           </Button>
           <Button
             onClick={handleSubmit}
             variant="contained"
             size="large"
-            disabled={loading || !formData.name || !formData.slug || !formData.categoryId}
+            disabled={loading || !formData.name || !formData.slug || !formData.categoryId || !formData.images || formData.images.length === 0}
+            sx={{ minWidth: 120 }}
           >
             {loading ? <CircularProgress size={20} /> : (editingProduct ? 'Cập nhật' : 'Thêm')}
           </Button>

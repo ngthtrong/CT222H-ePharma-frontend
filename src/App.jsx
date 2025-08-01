@@ -15,6 +15,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import ProfilePage from './pages/ProfilePage';
 import OrderHistoryPage from './pages/OrderHistoryPage';
 import OrderDetailPage from './pages/OrderDetailPage';
+import NotificationPage from './pages/NotificationPage';
 import AdminPage from './pages/AdminPage';
 
 function App() {
@@ -50,6 +51,14 @@ function App() {
           element={
             <PrivateRoute>
               <OrderDetailPage />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/notifications" 
+          element={
+            <PrivateRoute>
+              <NotificationPage />
             </PrivateRoute>
           } 
         />

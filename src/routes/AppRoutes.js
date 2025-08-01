@@ -8,6 +8,8 @@ import AdminRoute from '../components/AdminRoute';
 import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
 import ProductsPage from '../pages/ProductsPage';
 import ProductDetailPage from '../pages/ProductDetailPage';
 import CartPage from '../pages/CartPage';
@@ -17,6 +19,9 @@ import OrderHistoryPage from '../pages/OrderHistoryPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import CheckoutPage from '../pages/CheckoutPage';
 import SearchHistoryPage from '../pages/SearchHistoryPage';
+import OAuth2CallbackPage from '../pages/OAuth2CallbackPage';
+import OAuth2DemoPage from '../pages/OAuth2DemoPage';
+import OAuth2SuccessPage from '../pages/OAuth2SuccessPage';
 
 const AppRoutes = () => {
   return (
@@ -26,11 +31,18 @@ const AppRoutes = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/test" element={<div>Test Page</div>} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/oauth2-demo" element={<OAuth2DemoPage />} />
+        
+        {/* OAuth2 Callback Routes */}
+        <Route path="/auth/callback/:provider" element={<OAuth2CallbackPage />} />
+        <Route path="/auth/oauth2/success" element={<OAuth2SuccessPage />} />
         
         {/* Protected routes */}
         <Route 

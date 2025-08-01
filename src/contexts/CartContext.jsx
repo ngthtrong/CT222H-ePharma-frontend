@@ -35,7 +35,7 @@ const cartReducer = (state, action) => {
     case CART_ACTIONS.SET_CART:
       const cartData = action.payload;
       const items = cartData?.items || [];
-      const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+      const totalItems = items.length; // Chỉ đếm số lượng loại sản phẩm khác nhau
       const totalAmount = cartData?.totalAmount || 0;
       
       return {
@@ -186,6 +186,11 @@ export const CartProvider = ({ children }) => {
     }
   }, [isAuthenticated, user]);
 
+  // Utility function to get total quantity (actual sum of all quantities)
+  const getTotalQuantity = () => {
+    return state.items.reduce((sum, item) => sum + item.quantity, 0);
+  };
+
   const value = {
     ...state,
     // Core cart operations
@@ -196,6 +201,7 @@ export const CartProvider = ({ children }) => {
     fetchCart,
     // Utility functions
     mergeGuestCart,
+    getTotalQuantity, // Hàm để lấy tổng số lượng thực tế nếu cần
   };
 
   return (

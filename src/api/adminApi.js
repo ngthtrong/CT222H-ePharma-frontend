@@ -3,11 +3,11 @@ import api from './config';
 // Utility function để kiểm tra token admin
 const checkAdminToken = () => {
   const token = localStorage.getItem('accessToken');
-  console.log('Checking admin token:', {
-    hasToken: !!token,
-    tokenLength: token ? token.length : 0,
-    tokenStart: token ? token.substring(0, 20) + '...' : 'null'
-  });
+  // console.log('Checking admin token:', {
+  //   hasToken: !!token,
+  //   tokenLength: token ? token.length : 0,
+  //   tokenStart: token ? token.substring(0, 20) + '...' : 'null'
+  // });
   
   if (!token) {
     console.error('Admin API called without token');
@@ -23,11 +23,11 @@ const adminApiCall = (apiCall) => {
       const token = checkAdminToken(); // Kiểm tra token trước khi gọi API
       
       // Log để debug
-      console.log('Admin API call with token:', {
-        hasToken: !!token,
-        tokenLength: token?.length,
-        endpoint: args[0] || 'unknown'
-      });
+      // console.log('Admin API call with token:', {
+      //   hasToken: !!token,
+      //   tokenLength: token?.length,
+      //   endpoint: args[0] || 'unknown'
+      // });
       
       return apiCall(...args);
     } catch (error) {
@@ -38,8 +38,11 @@ const adminApiCall = (apiCall) => {
 };
 
 export const adminAPI = {
-  // Dashboard - Thống kê tổng quan
+  // Dashboard - Thống kê tổng quan (New REST endpoints according to DASHBOARD-FRONTEND-GUIDE.md)
   getDashboardStats: adminApiCall(() => api.get('/admin/dashboard/stats')),
+  
+  // Manual refresh dashboard data  
+  refreshDashboard: adminApiCall(() => api.post('/admin/dashboard/refresh')),
   
   // Đơn hàng gần đây
   getRecentOrders: adminApiCall((limit = 10) => api.get(`/admin/dashboard/recent-orders?limit=${limit}`)),
@@ -93,6 +96,9 @@ export const adminAPI = {
   updateCategory: adminApiCall((id, categoryData) => api.put(`/admin/categories/${id}`, categoryData)),
   
   deleteCategory: adminApiCall((id) => api.delete(`/admin/categories/${id}`)),
+  
+  // Lấy số lượng sản phẩm của tất cả danh mục (tối ưu hóa)
+  getCategoryProductCounts: adminApiCall(() => api.get('/admin/categories/product-counts')),
   
   // Quản lý người dùng
   getAllUsers: adminApiCall((params = {}) => {

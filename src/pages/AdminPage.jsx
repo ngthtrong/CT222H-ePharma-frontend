@@ -36,16 +36,16 @@ import { isAdmin, requireAdminAuth } from '../utils/adminUtils';
 
 // Import admin components
 import AdminDashboard from './admin/AdminDashboard';
-import NewAdvancedDashboard from './admin/NewAdvancedDashboard';
 import AdminProducts from './admin/AdminProducts';
 import AdminOrders from './admin/AdminOrders';
 import AdminCategories from './admin/AdminCategories';
 import AdminUsers from './admin/AdminUsers';
+import AdminNotifications from './admin/AdminNotifications';
 
 const drawerWidth = 280;
 
 const AdminPage = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, logoutAdvanced } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -71,7 +71,8 @@ const AdminPage = () => {
 
   const handleLogout = async () => {
     handleMenuClose();
-    await logout();
+    // Sử dụng logout nâng cao để xóa toàn bộ localStorage admin/oauth2
+    await logoutAdvanced(true);
     navigate('/login');
   };
 
@@ -293,8 +294,7 @@ const AdminPage = () => {
       >
         <Routes>
           <Route path="/" element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<NewAdvancedDashboard />} />
-          <Route path="dashboard-classic" element={<AdminDashboard />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="categories" element={<AdminCategories />} />
@@ -329,16 +329,7 @@ const AdminPage = () => {
               </Typography>
             </Paper>
           } />
-          <Route path="notifications" element={
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="h5" color="primary" gutterBottom>
-                🔔 Thông báo
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Tính năng đang được phát triển...
-              </Typography>
-            </Paper>
-          } />
+          <Route path="notifications" element={<AdminNotifications />} />
         </Routes>
       </Box>
     </Box>

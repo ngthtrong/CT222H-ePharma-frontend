@@ -124,8 +124,6 @@ const AdminUsers = () => {
         params.sort = sortOrder;
       }
       
-      console.log('Fetching users with params:', params);
-      
       const response = await adminAPI.getAllUsers(params);
       
       if (response.data.success) {
@@ -295,7 +293,6 @@ const AdminUsers = () => {
                   value={roleFilter}
                   label="Vai trò"
                   onChange={(e) => {
-                    console.log('Role filter changed to:', e.target.value);
                     setRoleFilter(e.target.value);
                   }}
                   sx={{ minWidth: 120 }}
@@ -317,7 +314,6 @@ const AdminUsers = () => {
                   value={sortOrder}
                   label="Sắp xếp"
                   onChange={(e) => {
-                    console.log('Sort order changed to:', e.target.value);
                     setSortOrder(e.target.value);
                   }}
                   sx={{ minWidth: 200 }}

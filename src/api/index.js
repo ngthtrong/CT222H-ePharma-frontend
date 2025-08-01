@@ -8,6 +8,7 @@ export { orderAPI } from './orderApi';
 export { addressAPI } from './addressApi';
 export { adminAPI } from './adminApi';
 export * as searchHistoryAPI from './searchHistoryApi';
+export * as notificationAPI from './notificationApi';
 export { default as api } from './config';
 
 // Export các hàm tiện ích
