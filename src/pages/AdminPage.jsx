@@ -35,7 +35,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { isAdmin, requireAdminAuth } from '../utils/adminUtils';
 
 // Import admin components
-import EnhancedDashboard from './admin/EnhancedDashboard';
+import AdminDashboard from './admin/AdminDashboard';
 import AdminProducts from './admin/AdminProducts';
 import AdminOrders from './admin/AdminOrders';
 import AdminCategories from './admin/AdminCategories';
@@ -294,7 +294,7 @@ const AdminPage = () => {
       >
         <Routes>
           <Route path="/" element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<EnhancedDashboard />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="categories" element={<AdminCategories />} />

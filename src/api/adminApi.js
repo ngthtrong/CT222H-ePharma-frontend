@@ -38,8 +38,11 @@ const adminApiCall = (apiCall) => {
 };
 
 export const adminAPI = {
-  // Dashboard - Thống kê tổng quan
+  // Dashboard - Thống kê tổng quan (New REST endpoints according to DASHBOARD-FRONTEND-GUIDE.md)
   getDashboardStats: adminApiCall(() => api.get('/admin/dashboard/stats')),
+  
+  // Manual refresh dashboard data  
+  refreshDashboard: adminApiCall(() => api.post('/admin/dashboard/refresh')),
   
   // Đơn hàng gần đây
   getRecentOrders: adminApiCall((limit = 10) => api.get(`/admin/dashboard/recent-orders?limit=${limit}`)),
