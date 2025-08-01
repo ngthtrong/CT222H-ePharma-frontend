@@ -44,7 +44,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, logoutAdvanced } = useAuth();
   const { totalItems } = useCart();
   
   // State management
@@ -138,8 +138,9 @@ const Header = () => {
     setSnackbarOpen(true);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    // Sử dụng logout nâng cao để xóa OAuth2 và admin data
+    await logoutAdvanced(true);
     handleUserMenuClose();
     showSnackbar('Đăng xuất thành công', 'success');
     navigate('/');

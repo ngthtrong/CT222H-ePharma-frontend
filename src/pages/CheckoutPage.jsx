@@ -42,6 +42,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { orderAPI } from '../api/orderApi';
 import { addressAPI } from '../api/addressApi';
+import { notificationAPI } from '../api';
 import { formatCurrency } from '../utils/formatters';
 import { useSnackbar } from '../hooks/useSnackbar';
 import { getLocalStorage, setLocalStorage } from '../utils/localStorage';
@@ -346,18 +347,45 @@ const CheckoutPage = () => {
       
       if (response.data && response.data.success) {
         const order = response.data.data;
-        showSuccess('Đặt hàng thành công!');
+        
+        // Tạo thông báo cho người dùng về đơn hàng mới
+        try {
+          const notificationData = {
+            userId: user?.id,
+            type: notificationAPI.NOTIFICATION_TYPES.ORDER,
+            title: 'Đặt hàng thành công!',
+            message: `Đơn hàng #${order.orderCode} đã được tạo thành công. Tổng giá trị: ${formatCurrency(order.totalAmount)}. Chúng tôi sẽ xử lý đơn hàng của bạn trong thời gian sớm nhất.`,
+            metadata: {
+              orderId: order.id,
+              orderCode: order.orderCode,
+              totalAmount: order.totalAmount,
+              paymentMethod: order.paymentMethod
+            }
+          };
+          
+          await notificationAPI.sendNotificationToUser(notificationData);
+          console.log('Notification sent successfully for order:', order.orderCode);
+        } catch (notificationError) {
+          console.error('Failed to send notification:', notificationError);
+          // Không làm gián đoạn flow chính nếu gửi thông báo thất bại
+        }
+        
+        showSuccess('🎉 Đặt hàng thành công! Đang chuyển đến trang chi tiết đơn hàng...');
         
         // Clear cart after successful order
         await clearCart();
         
-        // Navigate to order detail or success page
-        navigate(`/orders/${order.orderCode}`, { 
-          state: { 
-            orderCreated: true, 
-            orderData: order 
-          } 
-        });
+        // Small delay to show success message before navigation
+        setTimeout(() => {
+          // Navigate to order detail page with success notification
+          navigate(`/orders/${order.orderCode}`, { 
+            state: { 
+              orderCreated: true, 
+              orderData: order,
+              showSuccessMessage: true
+            } 
+          });
+        }, 1500); // 1.5 second delay
       } else {
         showError(response.data.message || 'Không thể tạo đơn hàng');
       }

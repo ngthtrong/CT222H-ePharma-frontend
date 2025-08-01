@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { authAPI, cartAPI } from '../api';
 import { logout as logoutAPI } from '../api/authApi';
-import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage, clearAuthData, getSessionId, clearSessionId } from '../utils/localStorage';
+import { getLocalStorage, setLocalStorage, removeLocalStorage, cleanupLocalStorage, clearAuthData, clearAllUnnecessaryData, getSessionId, clearSessionId } from '../utils/localStorage';
 import { oauth2Auth } from '../utils/oauth2Auth';
 
 // Export AuthContext để có thể import trực tiếp
@@ -281,6 +281,60 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Advanced logout function - xóa toàn bộ localStorage không cần thiết
+  const logoutAdvanced = async (clearAll = false) => {
+    // Tránh multiple concurrent logout calls
+    if (isLoggingOut) {
+      return;
+    }
+    
+    setIsLoggingOut(true);
+    
+    try {
+      // Lấy Token và gọi API Logout nếu có
+      const tokenFromStorage = getLocalStorage('accessToken');
+      const tokenFromState = state.token;
+      const tokenToUse = tokenFromStorage || tokenFromState;
+      
+      if (tokenToUse && state.isAuthenticated) {
+        try {
+          // Đảm bảo token có trong localStorage để API sử dụng
+          if (!tokenFromStorage && tokenFromState) {
+            setLocalStorage('accessToken', tokenFromState);
+          }
+          
+          await logoutAPI();
+        } catch (apiError) {
+          // Logout API failed, but continuing with cleanup
+          console.warn('API logout failed:', apiError);
+        }
+      }
+      
+    } catch (error) {
+      // Logout error handled silently
+      console.warn('Logout error:', error);
+    } finally {
+      // Xóa dữ liệu dựa trên tùy chọn
+      if (clearAll) {
+        // Xóa toàn bộ localStorage không cần thiết
+        clearAllUnnecessaryData();
+      } else {
+        // Xóa chỉ các dữ liệu authentication
+        clearAuthData();
+      }
+      
+      // Xóa cart session ID để tránh conflict
+      clearSessionId();
+      
+      // Reset State về trạng thái ban đầu
+      dispatch({ type: 'LOGOUT' });
+      
+      setIsLoggingOut(false);
+      
+      console.log(`🚪 Logout completed ${clearAll ? '(advanced cleanup)' : '(standard cleanup)'}`);
+    }
+  };
+
   // OAuth2 Login function
   const oauth2Login = async (provider) => {
     try {
@@ -455,6 +509,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    logoutAdvanced,
     oauth2Login,
     processOAuth2Callback,
   };

@@ -45,7 +45,7 @@ import AdminNotifications from './admin/AdminNotifications';
 const drawerWidth = 280;
 
 const AdminPage = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, logoutAdvanced } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -71,7 +71,8 @@ const AdminPage = () => {
 
   const handleLogout = async () => {
     handleMenuClose();
-    await logout();
+    // Sử dụng logout nâng cao để xóa toàn bộ localStorage admin/oauth2
+    await logoutAdvanced(true);
     navigate('/login');
   };
 
