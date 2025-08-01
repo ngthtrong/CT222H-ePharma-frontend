@@ -103,6 +103,15 @@ const CheckoutPage = () => {
         setSelectedAddressId(addresses[0].id);
       }
     }
+    
+    // Auto-enable save options for first-time users
+    if (addresses.length === 0 && useCustomAddress) {
+      setCustomAddress(prev => ({
+        ...prev,
+        saveAsNewAddress: true,
+        setAsDefault: true
+      }));
+    }
   }, [addresses, selectedAddressId, useCustomAddress]);
 
   useEffect(() => {
@@ -208,6 +217,95 @@ const CheckoutPage = () => {
     }));
   };
 
+  const saveCustomAddressBeforeNext = async () => {
+    if (!useCustomAddress) {
+      return null;
+    }
+
+    // Check if we need to save (either user wants to save OR user has no addresses)
+    const shouldSave = customAddress.saveAsNewAddress || addresses.length === 0;
+    
+    if (!shouldSave) {
+      return null;
+    }
+
+    try {
+      const addressToSave = {
+        recipientName: customAddress.recipientName.trim(),
+        phoneNumber: customAddress.phoneNumber.trim(),
+        address: customAddress.street.trim(), // Use 'address' field for API compatibility
+        street: customAddress.street.trim(),
+        ward: customAddress.ward.trim(),
+        city: customAddress.city.trim(),
+        province: customAddress.city.trim(), // Map city to province for compatibility
+        isDefault: customAddress.setAsDefault || addresses.length === 0 // Set as default if it's the first address
+      };
+      
+      let savedAddressId = null;
+      
+      // Try to save to API first
+      try {
+        const saveAddressResponse = await addressAPI.addAddress(addressToSave);
+        if (saveAddressResponse && saveAddressResponse.success && saveAddressResponse.data) {
+          savedAddressId = saveAddressResponse.data?.id;
+          
+          if (addresses.length === 0) {
+            showSuccess('Địa chỉ đầu tiên đã được lưu thành công');
+          } else {
+            showSuccess('Địa chỉ đã được lưu thành công');
+          }
+        }
+      } catch (apiError) {
+        console.warn('API save failed, saving to localStorage only:', apiError);
+        if (addresses.length === 0) {
+          showSuccess('Địa chỉ đầu tiên đã được lưu vào máy của bạn');
+        } else {
+          showSuccess('Địa chỉ đã được lưu vào máy của bạn');
+        }
+      }
+      
+      // Always update localStorage
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        const newAddress = {
+          id: savedAddressId || `addr_new_${Date.now()}`,
+          ...addressToSave
+        };
+        
+        // Add new address to user data
+        if (!userData.addresses) {
+          userData.addresses = [];
+        }
+        
+        // If setting as default, remove default from other addresses
+        if (addressToSave.isDefault) {
+          userData.addresses.forEach(addr => {
+            addr.isDefault = false;
+          });
+        }
+        
+        userData.addresses.push(newAddress);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
+      // Update addresses list and select the new address
+      await fetchAddresses();
+      
+      // Auto-select the newly saved address
+      if (savedAddressId) {
+        setSelectedAddressId(savedAddressId);
+        setUseCustomAddress(false); // Switch back to using saved addresses
+      }
+      
+      return savedAddressId;
+      
+    } catch (error) {
+      console.error('Error saving address:', error);
+      throw new Error('Không thể lưu địa chỉ');
+    }
+  };
+
   const validateStep = (step) => {
     switch (step) {
       case 0: // Address validation
@@ -228,8 +326,26 @@ const CheckoutPage = () => {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validateStep(activeStep)) {
+      // Special handling when moving from address step to payment step
+      if (activeStep === 0 && useCustomAddress) {
+        try {
+          setLoading(true);
+          
+          // Auto-save address if user has no addresses (to prevent API errors)
+          if (addresses.length === 0 || customAddress.saveAsNewAddress) {
+            await saveCustomAddressBeforeNext();
+          }
+        } catch (error) {
+          console.error('Error saving address before proceeding:', error);
+          showError('Không thể lưu địa chỉ. Vui lòng thử lại.');
+          return;
+        } finally {
+          setLoading(false);
+        }
+      }
+      
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
     } else {
       let errorMessage = 'Vui lòng điền đầy đủ thông tin';
@@ -481,7 +597,12 @@ const CheckoutPage = () => {
         </Box>
       ) : (
         <Alert severity="info" sx={{ mb: 3 }}>
-          Bạn chưa có địa chỉ đã lưu. Vui lòng nhập địa chỉ giao hàng bên dưới.
+          <Typography variant="body2">
+            🏠 Bạn chưa có địa chỉ đã lưu. Vui lòng nhập địa chỉ giao hàng bên dưới.
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            💡 Mẹo: Bật tính năng "Lưu vào danh sách địa chỉ" để sử dụng cho các đơn hàng tiếp theo
+          </Typography>
         </Alert>
       )}
 
@@ -565,49 +686,65 @@ const CheckoutPage = () => {
                   />
                 </Grid>
                 
-                {addresses.length > 0 && (
-                  <>
-                    <Grid size={12}>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={customAddress.saveAsNewAddress}
-                            onChange={(e) => handleCustomAddressChange('saveAsNewAddress', e.target.checked)}
-                            color="primary"
-                          />
-                        }
-                        label={
-                          <Box>
-                            <Typography variant="body2">Lưu vào danh sách địa chỉ của tôi</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Địa chỉ này sẽ được lưu để sử dụng cho các đơn hàng tiếp theo
-                            </Typography>
-                          </Box>
-                        }
+                {/* Always show save address options, regardless of existing addresses */}
+                {addresses.length === 0 && (
+                  <Grid size={12}>
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        📍 Đây là địa chỉ đầu tiên của bạn và sẽ được lưu tự động để tránh lỗi khi đặt hàng.
+                      </Typography>
+                    </Alert>
+                  </Grid>
+                )}
+                <Grid size={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={customAddress.saveAsNewAddress || addresses.length === 0}
+                        onChange={(e) => handleCustomAddressChange('saveAsNewAddress', e.target.checked)}
+                        color="primary"
+                        disabled={addresses.length === 0}
                       />
-                    </Grid>
-                    {customAddress.saveAsNewAddress && (
-                      <Grid size={12}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={customAddress.setAsDefault}
-                              onChange={(e) => handleCustomAddressChange('setAsDefault', e.target.checked)}
-                              color="primary"
-                            />
-                          }
-                          label={
-                            <Box>
-                              <Typography variant="body2">Đặt làm địa chỉ mặc định</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Địa chỉ này sẽ được chọn tự động cho các đơn hàng tiếp theo
-                              </Typography>
-                            </Box>
-                          }
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2">Lưu vào danh sách địa chỉ của tôi</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Địa chỉ này sẽ được lưu để sử dụng cho các đơn hàng tiếp theo
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </Grid>
+                {(customAddress.saveAsNewAddress || addresses.length === 0) && (
+                  <Grid size={12}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={customAddress.setAsDefault || addresses.length === 0}
+                          onChange={(e) => handleCustomAddressChange('setAsDefault', e.target.checked)}
+                          color="primary"
+                          disabled={addresses.length === 0}
                         />
-                      </Grid>
-                    )}
-                  </>
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body2">
+                            {addresses.length === 0 
+                              ? 'Đặt làm địa chỉ mặc định (tự động)' 
+                              : 'Đặt làm địa chỉ mặc định'
+                            }
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {addresses.length === 0
+                              ? 'Đây sẽ là địa chỉ mặc định đầu tiên của bạn'
+                              : 'Địa chỉ này sẽ được chọn tự động cho các đơn hàng tiếp theo'
+                            }
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </Grid>
                 )}
               </Grid>
             </Box>
