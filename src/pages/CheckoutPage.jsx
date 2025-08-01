@@ -117,12 +117,56 @@ const CheckoutPage = () => {
 
   const fetchAddresses = async () => {
     try {
-      // Lấy địa chỉ từ localStorage thay vì API
+      setLoading(true);
+      
+      // Lấy địa chỉ từ API trước
+      try {
+        const response = await addressAPI.getUserAddresses();
+        console.log('API response:', response); // Debug log
+        
+        if (response && response.success && response.data) {
+          const apiAddresses = response.data;
+          console.log('API addresses:', apiAddresses); // Debug log
+          
+          // Transform API data to expected format
+          const formattedAddresses = apiAddresses.map((address, index) => ({
+            id: address.id || `addr_api_${index}_${Date.now()}`,
+            recipientName: address.recipientName || address.name || '',
+            phoneNumber: address.phoneNumber || address.phone || '',
+            street: address.street || address.address || '',
+            ward: address.ward || '',
+            city: address.city || address.province || '',
+            district: address.district || '',
+            isDefault: address.isDefault || false
+          }));
+          
+          setAddresses(formattedAddresses);
+          
+          // Đồng bộ với localStorage
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            const userData = JSON.parse(storedUser);
+            userData.addresses = formattedAddresses;
+            localStorage.setItem('user', JSON.stringify(userData));
+          }
+          
+          if (formattedAddresses.length === 0) {
+            setUseCustomAddress(true);
+          }
+          return;
+        }
+      } catch (apiError) {
+        console.warn('API failed, trying localStorage:', apiError);
+      }
+      
+      // Fallback: Lấy từ localStorage nếu API fails
       const storedUser = localStorage.getItem('user');
+      console.log('Stored user:', storedUser); // Debug log
       
       if (storedUser) {
         const userData = JSON.parse(storedUser);
         const userAddresses = userData.addresses || [];
+        console.log('localStorage addresses:', userAddresses); // Debug log
         
         // Transform data structure to match expected format
         const formattedAddresses = userAddresses.map((address, index) => ({
@@ -132,7 +176,7 @@ const CheckoutPage = () => {
           street: address.street || address.address || '',
           ward: address.ward || '',
           city: address.city || address.province || '',
-          district: address.district || '', // Optional field
+          district: address.district || '',
           isDefault: address.isDefault || false
         }));
         
@@ -142,21 +186,17 @@ const CheckoutPage = () => {
           setUseCustomAddress(true);
         }
       } else {
-        // Fallback: try to get from API if localStorage doesn't have user data
-        try {
-          const response = await addressAPI.getUserAddresses();
-          if (response.data && response.data.success) {
-            const userAddresses = response.data.data || [];
-            setAddresses(userAddresses);
-          }
-        } catch (apiError) {
-          console.error('Error fetching addresses from API:', apiError);
-          showError('Không thể tải danh sách địa chỉ');
-        }
+        console.log('No stored user data, showing custom address form');
+        setAddresses([]);
+        setUseCustomAddress(true);
       }
     } catch (error) {
-      console.error('Error fetching addresses from localStorage:', error);
+      console.error('Error fetching addresses:', error);
       showError('Không thể tải danh sách địa chỉ');
+      setAddresses([]);
+      setUseCustomAddress(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -231,8 +271,8 @@ const CheckoutPage = () => {
           // Try to save to API first
           try {
             const saveAddressResponse = await addressAPI.addAddress(addressToSave);
-            if (saveAddressResponse.data && saveAddressResponse.data.success) {
-              savedAddressId = saveAddressResponse.data.data?.id;
+            if (saveAddressResponse && saveAddressResponse.success && saveAddressResponse.data) {
+              savedAddressId = saveAddressResponse.data?.id;
               showSuccess('Địa chỉ mới đã được lưu vào danh sách địa chỉ của bạn');
             }
           } catch (apiError) {
