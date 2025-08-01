@@ -55,6 +55,12 @@ const LoginPage = () => {
       
       // Clear the error from location state
       navigate(location.pathname, { replace: true, state: {} });
+    } else if (state?.message) {
+      // Handle success message (e.g., from password reset)
+      showSnackbar(state.message, 'success');
+      
+      // Clear the message from location state
+      navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location, navigate]);
 
@@ -219,7 +225,13 @@ const LoginPage = () => {
           />
 
           <Box sx={{ textAlign: 'right', mb: 2 }}>
-            <Link href="#" variant="body2" color="primary">
+            <Link 
+              component="button" 
+              variant="body2" 
+              color="primary"
+              onClick={() => navigate('/forgot-password')}
+              sx={{ textDecoration: 'none' }}
+            >
               Quên mật khẩu?
             </Link>
           </Box>

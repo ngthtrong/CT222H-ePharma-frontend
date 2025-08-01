@@ -14,11 +14,18 @@ import {
   Tab,
   Snackbar,
 } from '@mui/material';
-import { Edit as EditIcon, Save as SaveIcon, Person as PersonIcon, LocationOn as LocationIcon } from '@mui/icons-material';
+import { 
+  Edit as EditIcon, 
+  Save as SaveIcon, 
+  Person as PersonIcon, 
+  LocationOn as LocationIcon,
+  Lock as LockIcon 
+} from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../api';
 import api from '../api/config';
 import AddressManager from '../components/AddressManager';
+import ChangePasswordForm from '../components/ChangePasswordForm';
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -178,6 +185,11 @@ const ProfilePage = () => {
               label="Địa chỉ" 
               iconPosition="start"
             />
+            <Tab 
+              icon={<LockIcon />} 
+              label="Đổi mật khẩu" 
+              iconPosition="start"
+            />
           </Tabs>
         </Box>
 
@@ -272,6 +284,16 @@ const ProfilePage = () => {
           <Box>
             {/* Address Management Tab */}
             <AddressManager />
+          </Box>
+        )}
+
+        {activeTab === 2 && (
+          <Box>
+            {/* Change Password Tab */}
+            <ChangePasswordForm 
+              onSuccess={(message) => showSnackbar(message, 'success')}
+              onError={(message) => showSnackbar(message, 'error')}
+            />
           </Box>
         )}
       </Paper>
