@@ -8,7 +8,7 @@ import { oauth2API } from '../api/authApi';
 export class OAuth2Auth {
   constructor() {
     this.supportedProviders = ['google', 'facebook'];
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api/v1';
+    this.baseURL = import.meta.env.VITE_API_URL || 'https://project-back-end-2swp.onrender.com/api/v1';
   }
 
   /**

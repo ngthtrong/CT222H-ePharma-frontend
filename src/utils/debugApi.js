@@ -20,7 +20,7 @@ export const testAdminEndpoint = async () => {
     
     console.log('Testing direct fetch to admin endpoint...');
     
-    const response = await fetch('http://localhost:8081/api/v1/admin/orders', {
+    const response = await fetch('https://project-back-end-2swp.onrender.com/api/v1/admin/orders', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
