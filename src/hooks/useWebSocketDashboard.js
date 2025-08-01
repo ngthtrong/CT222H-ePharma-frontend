@@ -7,7 +7,7 @@ import dashboardManager from '../utils/dashboardManager';
  * Uses centralized DashboardManager for better connection management
  * Supports graceful fallback when WebSocket is not available
  */
-export const useWebSocketAnalytics = () => {
+export const useWebSocketDashboard = () => {
   const [connected, setConnected] = useState(false);
   const [realTimeData, setRealTimeData] = useState(null);
   const [error, setError] = useState(null);
@@ -15,6 +15,184 @@ export const useWebSocketAnalytics = () => {
   const reconnectTimer = useRef(null);
   const pingInterval = useRef(null);
   const listenerRef = useRef(null);
+  
+  // Check if WebSocket is disabled via environment variable
+  const isWebSocketDisabled = import.meta.env.VITE_DISABLE_WEBSOCKET === 'true';
+
+  // Handle real-time data updates from dashboard manager
+  const handleRealTimeUpdate = useCallback((update) => {
+    switch (update.type) {
+      case 'realtime-metrics':
+        setRealTimeData(prevData => ({
+          ...prevData,
+          ...update.data,
+          timestamp: update.data.timestamp || Date.now()
+        }));
+        break;
+        
+      case 'order-update':
+        setRealTimeData(prevData => ({
+          ...prevData,
+          orderUpdate: update.data,
+          lastOrderUpdate: Date.now()
+        }));
+        break;
+        
+      case 'revenue-update':
+        setRealTimeData(prevData => ({
+          ...prevData,
+          revenue: update.data.revenue,
+          revenueUpdate: Date.now()
+        }));
+        break;
+        
+      case 'active-users':
+        setRealTimeData(prevData => ({
+          ...prevData,
+          activeUsersOnline: update.data.count || update.data.activeUsersOnline,
+          activeUsersUpdate: Date.now()
+        }));
+        break;
+        
+      case 'notification':
+        // Handle notifications separately if needed
+        console.log('Received notification:', update.data);
+        break;
+        
+      default:
+        // Handle generic updates
+        setRealTimeData(prevData => ({
+          ...prevData,
+          ...update.data
+        }));
+    }
+  }, []);
+
+  const connect = useCallback(() => {
+    if (isWebSocketDisabled) {
+      console.log('🚫 WebSocket disabled via VITE_DISABLE_WEBSOCKET - dashboard works in offline mode');
+      setConnected(false);
+      setError(null);
+      return;
+    }
+
+    try {
+      // Check current connection status
+      const status = dashboardManager.getConnectionStatus();
+      if (status.isConnected) {
+        setConnected(true);
+        setError(null);
+        return;
+      }
+
+      // Add listener for real-time updates
+      listenerRef.current = handleRealTimeUpdate;
+      dashboardManager.addListener(listenerRef.current);
+
+      // Connect to dashboard WebSocket
+      dashboardManager.connectDashboardWebSocket();
+      
+      // Start ping interval to keep connection alive
+      pingInterval.current = dashboardManager.startPingInterval();
+
+      // Check connection status periodically
+      const statusCheckInterval = setInterval(() => {
+        const currentStatus = dashboardManager.getConnectionStatus();
+        setConnected(currentStatus.isConnected);
+        
+        if (currentStatus.isConnected) {
+          setError(null);
+        } else if (!isWebSocketDisabled) {
+          setError('WebSocket disconnected - trying to reconnect...');
+        }
+      }, 5000);
+
+      // Store interval ref for cleanup
+      reconnectTimer.current = statusCheckInterval;
+
+    } catch (error) {
+      console.error('Error connecting to WebSocket:', error);
+      setConnected(false);
+      setError('Failed to connect to real-time analytics');
+    }
+  }, [handleRealTimeUpdate, isWebSocketDisabled]);
+
+  const disconnect = useCallback(() => {
+    if (listenerRef.current) {
+      dashboardManager.removeListener(listenerRef.current);
+      listenerRef.current = null;
+    }
+
+    if (reconnectTimer.current) {
+      clearInterval(reconnectTimer.current);
+      reconnectTimer.current = null;
+    }
+
+    if (pingInterval.current) {
+      clearInterval(pingInterval.current);
+      pingInterval.current = null;
+    }
+
+    setConnected(false);
+    setRealTimeData(null);
+    setError(null);
+  }, []);
+
+  const sendMessage = useCallback((message) => {
+    if (dashboardManager.isConnected()) {
+      try {
+        dashboardManager.dashboardSocket.send(JSON.stringify(message));
+      } catch (error) {
+        console.error('Error sending WebSocket message:', error);
+        setError('Failed to send message');
+      }
+    } else {
+      console.warn('WebSocket not connected - cannot send message');
+      setError('WebSocket not connected');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isWebSocketDisabled) {
+      console.log('🚀 Initializing WebSocket Analytics (real-time features enabled)');
+      connect();
+    } else {
+      console.log('ℹ️ WebSocket disabled - dashboard runs in HTTP-only mode (all features available)');
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      disconnect();
+    };
+  }, [connect, disconnect, isWebSocketDisabled]);
+
+  return {
+    connected,
+    realTimeData,
+    error,
+    connect,
+    disconnect,
+    sendMessage,
+    isWebSocketDisabled,
+    dashboardManager // Expose dashboard manager for advanced usage
+  };
+};
+
+/**
+ * Alternative hook using the old WebSocket implementation
+ * Kept for backward compatibility
+ */
+export const useWebSocketAnalytics = (url = 'ws://localhost:8081/ws-analytics') => {
+  const [connected, setConnected] = useState(false);
+  const [realTimeData, setRealTimeData] = useState(null);
+  const [error, setError] = useState(null);
+  
+  const ws = useRef(null);
+  const reconnectTimer = useRef(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 3;
+  const isWebSocketSupported = useRef(true);
+  const connectRef = useRef(null);
   
   // Check if WebSocket is disabled via environment variable
   const isWebSocketDisabled = import.meta.env.VITE_DISABLE_WEBSOCKET === 'true';
@@ -167,6 +345,7 @@ export const useWebSocketAnalytics = () => {
                 }));
               }
           }
+          
         } catch (parseError) {
           console.error('Error parsing WebSocket message:', parseError);
           setError('Error parsing real-time data');
@@ -207,20 +386,20 @@ export const useWebSocketAnalytics = () => {
       // Handle connection failure
       handleConnectionFailure(urlIndex);
     }
-  }, [url, handleConnectionFailure]);
+  }, [handleConnectionFailure, url]);
 
-  // Assign connect function to ref for use in handleConnectionFailure
+  // Store connect function in ref to break circular dependency
   connectRef.current = connect;
 
   const disconnect = useCallback(() => {
-    if (reconnectTimer.current) {
-      clearTimeout(reconnectTimer.current);
-      reconnectTimer.current = null;
-    }
-    
     if (ws.current) {
       ws.current.close(1000, 'User disconnected');
       ws.current = null;
+    }
+    
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = null;
     }
     
     setConnected(false);
@@ -230,19 +409,19 @@ export const useWebSocketAnalytics = () => {
   }, []);
 
   const sendMessage = useCallback((message) => {
-    if (ws.current && connected) {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       try {
         ws.current.send(JSON.stringify(message));
-      } catch (sendError) {
-        console.error('Error sending WebSocket message:', sendError);
+      } catch (error) {
+        console.error('Error sending WebSocket message:', error);
         setError('Failed to send message');
       }
     } else {
-      console.warn('WebSocket not connected, cannot send message');
+      console.warn('WebSocket not connected - cannot send message');
+      setError('WebSocket not connected');
     }
-  }, [connected]);
+  }, []);
 
-  // Auto-connect when hook is used (only if WebSocket is not disabled)
   useEffect(() => {
     if (!isWebSocketDisabled) {
       console.log('🚀 Initializing WebSocket Analytics (real-time features enabled)');
@@ -278,77 +457,5 @@ export const useWebSocketAnalytics = () => {
   };
 };
 
-/**
- * Alternative WebSocket hook using SockJS/STOMP (as preferred in backend guides)
- * This would require sockjs-client and stompjs packages
- */
-export const useSockJSAnalytics = (url = 'http://localhost:8081/ws') => {
-  const [connected, setConnected] = useState(false);
-  const [realTimeData, setRealTimeData] = useState(null);
-  const [error, setError] = useState(null);
-  
-  const stompClient = useRef(null);
-  
-  const connect = useCallback(() => {
-    try {
-      // This would require: npm install sockjs-client @stomp/stompjs
-      // For now, we'll use a placeholder implementation
-      
-      // const socket = new SockJS(url);
-      // const client = Stomp.over(socket);
-      
-      // client.connect({}, (frame) => {
-      //   console.log('Connected: ' + frame);
-      //   setConnected(true);
-      //   setError(null);
-      //   
-      //   // Subscribe to topics
-      //   client.subscribe('/topic/realtime-metrics', (message) => {
-      //     const data = JSON.parse(message.body);
-      //     setRealTimeData(prevData => ({ ...prevData, ...data }));
-      //   });
-      //   
-      //   client.subscribe('/topic/order-updates', (message) => {
-      //     const update = JSON.parse(message.body);
-      //     setRealTimeData(prevData => ({ ...prevData, orderUpdate: update }));
-      //   });
-      //   
-      //   client.subscribe('/topic/active-users', (message) => {
-      //     const data = JSON.parse(message.body);
-      //     setRealTimeData(prevData => ({ ...prevData, activeUsersOnline: data.count }));
-      //   });
-      // }, (error) => {
-      //   console.error('STOMP error:', error);
-      //   setError('Connection failed');
-      //   setConnected(false);
-      // });
-      
-      // stompClient.current = client;
-      
-      console.log('SockJS/STOMP implementation requires additional packages');
-      setError('SockJS/STOMP requires sockjs-client and @stomp/stompjs packages');
-      
-    } catch (connectionError) {
-      console.error('Error creating SockJS connection:', connectionError);
-      setError('Failed to create SockJS connection');
-    }
-  }, [url]);
-
-  const disconnect = useCallback(() => {
-    if (stompClient.current) {
-      stompClient.current.disconnect(() => {
-        console.log('SockJS disconnected');
-        setConnected(false);
-        setRealTimeData(null);
-      });
-    }
-  }, []);
-
-  return {
-    connected,
-    realTimeData,
-    error,
-    connect,
-    disconnect
-  };
-};
+// Export both hooks for flexibility
+export default useWebSocketDashboard;

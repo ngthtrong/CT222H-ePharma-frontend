@@ -201,83 +201,79 @@ const NotificationBell = () => {
                   </Box>
                 </ListItemIcon>
                 
-                <ListItemText
-                  primary={
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: notification.isRead ? 'normal' : 'bold',
-                        color: notification.isRead ? 'text.primary' : 'primary.main',
-                      }}
-                    >
-                      {notification.title}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: notification.isRead ? 'normal' : 'bold',
+                      color: notification.isRead ? 'text.primary' : 'primary.main',
+                      mb: 0.5,
+                    }}
+                  >
+                    {notification.title}
+                  </Typography>
+                  
+                  <Typography
+                    component="div"
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      mb: 0.5,
+                    }}
+                  >
+                    {notification.message}
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Chip
+                      size="small"
+                      label={notification.type}
+                      color={getNotificationTypeColor(notification.type)}
+                      variant="outlined"
+                      sx={{ fontSize: '0.7rem', height: 20 }}
+                    />
+                    <Typography component="span" variant="caption" color="text.secondary">
+                      {getTimeAgo(notification.createdAt)}
                     </Typography>
-                  }
-                  secondary={
-                    <Box>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          mb: 0.5,
-                        }}
-                      >
-                        {notification.message}
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Chip
-                          size="small"
-                          label={notification.type}
-                          color={getNotificationTypeColor(notification.type)}
-                          variant="outlined"
-                          sx={{ fontSize: '0.7rem', height: 20 }}
-                        />
-                        <Typography variant="caption" color="text.secondary">
-                          {getTimeAgo(notification.createdAt)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  }
-                />
+                  </Box>
+                </Box>
               </MenuItem>
             ))}
           </MenuList>
         )}
 
         {/* Footer */}
-        {notifications.length > 0 && (
-          <>
-            <Divider />
-            <Box sx={{ p: 1 }}>
-              <Button
-                fullWidth
-                size="small"
-                onClick={handleMarkAllAsRead}
-                disabled={unreadCount === 0}
-                startIcon={<ReadIcon />}
-                sx={{ mb: 1 }}
-              >
-                Đánh dấu tất cả đã đọc
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                variant="outlined"
-                onClick={() => {
-                  handleClose();
-                  navigate('/notifications');
-                }}
-              >
-                Xem tất cả thông báo
-              </Button>
-            </Box>
-          </>
-        )}
+        {notifications.length > 0 && [
+          <Divider key="divider" />,
+          <Box key="footer" sx={{ p: 1 }}>
+            <Button
+              fullWidth
+              size="small"
+              onClick={handleMarkAllAsRead}
+              disabled={unreadCount === 0}
+              startIcon={<ReadIcon />}
+              sx={{ mb: 1 }}
+            >
+              Đánh dấu tất cả đã đọc
+            </Button>
+            <Button
+              fullWidth
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                handleClose();
+                navigate('/notifications');
+              }}
+            >
+              Xem tất cả thông báo
+            </Button>
+          </Box>
+        ]}
       </Menu>
     </>
   );
