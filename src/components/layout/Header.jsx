@@ -540,6 +540,88 @@ const Header = () => {
         )}
       </AppBar>
 
+      {/* Category Dropdowns using Portal for proper z-index layering */}
+      {Array.isArray(categories) && categories.map((category) => {
+        const categoryId = category._id || category.id;
+        const hasChildren = category.children && category.children.length > 0;
+        
+        return hasChildren && categoryDropdowns[categoryId] && categoryAnchors[categoryId] ? (
+          <Portal key={`dropdown-${categoryId}`}>
+            <Popper
+              open={Boolean(categoryDropdowns[categoryId])}
+              anchorEl={categoryAnchors[categoryId]}
+              placement="bottom-start"
+              sx={{ zIndex: 9999 }}
+              modifiers={[
+                {
+                  name: 'offset',
+                  options: {
+                    offset: [0, 8],
+                  },
+                },
+              ]}
+            >
+              <ClickAwayListener onClickAway={() => handleDropdownClose(categoryId)}>
+                <Grow in={Boolean(categoryDropdowns[categoryId])} timeout={200}>
+                  <Paper
+                    sx={{
+                      minWidth: 220,
+                      maxWidth: 300,
+                      borderRadius: 2,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      backgroundColor: 'white'
+                    }}
+                    onMouseEnter={() => handleSubmenuMouseEnter(categoryId)}
+                    onMouseLeave={() => handleSubmenuMouseLeave(categoryId)}
+                  >
+                    <MenuList sx={{ p: 1 }}>
+                      {/* Parent category */}
+                      <MenuItem
+                        component={RouterLink}
+                        to={`/products?category=${categoryId}`}
+                        sx={{
+                          fontWeight: 600,
+                          color: 'primary.main',
+                          borderRadius: 1,
+                          mb: 1,
+                          '&:hover': {
+                            bgcolor: 'primary.50'
+                          }
+                        }}
+                      >
+                        Tất cả {category.name}
+                      </MenuItem>
+                      
+                      <Divider sx={{ my: 1 }} />
+                      
+                      {/* Subcategories */}
+                      {category.children.map((child) => (
+                        <MenuItem
+                          key={child._id || child.id}
+                          component={RouterLink}
+                          to={`/products?category=${child._id || child.id}`}
+                          sx={{
+                            fontSize: '14px',
+                            borderRadius: 1,
+                            '&:hover': {
+                              bgcolor: 'grey.50',
+                              color: 'primary.main'
+                            }
+                          }}
+                        >
+                          {child.name}
+                        </MenuItem>
+                      ))}
+                    </MenuList>
+                  </Paper>
+                </Grow>
+              </ClickAwayListener>
+            </Popper>
+          </Portal>
+        ) : null;
+      })}
+
       {/* Snackbar for notifications */}
       <Snackbar
         open={snackbarOpen}
