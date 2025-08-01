@@ -343,7 +343,14 @@ const HomePage = () => {
           </Box>
           <Grid container spacing={2} sx={{ alignItems: 'stretch' }}>
             {categories.map((category) => (
-              <Grid size={{ xs: 6, sm: 4, md: 2 }} key={category._id || category.id} sx={{ display: 'flex' }}>
+              <Grid 
+                size={{ xs: 6, sm: 4, md: 2 }} 
+                key={category._id || category.id} 
+                sx={{ 
+                  display: 'flex',
+                  '& > *': { width: '100%' }
+                }}
+              >
                 <Paper
                   elevation={0}
                   sx={{
@@ -351,6 +358,7 @@ const HomePage = () => {
                     textAlign: 'center',
                     minHeight: 180,
                     height: '100%',
+                    width: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'center',
@@ -380,6 +388,7 @@ const HomePage = () => {
                       color: 'white',
                       boxShadow: `0 4px 15px ${theme.palette.primary.main}40`,
                       transition: 'all 0.3s ease',
+                      flexShrink: 0,
                       '&:hover': {
                         transform: 'scale(1.1)',
                         boxShadow: `0 6px 20px ${theme.palette.primary.main}50`,
@@ -388,35 +397,37 @@ const HomePage = () => {
                   >
                     {getCategoryIcon(category.name)}
                   </Box>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 'medium', 
-                      color: 'text.primary',
-                      fontSize: '0.875rem',
-                      lineHeight: 1.3,
-                      minHeight: '2.6em',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {category.name}
-                  </Typography>
-                  {category.productCount && (
+                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <Typography 
-                      variant="caption" 
+                      variant="body2" 
                       sx={{ 
-                        color: 'text.secondary',
-                        display: 'block',
-                        mt: 0.5
+                        fontWeight: 'medium', 
+                        color: 'text.primary',
+                        fontSize: '0.875rem',
+                        lineHeight: 1.3,
+                        minHeight: '2.6em',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        mb: category.productCount ? 0.5 : 0,
                       }}
                     >
-                      {category.productCount} sản phẩm
+                      {category.name}
                     </Typography>
-                  )}
+                    {category.productCount && (
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          color: 'text.secondary',
+                          display: 'block',
+                        }}
+                      >
+                        {category.productCount} sản phẩm
+                      </Typography>
+                    )}
+                  </Box>
                 </Paper>
               </Grid>
             ))}
