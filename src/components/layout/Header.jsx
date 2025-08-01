@@ -22,6 +22,7 @@ import {
   Popper,
   ClickAwayListener,
   Grow,
+  useTheme,
 } from '@mui/material';
 import {
   ShoppingCart,
@@ -41,6 +42,7 @@ import SearchBar from '../SearchBar';
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   const { isAuthenticated, user, logout } = useAuth();
   const { totalItems } = useCart();
   
@@ -499,37 +501,63 @@ const Header = () => {
         {/* Breadcrumbs */}
         {shouldShowBreadcrumbs && (
           <Box sx={{ 
-            bgcolor: 'rgba(255,255,255,0.95)', 
-            borderTop: '1px solid rgba(0,0,0,0.08)',
-            py: 1.5 
+            bgcolor: 'background.paper', 
+            borderTop: `1px solid ${theme.palette.divider}`,
+            py: 2,
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)'
           }}>
             <Container maxWidth="xl">
               <Breadcrumbs
-                separator={<NavigateNextIcon fontSize="small" />}
+                separator={<NavigateNextIcon fontSize="small" sx={{ color: 'primary.main' }} />}
                 sx={{
-                  '& .MuiBreadcrumbs-ol': { alignItems: 'center' },
-                  '& .MuiBreadcrumbs-separator': { color: 'grey.400' }
+                  '& .MuiBreadcrumbs-ol': { 
+                    alignItems: 'center',
+                    flexWrap: 'wrap'
+                  },
+                  '& .MuiBreadcrumbs-separator': { 
+                    color: 'primary.main',
+                    mx: 1
+                  }
                 }}
               >
                 {breadcrumbs.map((crumb, index) => (
                   crumb.isActive ? (
-                    <Typography
+                    <Box
                       key={index}
-                      color="text.primary"
-                      sx={{ fontWeight: 600, fontSize: '14px' }}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        px: 2,
+                        py: 0.5,
+                        borderRadius: 2,
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        boxShadow: `0 2px 8px ${theme.palette.primary.main}30`
+                      }}
                     >
                       {crumb.label}
-                    </Typography>
+                    </Box>
                   ) : (
                     <Link
                       key={index}
                       component={RouterLink}
                       to={crumb.path}
-                      underline="hover"
+                      underline="none"
                       sx={{
-                        color: 'grey.600',
+                        color: 'text.secondary',
                         fontSize: '14px',
-                        '&:hover': { color: 'primary.main' }
+                        fontWeight: 500,
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 2,
+                        transition: 'all 0.2s ease',
+                        '&:hover': { 
+                          color: 'primary.main',
+                          bgcolor: 'primary.50',
+                          transform: 'translateY(-1px)'
+                        }
                       }}
                     >
                       {crumb.label}
