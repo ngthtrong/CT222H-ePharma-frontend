@@ -42,6 +42,7 @@ import {
 } from '@mui/icons-material';
 import { adminAPI } from '../../api/adminApi';
 import { categoryAPI } from '../../api/categoryApi';
+import { productAPI } from '../../api/productApi';
 import { validateCategoryForm, createSlug } from '../../utils/adminUtils';
 import { useSnackbar } from '../../hooks/useSnackbar';
 
@@ -50,6 +51,7 @@ const AdminCategories = () => {
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [productCounts, setProductCounts] = useState({});
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,7 +66,6 @@ const AdminCategories = () => {
     slug: '',
     description: '',
     parentCategoryId: '',
-    sortOrder: 1,
     seoTitle: '',
     seoDescription: '',
   });
@@ -80,7 +81,11 @@ const AdminCategories = () => {
       const response = await categoryAPI.getCategories();
       
       if (response.data.success) {
-        setCategories(response.data.data || []);
+        const categoriesData = response.data.data || [];
+        setCategories(categoriesData);
+        
+        // Fetch product counts for each category
+        await fetchProductCounts(categoriesData);
       } else {
         showError(response.data.message || 'Không thể tải danh sách danh mục');
       }
@@ -92,6 +97,37 @@ const AdminCategories = () => {
     }
   };
 
+  const fetchProductCounts = async (categoriesData) => {
+    try {
+      const counts = {};
+      
+      // Fetch product count for each category
+      for (const category of categoriesData) {
+        try {
+          console.log(`Fetching products for category ${category.id}: ${category.name}`);
+          const response = await productAPI.getProductsWithFilters({ category: category.id });
+          console.log(`Response for category ${category.id}:`, response);
+          
+          if (response.data && response.data.success && response.data.data) {
+            counts[category.id] = response.data.data.length;
+            console.log(`Category ${category.name} has ${response.data.data.length} products`);
+          } else {
+            counts[category.id] = 0;
+            console.log(`No products found for category ${category.name}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching products for category ${category.id}:`, error);
+          counts[category.id] = 0;
+        }
+      }
+      
+      console.log('Final product counts:', counts);
+      setProductCounts(counts);
+    } catch (error) {
+      console.error('Error fetching product counts:', error);
+    }
+  };
+
   const handleOpenDialog = (category = null) => {
     if (category) {
       setEditingCategory(category);
@@ -100,7 +136,6 @@ const AdminCategories = () => {
         slug: category.slug || '',
         description: category.description || '',
         parentCategoryId: category.parentCategoryId || '',
-        sortOrder: category.sortOrder || 1,
         seoTitle: category.seoTitle || '',
         seoDescription: category.seoDescription || '',
       });
@@ -111,7 +146,6 @@ const AdminCategories = () => {
         slug: '',
         description: '',
         parentCategoryId: '',
-        sortOrder: 1,
         seoTitle: '',
         seoDescription: '',
       });
@@ -169,7 +203,7 @@ const AdminCategories = () => {
       if (response.data.success) {
         showSuccess(editingCategory ? 'Cập nhật danh mục thành công' : 'Tạo danh mục thành công');
         handleCloseDialog();
-        fetchCategories();
+        await fetchCategories(); // This will also refresh product counts
       } else {
         showError(response.data.message || 'Không thể lưu danh mục');
       }
@@ -190,7 +224,7 @@ const AdminCategories = () => {
         
         if (response.data.success) {
           showSuccess('Xóa danh mục thành công');
-          fetchCategories();
+          await fetchCategories(); // This will also refresh product counts
         } else {
           showError(response.data.message || 'Không thể xóa danh mục');
         }
@@ -249,6 +283,10 @@ const AdminCategories = () => {
             return a.name.localeCompare(b.name);
           case 'name-desc':
             return b.name.localeCompare(a.name);
+          case 'products-asc':
+            return (productCounts[a.id] || 0) - (productCounts[b.id] || 0);
+          case 'products-desc':
+            return (productCounts[b.id] || 0) - (productCounts[a.id] || 0);
           default:
             return 0;
         }
@@ -336,6 +374,8 @@ const AdminCategories = () => {
                   <MenuItem value="">Mặc định</MenuItem>
                   <MenuItem value="name-asc">Tên A-Z</MenuItem>
                   <MenuItem value="name-desc">Tên Z-A</MenuItem>
+                  <MenuItem value="products-desc">Nhiều sản phẩm nhất</MenuItem>
+                  <MenuItem value="products-asc">Ít sản phẩm nhất</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -383,7 +423,7 @@ const AdminCategories = () => {
               <TableCell>Slug</TableCell>
               <TableCell>Mô tả</TableCell>
               <TableCell>Danh mục cha</TableCell>
-              <TableCell>Thứ tự</TableCell>
+              <TableCell>Số lượng sản phẩm</TableCell>
               <TableCell>Thao tác</TableCell>
             </TableRow>
           </TableHead>
@@ -426,9 +466,12 @@ const AdminCategories = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">
-                      {category.sortOrder || 1}
-                    </Typography>
+                    <Chip 
+                      label={productCounts[category.id] || 0}
+                      color={productCounts[category.id] > 0 ? "success" : "default"}
+                      size="small"
+                      variant="outlined"
+                    />
                   </TableCell>
                   <TableCell>
                     <IconButton
@@ -530,16 +573,6 @@ const AdminCategories = () => {
                 ))}
               </Select>
             </FormControl>
-
-            <TextField
-              name="sortOrder"
-              label="Thứ tự sắp xếp"
-              type="number"
-              value={formData.sortOrder}
-              onChange={handleInputChange}
-              fullWidth
-              inputProps={{ min: 1 }}
-            />
 
             <TextField
               name="seoTitle"
