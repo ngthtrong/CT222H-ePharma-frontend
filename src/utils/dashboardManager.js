@@ -104,24 +104,30 @@ class DashboardManager {
     }
   }
 
-  // WebSocket Connections
+  // WebSocket Connections - với fallback graceful
   connectDashboardWebSocket() {
     if (this.isConnecting) return;
     
     this.isConnecting = true;
     
+    // Kiểm tra token trước khi kết nối WebSocket
+    const token = this.getToken();
+    if (!token) {
+      console.warn('No token available for WebSocket connection - skipping WebSocket, using HTTP-only mode');
+      this.isConnecting = false;
+      return;
+    }
+    
     try {
-      // Try different WebSocket endpoints
+      // Simplified WebSocket endpoints - chỉ thử những endpoint có khả năng hoạt động
       const wsEndpoints = [
-        `${this.wsURL}/dashboard`,
-        `${this.wsURL.replace('8080', '8081')}/dashboard`,
-        `${this.wsURL}/analytics`,
-        `${this.wsURL.replace('8080', '8081')}/analytics`
+        `ws://localhost:8081/ws/dashboard`,
+        `ws://localhost:8080/ws/dashboard`
       ];
 
       this.tryWebSocketConnection(wsEndpoints, 0);
     } catch (error) {
-      console.error('Error initializing WebSocket connection:', error);
+      console.warn('Error initializing WebSocket connection, continuing with HTTP-only mode:', error);
       this.isConnecting = false;
     }
   }
@@ -138,22 +144,23 @@ class DashboardManager {
     
     // Add token to WebSocket URL if available
     const wsUrl = token ? `${endpoint}?token=${token}` : endpoint;
-    console.log(`Trying WebSocket connection to: ${wsUrl}`);
+    console.log(`Trying WebSocket connection to: ${endpoint}`); // Don't log full URL with token
 
     try {
       this.dashboardSocket = new WebSocket(wsUrl);
       
+      // Shorter timeout để không chờ quá lâu
       const connectionTimeout = setTimeout(() => {
         if (this.dashboardSocket.readyState === WebSocket.CONNECTING) {
-          console.log('WebSocket connection timeout - trying next endpoint');
+          console.log(`WebSocket connection timeout for ${endpoint} - trying next endpoint`);
           this.dashboardSocket.close();
           this.tryWebSocketConnection(endpoints, index + 1);
         }
-      }, 3000);
+      }, 2000); // Giảm từ 3s xuống 2s
 
       this.dashboardSocket.onopen = () => {
         clearTimeout(connectionTimeout);
-        console.log('Dashboard WebSocket connected successfully');
+        console.log('✅ Dashboard WebSocket connected successfully');
         this.isConnecting = false;
         this.reconnectAttempts = 0;
         
@@ -172,36 +179,33 @@ class DashboardManager {
 
       this.dashboardSocket.onclose = (event) => {
         clearTimeout(connectionTimeout);
-        console.log('Dashboard WebSocket disconnected');
+        console.log(`Dashboard WebSocket disconnected (code: ${event.code})`);
         this.isConnecting = false;
         
-        // Try to reconnect if not closed intentionally
-        if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+        // Chỉ thử reconnect nếu không phải lỗi endpoint
+        if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts && index === 0) {
           this.scheduleReconnect();
         } else if (index < endpoints.length - 1) {
-          // Try next endpoint
-          setTimeout(() => {
-            this.tryWebSocketConnection(endpoints, index + 1);
-          }, 1000);
+          // Try next endpoint immediately
+          this.tryWebSocketConnection(endpoints, index + 1);
+        } else {
+          console.log('🔄 WebSocket unavailable - dashboard will use HTTP polling mode');
         }
       };
 
       this.dashboardSocket.onerror = (error) => {
         clearTimeout(connectionTimeout);
-        console.error('Dashboard WebSocket error:', error);
+        console.warn(`WebSocket connection failed for ${endpoint}, trying next...`);
         this.isConnecting = false;
         
-        // Try next endpoint
-        setTimeout(() => {
-          this.tryWebSocketConnection(endpoints, index + 1);
-        }, 1000);
+        // Try next endpoint immediately
+        this.tryWebSocketConnection(endpoints, index + 1);
       };
 
     } catch (error) {
       console.error('Error creating WebSocket:', error);
-      setTimeout(() => {
-        this.tryWebSocketConnection(endpoints, index + 1);
-      }, 1000);
+      // Try next endpoint
+      this.tryWebSocketConnection(endpoints, index + 1);
     }
   }
 
@@ -225,14 +229,27 @@ class DashboardManager {
     try {
       const token = this.getToken();
       if (!token) {
-        console.error('No access token available for WebSocket connection');
+        console.warn('No access token available for notification WebSocket - notifications will use HTTP polling');
         return;
       }
 
-      this.notificationSocket = new WebSocket(`${this.wsURL}/notifications?token=${token}`);
+      // Thử kết nối notification WebSocket
+      const wsUrl = `ws://localhost:8081/ws/notifications?token=${token}`;
+      console.log('Trying notification WebSocket connection...');
       
+      this.notificationSocket = new WebSocket(wsUrl);
+      
+      // Timeout cho notification WebSocket
+      const notificationTimeout = setTimeout(() => {
+        if (this.notificationSocket.readyState === WebSocket.CONNECTING) {
+          console.log('Notification WebSocket timeout - using HTTP polling instead');
+          this.notificationSocket.close();
+        }
+      }, 3000);
+
       this.notificationSocket.onopen = () => {
-        console.log('Notification WebSocket connected');
+        clearTimeout(notificationTimeout);
+        console.log('✅ Notification WebSocket connected');
       };
 
       this.notificationSocket.onmessage = (event) => {
@@ -245,16 +262,18 @@ class DashboardManager {
       };
 
       this.notificationSocket.onclose = () => {
-        console.log('Notification WebSocket disconnected');
-        setTimeout(() => this.connectNotificationWebSocket(), this.reconnectDelay);
+        clearTimeout(notificationTimeout);
+        console.log('📱 Notification WebSocket disconnected - notifications will use HTTP polling');
+        // Không tự động reconnect notification WebSocket để tránh spam logs
       };
 
       this.notificationSocket.onerror = (error) => {
-        console.error('Notification WebSocket error:', error);
+        clearTimeout(notificationTimeout);
+        console.warn('Notification WebSocket failed - notifications will use HTTP polling');
       };
 
     } catch (error) {
-      console.error('Error creating notification WebSocket:', error);
+      console.warn('Error creating notification WebSocket - notifications will use HTTP polling:', error);
     }
   }
 
@@ -326,15 +345,49 @@ class DashboardManager {
   async testConnection() {
     try {
       const token = this.getToken();
+      console.log('🔍 Testing dashboard connection...');
       console.log('Current token:', token ? `${token.substring(0, 20)}...` : 'No token');
       
       const stats = await this.getDashboardStats();
-      console.log('Dashboard stats test successful:', stats);
+      console.log('✅ Dashboard HTTP API test successful:', stats);
       return true;
     } catch (error) {
-      console.error('Dashboard connection test failed:', error);
+      console.error('❌ Dashboard connection test failed:', error);
       return false;
     }
+  }
+
+  // Disable WebSocket và chỉ dùng HTTP
+  disableWebSocket() {
+    console.log('🔄 Disabling WebSocket - switching to HTTP-only mode');
+    this.disconnect();
+    this.maxReconnectAttempts = 0; // Prevent reconnection attempts
+  }
+
+  // Enable lại WebSocket
+  enableWebSocket() {
+    console.log('🔄 Enabling WebSocket');
+    this.maxReconnectAttempts = 3;
+    this.connectDashboardWebSocket();
+  }
+
+  // Kiểm tra và khởi động với HTTP-first approach
+  async initialize() {
+    console.log('🚀 Initializing Dashboard Manager...');
+    
+    // Test HTTP connection first
+    const httpWorks = await this.testConnection();
+    
+    if (!httpWorks) {
+      console.error('❌ HTTP API failed - dashboard may not work properly');
+      return false;
+    }
+    
+    // Nếu HTTP works, thử WebSocket (optional)
+    console.log('✅ HTTP API working - attempting WebSocket connection...');
+    this.connectDashboardWebSocket();
+    
+    return true;
   }
 
   // Format utilities
@@ -403,5 +456,8 @@ class DashboardManager {
 
 // Create singleton instance
 const dashboardManager = new DashboardManager();
+
+// Auto-initialize khi có token (sẽ được gọi từ dashboard component)
+// dashboardManager.initialize();
 
 export default dashboardManager;

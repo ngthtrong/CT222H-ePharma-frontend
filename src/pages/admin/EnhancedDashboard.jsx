@@ -255,7 +255,22 @@ const EnhancedDashboard = () => {
 
   // Setup auto-refresh and data loading
   useEffect(() => {
-    // Load initial data
+    // Initialize dashboard manager first
+    const initializeDashboard = async () => {
+      try {
+        const initialized = await dashboardManager.initialize();
+        if (initialized) {
+          console.log('✅ Dashboard Manager initialized successfully');
+        } else {
+          console.warn('⚠️ Dashboard Manager initialization failed');
+        }
+      } catch (error) {
+        console.error('❌ Error initializing Dashboard Manager:', error);
+      }
+    };
+
+    // Initialize và load data
+    initializeDashboard();
     loadDashboardData();
     loadRealTimeMetrics();
     
@@ -268,6 +283,8 @@ const EnhancedDashboard = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      // Cleanup dashboard manager khi component unmount
+      dashboardManager.disconnect();
     };
   }, [dateRange]);
 
