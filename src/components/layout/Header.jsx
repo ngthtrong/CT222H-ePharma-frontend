@@ -38,6 +38,7 @@ import { useCart } from '../../contexts/CartContext';
 import { getCategoriesWithChildren } from '../../api/categoryApi';
 import { isAdmin } from '../../utils/adminUtils';
 import SearchBar from '../SearchBar';
+import NotificationBell from '../NotificationBell';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -293,23 +294,8 @@ const Header = () => {
                 justifyContent: { xs: 'space-between', md: 'flex-end' }
               }}>
                 
-                {/* Notification Icon */}
-                <IconButton 
-                  sx={{ 
-                    color: 'white',
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
-                  }}
-                >
-                  <Badge badgeContent={0} color="secondary">
-                    <Box sx={{ width: 24, height: 24 }}>
-                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path fillRule="evenodd" clipRule="evenodd" d="M6.95393 3.1172C8.30955 1.76158 10.1482 1 12.0653 1C13.9824 1 15.8211 1.76158 17.1767 3.1172C18.5323 4.47282 19.2939 6.31144 19.2939 8.22857V12.8155C19.3203 14.9394 19.9145 17.0177 21.0149 18.8345C21.1645 19.0816 21.1694 19.3901 21.0276 19.6417C20.8858 19.8933 20.6194 20.049 20.3306 20.049H3.8C3.51119 20.049 3.2448 19.8933 3.10303 19.6417C2.96125 19.3901 2.9661 19.0816 3.11572 18.8345C4.21611 17.0176 4.81032 14.9394 4.83673 12.8155V8.22857C4.83673 6.31144 5.59831 4.47282 6.95393 3.1172Z" fill="currentColor" />
-                        <path d="M9.46999 21.0857C9.66082 21.6213 10.0127 22.0848 10.4774 22.4125C10.942 22.7402 11.4967 22.9161 12.0653 22.9161C12.6339 22.9161 13.1886 22.7402 13.6532 22.4125C14.1179 22.0848 14.4698 21.6213 14.6606 21.0857H9.46999Z" fill="currentColor" />
-                      </svg>
-                    </Box>
-                  </Badge>
-                </IconButton>
+                {/* Notification Bell (only for authenticated users) */}
+                {isAuthenticated && <NotificationBell />}
 
                 {/* Cart Icon */}
                 <IconButton

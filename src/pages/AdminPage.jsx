@@ -41,6 +41,7 @@ import AdminProducts from './admin/AdminProducts';
 import AdminOrders from './admin/AdminOrders';
 import AdminCategories from './admin/AdminCategories';
 import AdminUsers from './admin/AdminUsers';
+import AdminNotifications from './admin/AdminNotifications';
 
 const drawerWidth = 280;
 
@@ -329,16 +330,7 @@ const AdminPage = () => {
               </Typography>
             </Paper>
           } />
-          <Route path="notifications" element={
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="h5" color="primary" gutterBottom>
-                🔔 Thông báo
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Tính năng đang được phát triển...
-              </Typography>
-            </Paper>
-          } />
+          <Route path="notifications" element={<AdminNotifications />} />
         </Routes>
       </Box>
     </Box>
