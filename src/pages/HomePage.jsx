@@ -341,14 +341,19 @@ const HomePage = () => {
               Danh mục nổi bật
             </Typography>
           </Box>
-          <Grid container spacing={2}>
+          <Grid container spacing={2} sx={{ alignItems: 'stretch' }}>
             {categories.map((category) => (
-              <Grid size={{ xs: 6, sm: 4, md: 2 }} key={category._id || category.id}>
+              <Grid size={{ xs: 6, sm: 4, md: 2 }} key={category._id || category.id} sx={{ display: 'flex' }}>
                 <Paper
                   elevation={0}
                   sx={{
                     p: 3,
                     textAlign: 'center',
+                    minHeight: 180,
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: 2,
                     transition: 'all 0.3s ease',
@@ -389,7 +394,13 @@ const HomePage = () => {
                       fontWeight: 'medium', 
                       color: 'text.primary',
                       fontSize: '0.875rem',
-                      lineHeight: 1.3
+                      lineHeight: 1.3,
+                      minHeight: '2.6em',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
                     }}
                   >
                     {category.name}
