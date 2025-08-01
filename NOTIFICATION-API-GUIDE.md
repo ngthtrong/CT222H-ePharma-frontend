@@ -551,64 +551,9 @@ const NotificationSender = () => {
 
 ---
 
-## Real-time Integration
-
-### WebSocket cho Real-time Notifications
-
-```javascript
-// Kết nối WebSocket để nhận thông báo real-time
-const useRealtimeNotifications = () => {
-    const { refresh } = useNotifications();
-    const [socket, setSocket] = useState(null);
-
-    useEffect(() => {
-        const ws = new WebSocket(`ws://localhost:8080/notifications?token=${userToken}`);
-        
-        ws.onmessage = (event) => {
-            const notification = JSON.parse(event.data);
-            // Hiển thị toast notification
-            showToastNotification(notification);
-            // Refresh danh sách thông báo
-            refresh();
-        };
-
-        setSocket(ws);
-
-        return () => ws.close();
-    }, []);
-
-    return socket;
-};
-
-const showToastNotification = (notification) => {
-    // Integration với toast library (như react-toastify)
-    toast(
-        <div>
-            <h4>{notification.title}</h4>
-            <p>{notification.message}</p>
-        </div>,
-        {
-            type: getToastType(notification.type),
-            autoClose: 5000
-        }
-    );
-};
-
-const getToastType = (type) => {
-    switch(type) {
-        case 'ORDER': return 'info';
-        case 'PROMOTION': return 'success';
-        case 'SYSTEM': return 'warning';
-        default: return 'default';
-    }
-};
-```
-
----
-
 ## Notes
 
-1. **Real-time**: Nên implement WebSocket để nhận thông báo real-time
+1. **Polling**: Sử dụng HTTP polling để cập nhật thông báo real-time
 2. **Pagination**: Với lượng thông báo lớn, nên implement pagination
 3. **Push Notifications**: Có thể tích hợp với service worker cho push notifications
 4. **Auto-read**: Consider tự động đánh dấu đã đọc khi user click vào thông báo

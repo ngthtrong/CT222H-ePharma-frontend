@@ -45,9 +45,6 @@ import {
   Refresh,
   PictureAsPdf,
   TableChart,
-  Wifi,
-  WifiOff,
-  Circle,
   ShowChart,
   Group,
   Category,
@@ -74,9 +71,7 @@ import {
   BarElement,
 } from 'chart.js';
 
-// Import our enhanced WebSocket hook and dashboard manager
-import { useWebSocketDashboard } from '../../hooks/useWebSocketDashboard';
-import dashboardManager from '../../utils/dashboardManager';
+// Import admin API
 import { adminAPI } from '../../api/adminApi';
 
 // Register Chart.js components
@@ -95,7 +90,6 @@ ChartJS.register(
 const EnhancedDashboard = () => {
   // State management
   const [dashboardData, setDashboardData] = useState(null);
-  const [realTimeMetrics, setRealTimeMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -115,9 +109,6 @@ const EnhancedDashboard = () => {
   // Notification state
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   
-  // WebSocket hook for real-time data
-  const { connected, realTimeData, error: wsError } = useWebSocketDashboard();
-
   // Auto-refresh interval
   const intervalRef = useRef(null);
 
@@ -142,19 +133,17 @@ const EnhancedDashboard = () => {
     try {
       setLoading(true);
       
-      // Use dashboard manager for API calls
-      const [stats, recentOrders, topProducts, advancedMetrics] = await Promise.all([
-        dashboardManager.getDashboardStats(),
-        dashboardManager.getRecentOrders(10),
-        dashboardManager.getTopProducts(10),
-        dashboardManager.getAdvancedMetrics(dateRange.startDate, dateRange.endDate)
+      // Use admin API for data calls
+      const [stats, recentOrders, topProducts] = await Promise.all([
+        adminAPI.getDashboardStats(),
+        adminAPI.getRecentOrders(10),
+        adminAPI.getTopProducts(10)
       ]);
 
       setDashboardData({
-        stats,
-        recentOrders,
-        topProducts,
-        ...advancedMetrics
+        stats: stats.data,
+        recentOrders: recentOrders.data,
+        topProducts: topProducts.data
       });
       
       setLastUpdated(new Date());
@@ -164,17 +153,6 @@ const EnhancedDashboard = () => {
       showSnackbar('Không thể tải dữ liệu dashboard: ' + error.message, 'error');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Load real-time metrics
-  const loadRealTimeMetrics = async () => {
-    try {
-      const metrics = await dashboardManager.getRealTimeMetrics();
-      setRealTimeMetrics(metrics);
-    } catch (error) {
-      console.error('Error loading real-time metrics:', error);
-      // Don't show error for real-time metrics as WebSocket might provide this data
     }
   };
 
@@ -245,34 +223,15 @@ const EnhancedDashboard = () => {
   // Refresh data
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      loadDashboardData(),
-      loadRealTimeMetrics()
-    ]);
+    await loadDashboardData();
     setRefreshing(false);
     showSnackbar('Dữ liệu đã được cập nhật!', 'success');
   };
 
   // Setup auto-refresh and data loading
   useEffect(() => {
-    // Initialize dashboard manager first
-    const initializeDashboard = async () => {
-      try {
-        const initialized = await dashboardManager.initialize();
-        if (initialized) {
-          console.log('✅ Dashboard Manager initialized successfully');
-        } else {
-          console.warn('⚠️ Dashboard Manager initialization failed');
-        }
-      } catch (error) {
-        console.error('❌ Error initializing Dashboard Manager:', error);
-      }
-    };
-
-    // Initialize và load data
-    initializeDashboard();
+    // Load data
     loadDashboardData();
-    loadRealTimeMetrics();
     
     // Setup auto-refresh every 5 minutes for dashboard data
     intervalRef.current = setInterval(() => {
@@ -283,28 +242,8 @@ const EnhancedDashboard = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      // Cleanup dashboard manager khi component unmount
-      dashboardManager.disconnect();
     };
   }, [dateRange]);
-
-  // Handle WebSocket error
-  useEffect(() => {
-    if (wsError && !wsError.includes('disabled')) {
-      showSnackbar(`WebSocket: ${wsError}`, 'warning');
-    }
-  }, [wsError]);
-
-  // Update real-time data from WebSocket
-  useEffect(() => {
-    if (realTimeData) {
-      setRealTimeMetrics(prevMetrics => ({
-        ...prevMetrics,
-        ...realTimeData,
-        timestamp: realTimeData.timestamp || Date.now()
-      }));
-    }
-  }, [realTimeData]);
 
   // Chart configurations
   const chartOptions = {
@@ -371,24 +310,24 @@ const EnhancedDashboard = () => {
   };
 
   const hourlyOrdersData = {
-    labels: realTimeMetrics?.hourlyOrders?.map(item => item.hour) || 
-            Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`),
+    labels: Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`),
     datasets: [
       {
         label: 'Số đơn hàng',
-        data: realTimeMetrics?.hourlyOrders?.map(item => item.orderCount) || 
-              Array(24).fill(0),
+        data: Array(24).fill(0),
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
       },
     ],
   };
 
   const productChartData = {
-    labels: dashboardData?.topProducts?.map(product => product.productName) || [],
+    labels: Array.isArray(dashboardData?.topProducts) ? 
+      dashboardData.topProducts.map(product => product.productName) : [],
     datasets: [
       {
         label: 'Số lượng bán',
-        data: dashboardData?.topProducts?.map(product => product.quantitySold) || [],
+        data: Array.isArray(dashboardData?.topProducts) ? 
+          dashboardData.topProducts.map(product => product.quantitySold) : [],
         backgroundColor: 'rgba(153, 102, 255, 0.6)',
       },
     ],
@@ -437,16 +376,6 @@ const EnhancedDashboard = () => {
         </Box>
         
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          {/* WebSocket Status */}
-          <Tooltip title={connected ? 'Real-time kết nối' : 'Chế độ offline'}>
-            <Chip
-              icon={connected ? <Wifi /> : <WifiOff />}
-              label={connected ? 'Real-time' : 'Offline'}
-              color={connected ? 'success' : 'default'}
-              variant="outlined"
-            />
-          </Tooltip>
-          
           {/* Last Updated */}
           {lastUpdated && (
             <Chip
@@ -536,10 +465,6 @@ const EnhancedDashboard = () => {
                     {formatNumber(dashboardData?.totalOrders || 0)}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    <Circle sx={{ color: realTimeMetrics ? 'success.main' : 'grey.400', fontSize: 8, mr: 0.5 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      24h: {realTimeMetrics?.ordersLast24h || 0}
-                    </Typography>
                   </Box>
                 </Box>
                 <Avatar sx={{ bgcolor: 'primary.main', width: 60, height: 60 }}>
@@ -590,10 +515,6 @@ const EnhancedDashboard = () => {
                     {formatNumber(dashboardData?.activeCustomers || 0)}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    <Circle sx={{ color: connected ? 'success.main' : 'grey.400', fontSize: 8, mr: 0.5 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Online: {realTimeMetrics?.activeUsersOnline || 0}
-                    </Typography>
                   </Box>
                 </Box>
                 <Avatar sx={{ bgcolor: 'success.main', width: 60, height: 60 }}>
@@ -641,8 +562,7 @@ const EnhancedDashboard = () => {
           <Paper sx={{ p: 3, height: 350 }}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
               <Schedule sx={{ mr: 1, color: 'primary.main' }} />
-              Đơn Hàng Theo Giờ (Real-time)
-              {connected && <Badge color="success" variant="dot" sx={{ ml: 1 }} />}
+              Đơn Hàng Theo Giờ
             </Typography>
             <Box sx={{ height: 260 }}>
               <Bar data={hourlyOrdersData} options={{
@@ -651,11 +571,6 @@ const EnhancedDashboard = () => {
                 scales: { y: { beginAtZero: true } }
               }} />
             </Box>
-            {realTimeMetrics?.peakHour && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Giờ cao điểm: <strong>{realTimeMetrics.peakHour}</strong>
-              </Typography>
-            )}
           </Paper>
         </Grid>
 
@@ -714,7 +629,8 @@ const EnhancedDashboard = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {dashboardData?.recentOrders?.slice(0, 8).map((order) => (
+                  {Array.isArray(dashboardData?.recentOrders) ? 
+                    dashboardData.recentOrders.slice(0, 8).map((order) => (
                     <TableRow key={order.orderId} hover>
                       <TableCell>{order.orderCode}</TableCell>
                       <TableCell>{order.customerName}</TableCell>
@@ -733,7 +649,15 @@ const EnhancedDashboard = () => {
                         />
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Không có dữ liệu đơn hàng
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
