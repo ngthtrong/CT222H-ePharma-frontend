@@ -11,7 +11,7 @@ import {
   Alert,
 } from '@mui/material';
 import { getProducts } from '../api/productApi';
-import { getCategories } from '../api/categoryApi';
+import { getCategories, getCategoriesWithChildren } from '../api/categoryApi';
 import ProductCard from '../components/ProductCard';
 import ProductFilters from '../components/ProductFilters';
 import { useSearchHistory } from '../hooks/useSearchHistory';
@@ -28,10 +28,48 @@ const ProductsPage = () => {
 
   // Filter states
   const [categories, setCategories] = useState([]);
+  const [categoriesWithChildren, setCategoriesWithChildren] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [priceRange, setPriceRange] = useState([0, 5000000]);
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'name_asc');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+
+  // Helper function to get all category IDs including children
+  const getAllCategoryIds = (categoryId) => {
+    if (!categoryId || !categoriesWithChildren.length) return [categoryId];
+    
+    console.log('Getting category IDs for:', categoryId);
+    console.log('Available categories with children:', categoriesWithChildren);
+    
+    // Find the category in the hierarchical structure
+    const findCategory = (categories, id) => {
+      for (const category of categories) {
+        if (category._id === id || category.id === id) {
+          // Return the category ID and all its children IDs
+          const childrenIds = category.children ? 
+            category.children.map(child => child._id || child.id) : [];
+          const allIds = [id, ...childrenIds];
+          console.log(`Found parent category ${category.name}, including children:`, allIds);
+          return allIds;
+        }
+      }
+      // Check if it's a child category
+      for (const category of categories) {
+        if (category.children) {
+          for (const child of category.children) {
+            if (child._id === id || child.id === id) {
+              console.log(`Found child category ${child.name}:`, [id]);
+              return [id];
+            }
+          }
+        }
+      }
+      console.log(`Category ${id} not found in hierarchy, returning as is`);
+      return [id]; // If not found, return as is
+    };
+    
+    return findCategory(categoriesWithChildren, categoryId);
+  };
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -69,11 +107,22 @@ const ProductsPage = () => {
       );
     }
 
-    // Category filter
+    // Category filter - now includes children categories
     if (selectedCategory) {
-      filtered = filtered.filter(product => 
-        product.categoryId === selectedCategory || product.category === selectedCategory
-      );
+      const allowedCategoryIds = getAllCategoryIds(selectedCategory);
+      console.log('Filtering by category IDs:', allowedCategoryIds);
+      
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(product => {
+        const productCategoryId = product.categoryId || product.category;
+        const isIncluded = allowedCategoryIds.includes(productCategoryId);
+        if (!isIncluded) {
+          console.log(`Product ${product.name} excluded - category ${productCategoryId} not in`, allowedCategoryIds);
+        }
+        return isIncluded;
+      });
+      
+      console.log(`Category filter: ${beforeCount} -> ${filtered.length} products`);
     }
 
     // Price range filter
@@ -134,7 +183,7 @@ const ProductsPage = () => {
       totalItems: filtered.length,
       itemsPerPage
     });
-  }, [selectedCategory, priceRange, sortBy, searchQuery, searchParams, allProducts]);
+  }, [selectedCategory, priceRange, sortBy, searchQuery, searchParams, allProducts, categoriesWithChildren]);
 
   useEffect(() => {
     fetchProducts();
@@ -182,15 +231,27 @@ const ProductsPage = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const categoriesResponse = await getCategories();
+        // Fetch both flat categories and hierarchical categories
+        const [categoriesResponse, categoriesWithChildrenResponse] = await Promise.all([
+          getCategories(),
+          getCategoriesWithChildren()
+        ]);
+        
         if (Array.isArray(categoriesResponse)) {
           setCategories(categoriesResponse);
         } else {
           setCategories([]);
         }
+        
+        if (Array.isArray(categoriesWithChildrenResponse)) {
+          setCategoriesWithChildren(categoriesWithChildrenResponse);
+        } else {
+          setCategoriesWithChildren([]);
+        }
       } catch (err) {
         console.error('Error fetching categories in ProductsPage:', err);
         setCategories([]);
+        setCategoriesWithChildren([]);
       }
     };
     fetchInitialData();

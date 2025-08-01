@@ -418,6 +418,8 @@ const Header = () => {
               
               {/* Category Menu Button */}
               <Button
+                component={RouterLink}
+                to="/products"
                 startIcon={<MenuIcon />}
                 sx={{
                   bgcolor: 'rgba(255,255,255,0.1)',
