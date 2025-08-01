@@ -44,18 +44,6 @@ api.interceptors.request.use(
 
     const token = localStorage.getItem('accessToken');
 
-    // Debug logging
-    if (isAdminEndpoint) {
-      console.log('Admin endpoint request:', {
-        url: config.url,
-        method: config.method,
-        hasToken: !!token,
-        tokenLength: token ? token.length : 0,
-        tokenPreview: token ? token.substring(0, 20) + '...' : null,
-        headers: config.headers
-      });
-    }
-
     // Đảm bảo config.headers tồn tại
     if (!config.headers) {
       config.headers = {};
@@ -75,18 +63,6 @@ api.interceptors.request.use(
       // Clean token - loại bỏ dấu ngoặc kép thừa nếu có
       const cleanToken = token.replace(/^["']|["']$/g, '');
       config.headers = appendHeader(config.headers, 'Authorization', `Bearer ${cleanToken}`);
-      
-      // Debug logging cho admin endpoints
-      if (isAdminEndpoint) {
-        console.log('Adding Authorization header:', {
-          method: config.method?.toUpperCase(),
-          url: config.url,
-          originalToken: token.substring(0, 30) + '...',
-          cleanedToken: cleanToken.substring(0, 30) + '...',
-          authHeader: `Bearer ${cleanToken.substring(0, 30)}...`,
-          finalHeaders: config.headers
-        });
-      }
     }
 
     // Xử lý X-Cart-Session-ID cho các request liên quan đến cart (KHÔNG bao gồm auth endpoints)
@@ -125,7 +101,6 @@ api.interceptors.response.use(
     const cartSessionId = response.headers['x-cart-session-id'];
     if (cartSessionId) {
       setSessionId(cartSessionId);
-      console.log('Cart session ID received and saved:', cartSessionId);
     }
 
     return response;
@@ -146,7 +121,6 @@ api.interceptors.response.use(
       // Đối với logout API, không redirect ngay cả khi lỗi 401 hoặc 500
       // Vì có thể token đã hết hạn hoặc server có vấn đề
       // Frontend sẽ tự cleanup và AuthContext sẽ xử lý
-      console.log('Logout API error - this is handled by AuthContext, not redirecting');
       return Promise.reject(error);
     }
 

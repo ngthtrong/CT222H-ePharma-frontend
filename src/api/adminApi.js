@@ -3,11 +3,11 @@ import api from './config';
 // Utility function để kiểm tra token admin
 const checkAdminToken = () => {
   const token = localStorage.getItem('accessToken');
-  console.log('Checking admin token:', {
-    hasToken: !!token,
-    tokenLength: token ? token.length : 0,
-    tokenStart: token ? token.substring(0, 20) + '...' : 'null'
-  });
+  // console.log('Checking admin token:', {
+  //   hasToken: !!token,
+  //   tokenLength: token ? token.length : 0,
+  //   tokenStart: token ? token.substring(0, 20) + '...' : 'null'
+  // });
   
   if (!token) {
     console.error('Admin API called without token');
@@ -23,11 +23,11 @@ const adminApiCall = (apiCall) => {
       const token = checkAdminToken(); // Kiểm tra token trước khi gọi API
       
       // Log để debug
-      console.log('Admin API call with token:', {
-        hasToken: !!token,
-        tokenLength: token?.length,
-        endpoint: args[0] || 'unknown'
-      });
+      // console.log('Admin API call with token:', {
+      //   hasToken: !!token,
+      //   tokenLength: token?.length,
+      //   endpoint: args[0] || 'unknown'
+      // });
       
       return apiCall(...args);
     } catch (error) {

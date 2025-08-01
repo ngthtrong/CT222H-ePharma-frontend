@@ -104,16 +104,12 @@ const AdminCategories = () => {
       // Fetch product count for each category
       for (const category of categoriesData) {
         try {
-          console.log(`Fetching products for category ${category.id}: ${category.name}`);
           const response = await productAPI.getProductsWithFilters({ category: category.id });
-          console.log(`Response for category ${category.id}:`, response);
           
           if (response.data && response.data.success && response.data.data) {
             counts[category.id] = response.data.data.length;
-            console.log(`Category ${category.name} has ${response.data.data.length} products`);
           } else {
             counts[category.id] = 0;
-            console.log(`No products found for category ${category.name}`);
           }
         } catch (error) {
           console.error(`Error fetching products for category ${category.id}:`, error);
@@ -121,7 +117,6 @@ const AdminCategories = () => {
         }
       }
       
-      console.log('Final product counts:', counts);
       setProductCounts(counts);
     } catch (error) {
       console.error('Error fetching product counts:', error);
