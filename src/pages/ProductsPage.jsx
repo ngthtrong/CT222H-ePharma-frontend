@@ -35,9 +35,55 @@ const ProductsPage = () => {
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'name_asc');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
 
+  // Helper function to get category ID from slug or ID
+  const getCategoryIdFromSlugOrId = (categoryIdentifier) => {
+    if (!categoryIdentifier || !categoriesWithChildren.length) return null;
+    
+    console.log('Getting category ID for identifier:', categoryIdentifier);
+    
+    // First try to find by ID
+    for (const category of categoriesWithChildren) {
+      if (category._id === categoryIdentifier || category.id === categoryIdentifier) {
+        return category._id || category.id;
+      }
+      // Check children
+      if (category.children) {
+        for (const child of category.children) {
+          if (child._id === categoryIdentifier || child.id === categoryIdentifier) {
+            return child._id || child.id;
+          }
+        }
+      }
+    }
+    
+    // Then try to find by slug
+    for (const category of categoriesWithChildren) {
+      if (category.slug === categoryIdentifier) {
+        console.log(`Found category by slug: ${category.name} (${category._id || category.id})`);
+        return category._id || category.id;
+      }
+      // Check children
+      if (category.children) {
+        for (const child of category.children) {
+          if (child.slug === categoryIdentifier) {
+            console.log(`Found child category by slug: ${child.name} (${child._id || child.id})`);
+            return child._id || child.id;
+          }
+        }
+      }
+    }
+    
+    console.log(`Category not found for identifier: ${categoryIdentifier}`);
+    return null;
+  };
+
   // Helper function to get all category IDs including children
-  const getAllCategoryIds = (categoryId) => {
-    if (!categoryId || !categoriesWithChildren.length) return [categoryId];
+  const getAllCategoryIds = (categoryIdentifier) => {
+    if (!categoryIdentifier || !categoriesWithChildren.length) return [categoryIdentifier];
+    
+    // First resolve the identifier to actual ID
+    const categoryId = getCategoryIdFromSlugOrId(categoryIdentifier);
+    if (!categoryId) return [categoryIdentifier];
     
     console.log('Getting category IDs for:', categoryId);
     console.log('Available categories with children:', categoriesWithChildren);
@@ -199,17 +245,21 @@ const ProductsPage = () => {
 
   // Sync URL params with state when component mounts or URL changes
   useEffect(() => {
-    const category = searchParams.get('category') || '';
+    const categoryParam = searchParams.get('category') || '';
     const sort = searchParams.get('sortBy') || 'name_asc';
     const minPrice = parseInt(searchParams.get('minPrice')) || 0;
     const maxPrice = parseInt(searchParams.get('maxPrice')) || 5000000;
     const search = searchParams.get('search') || '';
 
-    setSelectedCategory(category);
+    // Convert category slug to ID if needed, or use ID directly
+    const categoryId = categoryParam ? getCategoryIdFromSlugOrId(categoryParam) : '';
+    console.log('Category param from URL:', categoryParam, '-> resolved to ID:', categoryId);
+    
+    setSelectedCategory(categoryId || '');
     setSortBy(sort);
     setPriceRange([minPrice, maxPrice]);
     setSearchQuery(search);
-  }, [searchParams]);
+  }, [searchParams, categoriesWithChildren]);
 
   // Save search to history when search query changes
   useEffect(() => {
@@ -311,6 +361,25 @@ const ProductsPage = () => {
       return newSearchParams;
     });
   };
+
+  // Special handler for category filter to ensure we use ID in URL
+  const handleCategoryFilterChange = (event) => {
+    const categoryId = event.target.value;
+    console.log('Category filter change:', categoryId); // Debug log
+    setSelectedCategory(categoryId);
+    
+    setSearchParams(prev => {
+      const newSearchParams = new URLSearchParams(prev);
+      if (categoryId) {
+        newSearchParams.set('category', categoryId);
+      } else {
+        newSearchParams.delete('category');
+      }
+      newSearchParams.set('page', '1'); // Reset to first page on filter change
+      console.log('New search params:', newSearchParams.toString()); // Debug log
+      return newSearchParams;
+    });
+  };
   
   const handlePriceChange = (event, newValue) => {
     setPriceRange(newValue);
@@ -383,6 +452,7 @@ const ProductsPage = () => {
             sortBy={sortBy}
             setSortBy={setSortBy}
             onFilterChange={handleFilterChange}
+            onCategoryFilterChange={handleCategoryFilterChange}
             onPriceChange={handlePriceChange}
             onPriceChangeCommitted={handlePriceChangeCommitted}
             onClearFilters={handleClearFilters}

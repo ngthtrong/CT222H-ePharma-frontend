@@ -24,6 +24,7 @@ const ProductFilters = ({
   sortBy,
   setSortBy,
   onFilterChange,
+  onCategoryFilterChange,
   onPriceChange,
   onPriceChangeCommitted,
   onClearFilters
@@ -61,7 +62,13 @@ const ProductFilters = ({
               <Chip
                 label="Danh mục"
                 size="small"
-                onDelete={() => onFilterChange(setSelectedCategory)({ target: { name: 'category', value: '' } })}
+                onDelete={() => {
+                  if (onCategoryFilterChange) {
+                    onCategoryFilterChange({ target: { value: '' } });
+                  } else {
+                    onFilterChange(setSelectedCategory)({ target: { name: 'category', value: '' } });
+                  }
+                }}
                 color="primary"
                 variant="outlined"
               />
@@ -78,7 +85,7 @@ const ProductFilters = ({
           name="category"
           value={selectedCategory || ''}
           label="Danh mục"
-          onChange={onFilterChange(setSelectedCategory)}
+          onChange={onCategoryFilterChange || onFilterChange(setSelectedCategory)}
         >
           <MenuItem value="">
             <em>Tất cả</em>
@@ -141,6 +148,7 @@ ProductFilters.propTypes = {
   sortBy: PropTypes.string,
   setSortBy: PropTypes.func.isRequired,
   onFilterChange: PropTypes.func.isRequired,
+  onCategoryFilterChange: PropTypes.func,
   onPriceChange: PropTypes.func.isRequired,
   onPriceChangeCommitted: PropTypes.func.isRequired,
   onClearFilters: PropTypes.func.isRequired,

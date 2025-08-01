@@ -372,7 +372,7 @@ const HomePage = () => {
                       borderColor: theme.palette.primary.main,
                     },
                   }}
-                  onClick={() => navigate(`/products?category=${category.slug}`)}
+                  onClick={() => navigate(`/products?category=${category._id || category.id}`)}
                 >
                   <Box
                     sx={{

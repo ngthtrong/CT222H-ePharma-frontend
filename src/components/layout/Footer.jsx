@@ -172,10 +172,10 @@ const Footer = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {[
-                'Về chúng tôi',
+                'Về ePharma',
                 'Sản phẩm',
                 'Khuyến mãi',
-                'Tin tức',
+                'Tư vấn sức khỏe',
                 'Liên hệ'
               ].map((text, index) => (
                 <Link 
@@ -225,11 +225,11 @@ const Footer = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {[
-                'Hướng dẫn mua hàng',
+                'Hướng dẫn mua thuốc',
                 'Chính sách đổi trả',
                 'Chính sách bảo mật',
                 'Điều khoản sử dụng',
-                'Câu hỏi thường gặp'
+                'Tư vấn dược sĩ'
               ].map((text, index) => (
                 <Link 
                   key={index}
@@ -278,9 +278,9 @@ const Footer = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
               {[
-                { icon: <PhoneIcon />, text: 'Hotline: 1900 1009', color: '#25D366' },
-                { icon: <EmailIcon />, text: 'support@wellverse.vn', color: '#EA4335' },
-                { icon: <LocationIcon />, text: '123 Đường ABC, Quận 1, TP.HCM', color: '#4285F4' }
+                { icon: <PhoneIcon />, text: 'Hotline: 0932.670.881', color: '#25D366' },
+                { icon: <EmailIcon />, text: 'support@epharma.vn', color: '#EA4335' },
+                { icon: <LocationIcon />, text: 'Ký túc xá A, Đại học Cần Thơ, đường 3/2 P. Ninh Kiều, TP Cần Thơ', color: '#4285F4' }
               ].map((contact, index) => (
                 <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                   <Box
@@ -341,8 +341,8 @@ const Footer = () => {
               }
             }}
           >
-            © 2025 <strong>WellVerse</strong>. Tất cả quyền được bảo lưu. 
-            Thiết kế với ❤️ tại Việt Nam.
+            © 2025 <strong>ePharma</strong>. Tất cả quyền được bảo lưu. 
+            Hệ thống nhà thuốc trực tuyến uy tín - Thiết kế với ❤️ tại Cần Thơ.
           </Typography>
         </Box>
       </Container>
