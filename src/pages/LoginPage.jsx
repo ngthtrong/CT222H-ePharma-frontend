@@ -24,7 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loading, error } = useAuth();
+  const { login, oauth2Login, loading, error } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -34,8 +34,9 @@ const LoginPage = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [oauth2Loading, setOauth2Loading] = useState(false);
 
-  // Kiểm tra thông báo lỗi từ admin routes
+  // Kiểm tra thông báo lỗi từ admin routes và OAuth2
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const errorType = urlParams.get('error');
@@ -47,8 +48,15 @@ const LoginPage = () => {
       setLocalError('Bạn không có quyền truy cập vào khu vực quản trị');
     } else if (state?.error === 'admin_auth_required' || state?.error === 'admin_access_denied') {
       setLocalError(state.message || 'Vui lòng đăng nhập để tiếp tục');
+    } else if (state?.oauth2Error) {
+      // Handle OAuth2 error from callback
+      setLocalError(state.oauth2Error);
+      showSnackbar(state.oauth2Error, 'error');
+      
+      // Clear the error from location state
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location]);
+  }, [location, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -97,12 +105,46 @@ const LoginPage = () => {
     navigate('/register');
   };
 
-  const handleGoogleLogin = () => {
-    // TODO: Implement Google login
+  const handleGoogleLogin = async () => {
+    try {
+      setOauth2Loading(true);
+      setLocalError('');
+      
+      // Save intended destination for post-login redirect
+      const from = location.state?.from?.pathname;
+      if (from) {
+        sessionStorage.setItem('oauth2_redirect_after', from);
+      }
+      
+      // Initiate Google OAuth2 login
+      await oauth2Login('google');
+      
+    } catch (error) {
+      console.error('Google login error:', error);
+      setLocalError(error.message || 'Đăng nhập với Google thất bại');
+      setOauth2Loading(false);
+    }
   };
 
-  const handleFacebookLogin = () => {
-    // TODO: Implement Facebook login
+  const handleFacebookLogin = async () => {
+    try {
+      setOauth2Loading(true);
+      setLocalError('');
+      
+      // Save intended destination for post-login redirect
+      const from = location.state?.from?.pathname;
+      if (from) {
+        sessionStorage.setItem('oauth2_redirect_after', from);
+      }
+      
+      // Initiate Facebook OAuth2 login
+      await oauth2Login('facebook');
+      
+    } catch (error) {
+      console.error('Facebook login error:', error);
+      setLocalError(error.message || 'Đăng nhập với Facebook thất bại');
+      setOauth2Loading(false);
+    }
   };
 
   return (
@@ -209,18 +251,36 @@ const LoginPage = () => {
             fullWidth
             startIcon={<GoogleIcon />}
             onClick={handleGoogleLogin}
-            sx={{ py: 1.5 }}
+            disabled={loading || oauth2Loading}
+            sx={{ 
+              py: 1.5,
+              borderColor: '#4285f4',
+              color: '#4285f4',
+              '&:hover': {
+                borderColor: '#3367d6',
+                backgroundColor: 'rgba(66, 133, 244, 0.04)'
+              }
+            }}
           >
-            Google
+            {oauth2Loading ? <CircularProgress size={20} color="inherit" /> : 'Google'}
           </Button>
           <Button
             variant="outlined"
             fullWidth
             startIcon={<FacebookIcon />}
             onClick={handleFacebookLogin}
-            sx={{ py: 1.5, color: '#1877F2', borderColor: '#1877F2' }}
+            disabled={loading || oauth2Loading}
+            sx={{ 
+              py: 1.5, 
+              color: '#1877F2', 
+              borderColor: '#1877F2',
+              '&:hover': {
+                borderColor: '#166fe5',
+                backgroundColor: 'rgba(24, 119, 242, 0.04)'
+              }
+            }}
           >
-            Facebook
+            {oauth2Loading ? <CircularProgress size={20} color="inherit" /> : 'Facebook'}
           </Button>
         </Box>
 

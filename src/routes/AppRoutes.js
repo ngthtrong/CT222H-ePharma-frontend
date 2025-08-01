@@ -17,6 +17,9 @@ import OrderHistoryPage from '../pages/OrderHistoryPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import CheckoutPage from '../pages/CheckoutPage';
 import SearchHistoryPage from '../pages/SearchHistoryPage';
+import OAuth2CallbackPage from '../pages/OAuth2CallbackPage';
+import OAuth2DemoPage from '../pages/OAuth2DemoPage';
+import OAuth2SuccessPage from '../pages/OAuth2SuccessPage';
 
 const AppRoutes = () => {
   return (
@@ -31,6 +34,11 @@ const AppRoutes = () => {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/test" element={<div>Test Page</div>} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/oauth2-demo" element={<OAuth2DemoPage />} />
+        
+        {/* OAuth2 Callback Routes */}
+        <Route path="/auth/callback/:provider" element={<OAuth2CallbackPage />} />
+        <Route path="/auth/oauth2/success" element={<OAuth2SuccessPage />} />
         
         {/* Protected routes */}
         <Route 

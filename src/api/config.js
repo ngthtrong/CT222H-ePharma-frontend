@@ -27,7 +27,7 @@ api.interceptors.request.use(
     };
 
     // Các endpoint công khai không cần token
-    const publicEndpoints = ['/categories', '/products'];
+    const publicEndpoints = ['/categories', '/products', '/auth/oauth2/login', '/auth/oauth2/status'];
     const isPublicEndpoint = publicEndpoints.some(endpoint => config.url.includes(endpoint));
 
     // Các endpoint admin luôn cần token
@@ -35,11 +35,11 @@ api.interceptors.request.use(
     const isAdminEndpoint = adminEndpoints.some(endpoint => config.url.includes(endpoint));
 
     // Các endpoint auth không nên có X-Cart-Session-ID
-    const authEndpoints = ['/auth/login', '/auth/register', '/auth/logout', '/auth/refresh'];
+    const authEndpoints = ['/auth/login', '/auth/register', '/auth/logout', '/auth/refresh', '/auth/oauth2/'];
     const isAuthEndpoint = authEndpoints.some(endpoint => config.url.includes(endpoint));
 
-    // Các endpoint auth cần token (trừ login và register)
-    const authEndpointsNeedToken = ['/auth/logout', '/auth/refresh'];
+    // Các endpoint auth cần token (trừ login và register và oauth2 login)
+    const authEndpointsNeedToken = ['/auth/logout', '/auth/refresh', '/auth/oauth2/callback'];
     const isAuthEndpointNeedToken = authEndpointsNeedToken.some(endpoint => config.url.includes(endpoint));
 
     const token = localStorage.getItem('accessToken');
