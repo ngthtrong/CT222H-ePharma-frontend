@@ -263,6 +263,13 @@ const ProductsPage = () => {
       newSearchParams.set('page', value);
       return newSearchParams;
     });
+    
+    // Scroll to top when page changes
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'smooth'
+    });
   };
 
   // Handle product click for search history tracking
