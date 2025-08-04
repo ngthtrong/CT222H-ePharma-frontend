@@ -35,6 +35,9 @@ import {
   ButtonGroup,
   Snackbar,
   Alert,
+  Autocomplete,
+  ListItemText,
+  ListItemAvatar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,6 +49,7 @@ import {
   SortByAlpha as SortIcon,
   AttachMoney as PriceIcon,
   Image as ImageIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
 import { adminAPI } from '../../api/adminApi';
 import { categoryAPI } from '../../api/categoryApi';
@@ -92,6 +96,7 @@ const AdminProducts = () => {
     published: true,
     isFeatured: false,
     images: [],
+    relatedProducts: [],
   });
 
   useEffect(() => {
@@ -157,6 +162,7 @@ const AdminProducts = () => {
         published: product.published !== undefined ? product.published : true,
         isFeatured: product.isFeatured !== undefined ? product.isFeatured : false,
         images: product.images || [],
+        relatedProducts: product.relatedProducts || [],
       });
     } else {
       setEditingProduct(null);
@@ -182,6 +188,7 @@ const AdminProducts = () => {
         published: true,
         isFeatured: false,
         images: [],
+        relatedProducts: [],
       });
     }
     setOpenDialog(true);
@@ -218,6 +225,44 @@ const AdminProducts = () => {
     }));
   };
 
+  // Xử lý thay đổi sản phẩm liên quan
+  const handleRelatedProductsChange = (event, newValue) => {
+    // Giới hạn tối đa 10 sản phẩm liên quan
+    if (newValue.length > 10) {
+      showWarning('Chỉ có thể chọn tối đa 10 sản phẩm liên quan');
+      return;
+    }
+    
+    // newValue là mảng các product objects được chọn
+    const relatedProductIds = newValue.map(product => product.id);
+    setFormData(prev => ({
+      ...prev,
+      relatedProducts: relatedProductIds
+    }));
+  };
+
+  // Lấy danh sách sản phẩm để chọn làm sản phẩm liên quan (loại trừ sản phẩm hiện tại)
+  const getAvailableProductsForRelated = () => {
+    return products.filter(product => {
+      // Loại trừ sản phẩm hiện tại nếu đang chỉnh sửa
+      if (editingProduct && product.id === editingProduct.id) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  // Lấy thông tin sản phẩm liên quan đã chọn
+  const getSelectedRelatedProducts = () => {
+    if (!formData.relatedProducts || formData.relatedProducts.length === 0) {
+      return [];
+    }
+    
+    return products.filter(product => 
+      formData.relatedProducts.includes(product.id)
+    );
+  };
+
   const handleSubmit = async () => {
     try {
       // Validate form
@@ -238,6 +283,7 @@ const AdminProducts = () => {
         lowStockThreshold: parseInt(formData.lowStockThreshold) || 5,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
         categoryId: formData.categoryId || null,
+        relatedProducts: formData.relatedProducts || [],
       };
       
       let response;
@@ -528,6 +574,7 @@ const AdminProducts = () => {
               <TableCell sx={{ fontWeight: 600 }}>Danh mục</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Giá</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Kho</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>SP liên quan</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Thao tác</TableCell>
             </TableRow>
@@ -535,7 +582,7 @@ const AdminProducts = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={9} align="center">
                   <CircularProgress />
                 </TableCell>
               </TableRow>
@@ -631,6 +678,14 @@ const AdminProducts = () => {
                       </Box>
                     </TableCell>
                     <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LinkIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="body2">
+                          {product.relatedProducts?.length || 0}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Chip 
                           label={product.published ? 'Hoạt động' : 'Ẩn'}
@@ -667,7 +722,7 @@ const AdminProducts = () => {
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={9} align="center">
                   Không tìm thấy sản phẩm nào
                 </TableCell>
               </TableRow>
@@ -1036,6 +1091,84 @@ const AdminProducts = () => {
                             />
                           </Grid>
                         </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* Row 3: Related Products */}
+                  <Grid item xs={12}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom color="primary">
+                          <LinkIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                          Sản phẩm liên quan
+                        </Typography>
+                        <Autocomplete
+                          multiple
+                          options={getAvailableProductsForRelated()}
+                          value={getSelectedRelatedProducts()}
+                          onChange={handleRelatedProductsChange}
+                          getOptionLabel={(option) => option.name || ''}
+                          isOptionEqualToValue={(option, value) => option.id === value.id}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Chọn sản phẩm liên quan"
+                              placeholder="Tìm kiếm và chọn sản phẩm liên quan"
+                              helperText={`Đã chọn ${formData.relatedProducts?.length || 0}/10 sản phẩm liên quan. Sản phẩm liên quan sẽ được hiển thị trên trang chi tiết sản phẩm.`}
+                            />
+                          )}
+                          renderOption={(props, option) => (
+                            <Box component="li" {...props}>
+                              <ListItemAvatar>
+                                <Avatar
+                                  src={option.images && option.images[0]}
+                                  sx={{ width: 40, height: 40, mr: 2 }}
+                                >
+                                  <ImageIcon />
+                                </Avatar>
+                              </ListItemAvatar>
+                              <ListItemText
+                                primary={option.name}
+                                secondary={
+                                  <Box>
+                                    <Typography variant="caption" color="text.secondary">
+                                      SKU: {option.sku || 'N/A'} • {formatCurrency(option.price)}
+                                    </Typography>
+                                    {option.brand && (
+                                      <Typography variant="caption" color="text.secondary" display="block">
+                                        Thương hiệu: {option.brand}
+                                      </Typography>
+                                    )}
+                                    <Typography variant="caption" color="text.secondary" display="block">
+                                      Danh mục: {getCategoryName(option.categoryId)}
+                                    </Typography>
+                                  </Box>
+                                }
+                              />
+                            </Box>
+                          )}
+                          limitTags={3}
+                          getLimitTagsText={(more) => `+${more} sản phẩm khác`}
+                          disabled={loading}
+                          filterSelectedOptions
+                          noOptionsText="Không tìm thấy sản phẩm nào"
+                          loadingText="Đang tải..."
+                          filterOptions={(options, { inputValue }) => {
+                            // Tìm kiếm theo tên, SKU, brand
+                            const query = inputValue.toLowerCase();
+                            return options.filter(option => 
+                              option.name?.toLowerCase().includes(query) ||
+                              option.sku?.toLowerCase().includes(query) ||
+                              option.brand?.toLowerCase().includes(query)
+                            );
+                          }}
+                          ChipProps={{
+                            size: 'small',
+                            variant: 'outlined',
+                            color: 'primary'
+                          }}
+                        />
                       </CardContent>
                     </Card>
                   </Grid>

@@ -29,6 +29,7 @@ import { useParams } from 'react-router-dom';
 import { productAPI } from '../api';
 import { getImageSrc, handleImageError } from '../utils/imageUtils';
 import AddToCartButton from '../components/AddToCartButton';
+import ProductCard from '../components/ProductCard';
 
 const ProductDetailPage = () => {
   const { slug } = useParams();
@@ -37,6 +38,8 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState(0);
   const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loadingRelated, setLoadingRelated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -50,6 +53,14 @@ const ProductDetailPage = () => {
         if (productData?.images?.length > 0) {
           setSelectedImageIndex(0);
         }
+        
+        // Fetch related products if product has relatedProducts array
+        if (productData?.relatedProducts?.length > 0) {
+          await fetchRelatedProducts(productData.relatedProducts);
+        } else if (productData?.id) {
+          // Fallback: Fetch related products using API endpoint
+          await fetchRelatedProductsFromAPI(productData.id);
+        }
       } catch (error) {
         setError('Không thể tải thông tin sản phẩm.');
         console.error('Error fetching product:', error);
@@ -59,6 +70,38 @@ const ProductDetailPage = () => {
     };
     fetchProduct();
   }, [slug]);
+
+  const fetchRelatedProducts = async (relatedProductIds) => {
+    try {
+      setLoadingRelated(true);
+      // Get all products and filter by related product IDs
+      const response = await productAPI.getProducts();
+      const allProducts = response.data?.data || response.data || [];
+      
+      const relatedProds = allProducts.filter(product => 
+        relatedProductIds.includes(product.id)
+      ).slice(0, 4); // Limit to 4 products
+      
+      setRelatedProducts(relatedProds);
+    } catch (error) {
+      console.error('Error fetching related products:', error);
+    } finally {
+      setLoadingRelated(false);
+    }
+  };
+
+  const fetchRelatedProductsFromAPI = async (productId) => {
+    try {
+      setLoadingRelated(true);
+      const response = await productAPI.getRelatedProducts(productId);
+      const relatedProds = (response.data?.data || response.data || []).slice(0, 4);
+      setRelatedProducts(relatedProds);
+    } catch (error) {
+      console.error('Error fetching related products from API:', error);
+    } finally {
+      setLoadingRelated(false);
+    }
+  };
 
   const handleQuantityChange = (e) => {
     const value = parseInt(e.target.value, 10);
@@ -424,6 +467,28 @@ const ProductDetailPage = () => {
             )}
           </Paper>
         </Box>
+
+        {/* Related Products Section */}
+        {relatedProducts.length > 0 && (
+          <Box sx={{ mt: 6 }}>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: 'primary.main', mb: 3 }}>
+              Sản phẩm liên quan
+            </Typography>
+            {loadingRelated ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Grid container spacing={3}>
+                {relatedProducts.map((relatedProduct) => (
+                  <Grid item xs={12} sm={6} md={3} key={relatedProduct.id}>
+                    <ProductCard product={relatedProduct} />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
+        )}
       </Paper>
     </Container>
   );
