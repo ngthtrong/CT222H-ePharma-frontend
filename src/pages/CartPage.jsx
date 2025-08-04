@@ -27,11 +27,11 @@ import {
   ArrowBack as ArrowBackIcon,
   ShoppingBag as ShoppingBagIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getImageSrc, handleImageError } from '../utils/imageUtils';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, createSlug } from '../utils/formatters';
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -223,25 +223,56 @@ const CartPage = () => {
                     <Grid container spacing={2} alignItems="center">
                       {/* Product Image */}
                       <Grid item xs={12} sm={3}>
-                        <CardMedia
-                          component="img"
-                          sx={{ 
-                            width: '100%', 
-                            height: 120, 
-                            objectFit: 'cover',
-                            borderRadius: 1
-                          }}
-                          src={getImageSrc(item.productImage)}
-                          alt={item.productName}
-                          onError={handleImageError}
-                        />
+                        <Link
+                          to={`/product/${item.productSlug || createSlug(item.productName)}`}
+                          style={{ textDecoration: 'none' }}
+                        >
+                          <CardMedia
+                            component="img"
+                            sx={{ 
+                              width: '100%', 
+                              height: 120, 
+                              objectFit: 'cover',
+                              borderRadius: 1,
+                              cursor: 'pointer',
+                              transition: 'transform 0.2s ease',
+                              '&:hover': {
+                                transform: 'scale(1.05)'
+                              }
+                            }}
+                            src={getImageSrc(item.productImage)}
+                            alt={item.productName}
+                            onError={handleImageError}
+                          />
+                        </Link>
                       </Grid>
 
                       {/* Product Info */}
                       <Grid item xs={12} sm={4}>
-                        <Typography variant="h6" gutterBottom>
-                          {item.productName}
-                        </Typography>
+                        <Link
+                          to={`/product/${item.productSlug || createSlug(item.productName)}`}
+                          style={{ 
+                            textDecoration: 'none', 
+                            color: 'inherit',
+                            '&:hover': {
+                              textDecoration: 'underline'
+                            }
+                          }}
+                        >
+                          <Typography 
+                            variant="h6" 
+                            gutterBottom
+                            sx={{
+                              cursor: 'pointer',
+                              '&:hover': {
+                                color: 'primary.main',
+                                textDecoration: 'underline'
+                              }
+                            }}
+                          >
+                            {item.productName}
+                          </Typography>
+                        </Link>
                         <Typography variant="body2" color="text.secondary">
                           ID: {item.productId}
                         </Typography>
