@@ -2,159 +2,90 @@
 
 
 
-# ePharma Frontend - React Application
+# Mô tả dự án  (Cập nhật ngày 13/07/2025)
 
-🏥 **ePharma** - Hệ thống nhà thuốc trực tuyến uy tín, cung cấp thuốc và dược phẩm chất lượng cao với dịch vụ tận tâm.
+## 1. Tổng quan
 
-## 🐳 Docker Setup (Đã được đơn giản hóa)
+**WellVerse** là một dự án xây dựng website thương mại điện tử hoàn chỉnh, tập trung vào lĩnh vực dược phẩm và các sản phẩm chăm sóc sức khỏe. Dự án được thực hiện trong khuôn khổ bài tập lớn của trường đại học, với mục tiêu không chỉ là tạo ra một sản phẩm khả dụng mà còn là cơ hội để các thành viên áp dụng và nâng cao kỹ năng với các công nghệ web hiện đại.
 
-Dự án đã được đơn giản hóa với một kịch bản Docker duy nhất hỗ trợ cả development và production mode.
+Dự án bao gồm việc phát triển một hệ thống đầy đủ từ Frontend (giao diện người dùng), Backend (logic máy chủ và API), cho đến Cơ sở dữ liệu, đi kèm với bộ tài liệu thiết kế chi tiết và báo cáo cuối kỳ.
 
-### Cấu trúc Docker
-- **Dockerfile**: Multi-stage build duy nhất
-- **docker-compose.yml**: File compose chung với environment variables
-- **.env.development**: Cấu hình cho development
-- **.env.production**: Cấu hình cho production
+## 2. Thông tin dự án
 
-### Lệnh sử dụng nhanh
+-   **Loại dự án:** Bài tập lớn môn học
+-   **Thời gian thực hiện:** 4 tuần (Hiện còn 3 tuần)
+-   **Tên dự án:** WellVerse
+-   **Lĩnh vực:** E-commerce (Dược phẩm & Chăm sóc sức khỏe)
+-   **Thành viên nhóm:** 4 thành viên (Trọng, Thiên, Hào, Triết)
 
-```bash
-# Development mode (với hot-reload)
-npm run docker:dev
+## 3. Mục tiêu dự án
 
-# Production mode (chạy nền)
-npm run docker:prod
+### Mục tiêu nghiệp vụ (Business Goals)
+-   Xây dựng một nền tảng mua sắm thuốc và thực phẩm chức năng trực tuyến tiện lợi, an toàn và dễ sử dụng cho người dùng cuối.
+-   Cung cấp cho quản trị viên (chủ cửa hàng) một công cụ mạnh mẽ để quản lý sản phẩm, đơn hàng, khách hàng và theo dõi hiệu quả kinh doanh.
+-   Mô phỏng thành công các tính năng nổi bật của các chuỗi nhà thuốc lớn như Pharmacity, Long Châu.
 
-# Dừng containers
-npm run docker:stop
+### Mục tiêu kỹ thuật (Technical Goals)
+-   Áp dụng thành công stack công nghệ hiện đại: **ReactJS (Vite), Spring Boot, và MongoDB**.
+-   Xây dựng hệ thống theo kiến trúc **RESTful API**, đảm bảo sự tách biệt rõ ràng giữa Frontend và Backend.
+-   Thực hành quy trình làm việc chuyên nghiệp: quản lý mã nguồn bằng Git, theo dõi công việc qua bảng (Trello/Jira), và viết tài liệu thiết kế bài bản.
+-   Triển khai thành công ứng dụng lên các nền tảng đám mây (Vercel, Render...).
 
-# Xem logs
-npm run docker:logs
+## 4. Phạm vi và Tính năng
 
-# Dọn dẹp hoàn toàn
-npm run docker:clean
+### Giai đoạn 1: MVP (Sản phẩm Khả dụng Tối thiểu - Mục tiêu trong 2 tuần tới)
 
-# Truy cập shell container
-npm run docker:shell
-```
+#### Chức năng của Người dùng (User)
+-   **Xác thực:** Đăng ký, Đăng nhập bằng email và mật khẩu thông thường.
+-   **Sản phẩm:** Xem danh sách sản phẩm (có phân trang), xem chi tiết sản phẩm, xem sản phẩm liên quan.
+-   **Tìm kiếm & Lọc:** Tìm kiếm sản phẩm theo tên, có gợi ý khi gõ. Lọc sản phẩm theo danh mục và khoảng giá.
+-   **Giỏ hàng:** Thêm/xóa/sửa sản phẩm trong giỏ hàng. **Hỗ trợ cho cả khách vãng lai (chưa đăng nhập).**
+-   **Đặt hàng (Giả lập):** Tạo đơn hàng từ giỏ hàng. Hệ thống lưu đơn hàng vào database với trạng thái "Chờ xử lý".
+-   **Quản lý tài khoản:** Xem và theo dõi trạng thái các đơn hàng đã đặt, xem lịch sử mua hàng.
 
-### Hoặc sử dụng script quản lý
+#### Chức năng của Quản trị viên (Admin)
+-   **Xác thực:** Đăng nhập vào trang quản trị riêng biệt.
+-   **Quản lý Sản phẩm (Kho):** CRUD (Tạo, Xem, Cập nhật, Xóa) cho sản phẩm.
+-   **Quản lý Đơn hàng:** Xem danh sách đơn hàng. Thay đổi trạng thái đơn hàng (Xác nhận, Đang giao, Hoàn thành, Hủy).
+-   **Quản lý Người dùng:** Xem danh sách người dùng, có thể xóa tài khoản người dùng.
+-   **Quản lý Khuyến mãi (Cơ bản):** Thêm trường `discountPercent` vào sản phẩm để hiển thị giá cũ/giá mới.
+-   **Báo cáo (Cơ bản):** Xem báo cáo doanh thu theo ngày/tháng/quý.
 
-```bash
-# Windows
-docker-manager-simple.bat [dev|prod|stop|clean|logs|shell]
+### Giai đoạn 2: Các tính năng nâng cao (Thời gian còn lại)
+-   **Xác thực nâng cao:** Đăng nhập/Đăng ký thông qua Google, Facebook.
+-   **Tương tác sản phẩm:** Người dùng viết đánh giá (review) cho sản phẩm. Admin trả lời các đánh giá.
+-   **Khuyến mãi nâng cao:** Quản lý các chiến dịch khuyến mãi (thêm banner quảng cáo, khung khuyến mãi vào ảnh sản phẩm, icon đặc biệt...).
+-   **Thanh toán thực:** Tích hợp cổng thanh toán (Momo, ZaloPay...).
 
-# Linux/Mac
-chmod +x docker-manager-simple.sh
-./docker-manager-simple.sh [dev|prod|stop|clean|logs|shell]
-```
+## 5. Kiến trúc & Công nghệ
 
-### Truy cập ứng dụng
-- **Development**: http://localhost:5173
-- **Production**: http://localhost:80
+-   **Frontend:** **ReactJS** (Khởi tạo và phát triển với **Vite**).
+    -   *Thư viện UI:* Sẽ quyết định giữa Material-UI (MUI) hoặc Tailwind CSS.
+-   **Backend:** **Spring Boot** (Java).
+    -   *Bảo mật:* Spring Security với JSON Web Token (JWT).
+-   **Database:** **MongoDB** (Cloud: MongoDB Atlas).
+-   **Kiến trúc hệ thống:**
+    `Frontend (Client) <---> RESTful API (Backend Server) <---> Database`
+-   **Công cụ khác:**
+    -   **Postman:** Kiểm thử API.
+    -   **Git & GitHub/GitLab:** Quản lý mã nguồn.
+    -   **Trello/Jira/Notion:** Quản lý công việc.
 
-Xem thêm chi tiết trong [DOCKER_SIMPLE.md](DOCKER_SIMPLE.md)
+## 6. Thiết kế Dữ liệu & API
 
----
+Thiết kế chi tiết của hệ thống được quy định trong các tài liệu riêng biệt và được xem là "nguồn chân lý" (source of truth) cho quá trình phát triển.
 
-# Kế hoạch Hành động - Dự án 
+-   `database.md`: Mô tả chi tiết schema cho từng collection trong MongoDB.
+-   `api-description.md`: Đặc tả chi tiết từng endpoint của RESTful API.
+-   `demo_json_for_api.md`: Cung cấp các ví dụ JSON mẫu cho request và response.
 
--   **Ngày bắt đầu:** 13/07/2025
--   **Ngày kết thúc (Hạn chót báo cáo):** 02/08/2025
--   **Tổng thời gian còn lại:** 3 tuần (21 ngày)
+**Thay đổi Kiến trúc Quan trọng:**
+-   Để hỗ trợ tính năng giỏ hàng cho khách vãng lai và tăng khả năng mở rộng, collection **`carts` đã được tách riêng** thay vì nhúng trong collection `users`. Toàn bộ các tài liệu thiết kế nêu trên **đã được cập nhật** để phản ánh thay đổi này.
 
+## 7. Tình trạng Hiện tại
 
-### Nguyên tắc chỉ đạo (Mantra)
-> **"Hoàn thành hơn Hoàn hảo"** - Chúng ta sẽ tập trung vào việc hoàn thành các tính năng cốt lõi để đảm bảo có sản phẩm chạy được để báo cáo. Các tính năng nâng cao hoặc các chi tiết nhỏ sẽ được xem xét sau nếu còn thời gian.
-
-
-
-## **Tuần 1 (13/07 - 19/07): Nền móng & Tái cấu trúc**
-
-*   **Mục tiêu chính:** Đây là tuần quan trọng nhất. Backend phải được tái cấu trúc thành công theo thiết kế mới. Frontend phải xây dựng xong bộ khung và các trang giao diện tĩnh.
-*   **Kết quả cần đạt cuối tuần:**
-    *   Backend đã tái cấu trúc, chạy ổn định và có tài liệu API tự động.
-    *   Frontend có thể điều hướng qua lại giữa các trang, có giao diện cho các trang chính.
-    *   Toàn bộ API của User, Category, Product, và Cart (sau tái cấu trúc) đã được kiểm thử bởi Triết.
-
-### Nhiệm vụ chi tiết:
-
-
-#### **Frontend**
-1.  **Thiết lập môi trường:**
-    -   **Nhiệm vụ:** Cài đặt các thư viện cần thiết: `react-router-dom`, `axios`, và quyết định thư viện UI (MUI hoặc Tailwind CSS).
-2.  **Xây dựng Bộ khung (Layout & Routing):**
-    -   **Nhiệm vụ:** Tạo layout chung (Header, Footer). Cấu hình các routes (đường dẫn) cho các trang chính.
-3.  **Xây dựng Giao diện Tĩnh:**
-    -   **Nhiệm vụ:** Xây dựng giao diện (chưa cần gọi API) cho các trang:
-        -   Trang chủ (HomePage)
-        -   Trang Đăng ký (RegisterPage)
-        -   Trang Đăng nhập (LoginPage)
-        -   Trang Danh sách Sản phẩm (ProductsPage)
-4.  **Chuẩn bị Dữ liệu:**
-    -   **Nhiệm vụ:** Hoàn thành file dữ liệu mẫu (JSON/Excel) cho ít nhất 50 sản phẩm thuộc nhiều danh mục. Import dữ liệu này vào MongoDB Atlas.
-5.  **Kiểm thử API:**
-    -   **Nhiệm vụ:** Sử dụng Postman. Sẵn sàng kiểm thử ngay khi Backend hoàn thành tái cấu trúc và cung cấp link Swagger.
-    -   Kiểm tra kỹ lưỡng các API của User, Category, Product và **toàn bộ API Cart mới**.
-    -   Báo cáo lỗi (bug) một cách chi tiết (endpoint, request body, response nhận được, response mong muốn) cho team Backend.
-
----
-
-## **Tuần 2 (20/07 - 26/07): Tích hợp & Hoàn thiện Luồng Mua hàng**
-
-*   **Mục tiêu chính:** Kết nối Frontend và Backend. Hoàn thiện toàn bộ luồng chức năng của người dùng từ xem sản phẩm đến quản lý giỏ hàng.
-*   **Kết quả cần đạt cuối tuần:**
-    *   Người dùng có thể xem, tìm kiếm, lọc sản phẩm trên giao diện.
-    *   Người dùng (cả khách và đã đăng nhập) có thể thêm, sửa, xóa sản phẩm trong giỏ hàng.
-    *   Chức năng `merge` giỏ hàng sau khi đăng nhập hoạt động trơn tru.
-
-### Nhiệm vụ chi tiết:
-
-#### **Frontend (Trọng)**
-1.  **Tích hợp API Xác thực:**
-    -   **Nhiệm vụ:** Gọi API đăng ký, đăng nhập. Lưu `accessToken` và thông tin người dùng.
-2.  **Tích hợp API Sản phẩm:**
-    -   **Nhiệm vụ:** Lấy và hiển thị dữ liệu sản phẩm, danh mục lên giao diện. Hoàn thiện chức năng tìm kiếm, lọc.
-3.  **Tích hợp API Giỏ hàng (Phần phức tạp nhất):**
-    -   **Nhiệm vụ:**
-        -   Triển khai logic tạo và quản lý `cartSessionId` trong `localStorage` cho khách vãng lai.
-        -   Gọi API thêm/sửa/xóa sản phẩm trong giỏ hàng, gửi kèm header tương ứng.
-        -   Gọi API `/cart/merge` ngay sau khi người dùng đăng nhập thành công.
-4.  **Kiểm thử Luồng chức năng:**
-    -   **Nhiệm vụ:** Phối hợp với Trọng, thực hiện kiểm thử toàn diện luồng người dùng trên giao diện web. Ghi nhận và báo cáo lỗi UI/UX và logic.
-5.  **Soạn thảo Báo cáo:**
-    -   **Nhiệm vụ:** Bắt đầu viết dàn ý chi tiết và các phần nội dung cơ bản cho file báo cáo Word (giới thiệu, phân tích thiết kế...).
-
----
-
-## **Tuần 3 (27/07 - 02/08): Hoàn thiện MVP, Đánh bóng & Báo cáo**
-
-*   **Mục tiêu chính:** Hoàn thành nốt các chức năng Admin, sửa lỗi, triển khai sản phẩm và hoàn thiện mọi tài liệu để sẵn sàng báo cáo.
-*   **Kết quả cần đạt cuối tuần (Thứ Sáu, 01/08):**
-    *   Sản phẩm MVP được triển khai online và hoạt động.
-    *   File báo cáo và slide thuyết trình đã hoàn thiện.
-    *   Kịch bản demo đã được tổng duyệt.
-
-### Nhiệm vụ chi tiết:
-
-#### **Hoàn thiện Tính năng (Đến Thứ Tư, 30/07)**
--   Hoàn thành tất cả các API còn lại của MVP (Orders, CRUD Admin cho sản phẩm, quản lý đơn hàng, báo cáo cơ bản).
--   Xây dựng giao diện và tích hợp các API cho luồng Đặt hàng và các trang quản lý của Admin.
-
-#### **Ổn định & Triển khai (Thứ Năm, 31/07)**
--   Ngưng phát triển tính năng mới. Tập trung sửa các lỗi tồn đọng quan trọng nhất.
--   Dọn dẹp code, kiểm tra lại cấu hình và triển khai lên nền tảng **Render** hoặc **Heroku**.
--   Tinh chỉnh UI/UX, kiểm tra responsive. Triển khai lên nền tảng **Vercel** hoặc **Netlify**.
-
-#### **Hoàn thiện Tài liệu (Cả tuần)**
--   Chịu trách nhiệm chính hoàn thiện nội dung file báo cáo Word và slide PowerPoint.
--   Cung cấp thông tin, hình ảnh, sơ đồ cần thiết cho Triết. Cùng nhau review và chỉnh sửa tài liệu.
-
-#### **Tổng duyệt (Thứ Sáu, 01/08)**
--   **Cả nhóm:** Họp offline.
--   Chạy thử kịch bản demo sản phẩm từ A đến Z trên môi trường đã triển khai.
--   Phân công người trình bày từng phần.
--   Thuyết trình thử và góp ý, tính toán thời gian.
-
-#### **Ngày báo cáo (Thứ Bảy, 02/08)**
--   Tự tin, bình tĩnh và trình bày thành quả của cả nhóm.
+-   **Frontend:** Dự án đã được khởi tạo bằng `React + Vite`. Cấu trúc thư mục cơ bản đã được thiết lập. Chưa xây dựng các thành phần giao diện (components) hoặc trang (pages).
+-   **Backend:**
+    -   Đã hoàn thành việc viết code cho các API thuộc modules: **User, Category, và Product** *dựa trên thiết kế cũ (giỏ hàng nhúng)*.
+    -   Phần code này **chưa được kiểm thử** và **cần được tái cấu trúc** để phù hợp với kiến trúc tách giỏ hàng mới.
+-   **Tài liệu:** Toàn bộ tài liệu thiết kế (database, API, JSON examples) **đã được cập nhật** để phản ánh kiến trúc mới. Đây là nguồn tham khảo chính thức cho giai đoạn tái cấu trúc và phát triển tiếp theo.
